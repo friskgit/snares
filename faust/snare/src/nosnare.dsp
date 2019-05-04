@@ -1,3 +1,5 @@
+// -*- compile-command: "cd .. && make jack && cd -"; -*-
+
 declare version " 0.1 ";
 declare author " Henrik Frisk " ;
 declare author " henrikfr ";
@@ -22,15 +24,28 @@ import("music.lib") ; // for osci definition
 // 30 Juni 2018	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------
 
-osc1 = os.osc(330) *(0.1);
-osc2 = os.osc(180) *(0.1);
-tri1 = os.triangle(111) *(0.1);
+channels = 14;
+
+focus = hslider("focus", 1, 0, 1, 0.0001);
+position = hslider("position", 1, 0, channels, 1);
+rate = ma.SR/1000.0;
+rndctrl = (no.lfnoise(rate) * (channels + 1)) * focus : ma.fabs + position : int ;
+outputctrl = rndctrl : ba.sAndH(imp);
+ch_wrapped = ma.modulo(outputctrl, channels);
+
+imp = ba.pulse(hslider("tempo", 5000, 500, 10000, 1));
+
+trif = hslider("triangle freq", 111, 10, 5000, 0.1);
+osc1f = hslider("osc 1 freq", 360, 10, 5000, 0.1);
+osc2f = hslider("osc 2 freq", 180, 10, 5000, 0.1);
+osc1 = os.osc(osc1f) *(0.1);
+osc2 = os.osc(osc2f) *(0.1);
+tri1 = os.triangle(trif) *(0.1);
 
 env = en.ar(attack, rel, imp)
 with {
   attack = hslider("attack", 0.00000001, 0, 0.1, 0.000000001) : si.smooth(0.1);
   rel = hslider("rel", 0.1, 0.0000001, 0.5, 0.0000001) : si.smooth(0.2);
-  imp = ba.pulse(hslider("tempo", 5000, 500, 10000, 1));
 };
 
 // Noise
@@ -55,6 +70,8 @@ cmpl_osc(freq) = f2smp(freq) : phasor : _, 6.2831853 : *<: sin,cos;
 
 cmpl_mul(in1,in2,in3,in4) = in1*(in3), in2*(in4) ;
 
+// random amp
+samp = no.lfnoise(100) : ma.fabs;
 trimod = tri1, tri1 : (filters, cmpl_osc) : cmpl_mul <: +,- ;
 oscs = osc1, osc2 : par(i, 2, _* env);
-process = trimod : par(i, 2, _ * env), oscs :> _,_ , nse ;
+process = trimod : par(i, 2, _ * env), oscs :> _,_ , nse  :> ba.selectoutn(channels, ch_wrapped);

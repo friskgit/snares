@@ -63,7 +63,7 @@ OSC		:= -osc
 MIDI		:= -midi
 
 # Any of the above
-FLAGS		:= ## $(MIDI) $(POLY)
+FLAGS		:= $(MIDI) $(POLY)
 FX		:= -effect
 NO_PATCH	:= -nppatch
 
