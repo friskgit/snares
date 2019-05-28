@@ -33,7 +33,8 @@
 
 ## Specify the sources to build here
 srcdir	:= src
-src	:= $(wildcard $(addsuffix /*.dsp, $(srcdir)))
+## src	:= $(wildcard $(addsuffix /*.dsp, $(srcdir)))
+src	:= $(srcdir)/snare_multi.dsp
 
 ## Output directories, dipsosable
 bindir	:= bin
@@ -63,7 +64,7 @@ OSC		:= -osc
 MIDI		:= -midi
 
 # Any of the above
-FLAGS		:= $(OSC) $(MIDI) $(POLY)
+FLAGS		:= $(OSC) ## $(MIDI) $(POLY)
 FX		:= -effect
 NO_PATCH	:= -nppatch
 
