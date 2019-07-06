@@ -34,7 +34,7 @@
 ## Specify the sources to build here
 srcdir	:= src
 ## src	:= $(wildcard $(addsuffix /*.dsp, $(srcdir)))
-src	:= $(srcdir)/snare_multi.dsp
+src	:= $(srcdir)/snare.dsp
 
 ## Output directories, dipsosable
 bindir	:= bin
@@ -51,6 +51,8 @@ app	:= $(addprefix $(bindir)/, $(notdir $(src:.dsp=.app)))
 vst	:= $(addprefix $(vstdir)/, $(notdir $(src:.dsp=.vst)))
 mxo	:= $(addprefix $(maxdir)/, $(notdir $(src:.dsp=~.mxo)))
 sc	:= $(addprefix $(scdir)/, $(notdir $(src:.dsp=.sc)))
+scx	:= $(addprefix $(scdir)/, $(notdir $(src:.dsp=.scx)))
+superscx	:= $(addprefix $(scdir)/, $(notdir $(src:.dsp=_supernova.scx)))
 pd	:= $(addprefix $(pddir)/, $(notdir $(src:.dsp=~.pd_darwin)))
 html	:= $(addprefix $(docdir)/, $(notdir $(src:.dsp=.html)))
 oct	:= $(addprefix $(bindir)/, $(notdir $(src:.dsp=.m)))
@@ -86,7 +88,7 @@ MKDIR	       	:= $(shell for d in $(REQUIRED_DIRS); \
 			[[ -d $$d ]] || mkdir -p $$d; 	\
 			done)
 
-SC_INSTALL	:= ~/Library/Application\ Support/SuperCollider/Extensions/ADT
+SC_INSTALL	:= ~/Library/Application\ Support/SuperCollider/Extensions/Faust
 .DEFAULT_GOAL	:= all
 
 all : $(app) $(jack) $(vst) $(html) $(mxo) $(sc) $(svg) $(pd)
@@ -174,9 +176,14 @@ $(scdir)/%.sc : $(srcdir)/%.dsp
 	@mv $(basename $<)_supernova.scx $(scdir)
 	@mv $(basename $<).cpp $(cppdir)
 
+testme :
+	@echo $(superscx)
+
 scinstall : ##$(SC) $(SCX) $(SSCX)
-	@echo "Installing SuperCollider extensions  in $(SC_INSTALL)"
+	@echo "Installing SuperCollider extensions in $(SC_INSTALL)"
 	@echo "$(sc)"
+	@echo "$(scx)"
+	@echo "$(superscx)"
 	$(foreach var, $(sc), $(shell cp $(var) $(SC_INSTALL)))
 	$(foreach var, $(scx), $(shell cp $(var) $(SC_INSTALL)))
 	$(foreach var, $(superscx), $(shell cp $(var) $(SC_INSTALL)))

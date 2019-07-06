@@ -51,9 +51,13 @@ with {
   amp = hslider("vol b", 0.5, 0, 1, 0.0001);
 };
 
+////////
 // Control the output channel
+////////
+
 // Define the focus
 focus = hslider("focus", 1, 0, 1, 0.0001);
+
 // Define the position
 position = hslider("position", 1, 0, channels, 1);
 rate = ma.SR/1000.0;
@@ -69,6 +73,8 @@ with {
   gain = hslider("gain", 0, 0, 2, 0.00001);
 };
 
+// Wrap channels around the array.
 ch_wrapped = ma.modulo(outputctrl, channels);
-process = n,m : par(i, 8, filt), par(i, 8, filt) :> _,_; // :> ba.selectoutn(channels, ch_wrapped);
-//process = n : par(i, 8, filt) :> _,_;
+
+// Add this to disperse audio
+process = n,m : par(i, 8, filt), par(i, 8, filt) :> _,_ :> ba.selectoutn(channels, ch_wrapped);

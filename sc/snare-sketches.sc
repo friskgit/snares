@@ -59,7 +59,7 @@ Pdefn(\accents, Pseq([1, 0.1, 0.1, 0.1, 0.1], inf));
 );
 )
 
-Pdefn(\duration, Pn(0.2, inf));
+Pdefn(\duration, Pn(0.3, inf));
 Pdefn(\accents, Pseq([1, 0.1, 0.1], inf));
 ~accent.play(quant: 0);
 // Stream with accents
