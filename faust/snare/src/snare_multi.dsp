@@ -1,4 +1,4 @@
-// -*- compile-command: "cd .. && make sc && cd -"; -*-
+// -*- compile-command: "cd .. && make jack src=src/snare_multi.dsp && cd -"; -*-&& cd -"; -*-
 
 declare version " 0.1 ";
 declare author " Henrik Frisk " ;
@@ -26,7 +26,7 @@ import("stdfaust.lib");
 // 30 Juni 2018	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------
 
-channels = 2;
+channels = 16;
 steps = 16;
 integ(x) = x - ma.frac(x);
 tmp = hslider("tempo", 300, 50, 10000, 1);

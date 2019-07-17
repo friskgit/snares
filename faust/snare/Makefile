@@ -33,8 +33,8 @@
 
 ## Specify the sources to build here
 srcdir	:= src
-## src	:= $(wildcard $(addsuffix /*.dsp, $(srcdir)))
-src	:= $(srcdir)/snare.dsp
+src	:= $(wildcard $(addsuffix /*.dsp, $(srcdir)))
+## src	:= $(srcdir)/snare.dsp
 
 ## Output directories, dipsosable
 bindir	:= bin
