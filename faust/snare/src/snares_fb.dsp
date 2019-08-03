@@ -8,19 +8,11 @@ declare copyright "(c) dinergy 2018 ";
 
 import("stdfaust.lib");
 
-//---------------`Snare drum synth` --------------------------
-// A take at a snare drum synth
+//---------------`Filterbank for snaredrum` --------------------------
 //
-// A single hit snare drum synth
+// A filterbank for use with snare drum synths and channel disperser.
 //
-// Where:
-// * midi note 67-89
-// * stiffness 0-0.55 (mapped to note as in note 67 -> 0)§
-// * midi velocity is mapped to pressure
-
-// A useful parameter setting is:
-//
-// 30 Juni 2018	Henrik Frisk	mail@henrikfrisk.com
+// 18 Juli 2019	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------
 
 channels = 2;

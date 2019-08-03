@@ -1,0 +1,784 @@
+* Snare snippets
+** audio init
+   #+begin_src sclang :results none
+     (
+     ServerOptions.devices;
+     s = Server.local;
+     Server.local = Server.default;
+     o = Server.local.options; // Get the local server's options
+     o.device = "JackRouter";
+     o.numOutputBusChannels = 16;
+     o.numWireBufs = 128;
+     o.memSize = 16384;
+     //o.device = "Built-in Output";
+     s.makeWindow;
+     s.boot;
+     )
+   #+end_src
+   #+begin_src sclang :results none
+     s.quit;
+   #+end_src
+** jack
+   #+begin_src shell :results replace
+     jdis -a
+     for i in 1 3 5 7 9 11 13 15; do 
+	 echo $i
+	 jcon scsynth out$i sys playback_1 1; 
+     done
+     for i in 2 4 6 8 10 12 14 16; do 
+	 echo $i
+	 jcon scsynth out$i sys playback_2 1; 
+     done
+
+   #+end_src
+
+   #+RESULTS:
+   | Dissconnecting | system:capture_1 | from | scsynth:in1       |
+   | Dissconnecting | system:capture_2 | from | scsynth:in2       |
+   | 1              |                  |      |                   |
+   | Connecting     | scsynth:out1     | to   | system:playback_1 |
+   | 3              |                  |      |                   |
+   | Connecting     | scsynth:out3     | to   | system:playback_1 |
+   | 5              |                  |      |                   |
+   | Connecting     | scsynth:out5     | to   | system:playback_1 |
+   | 7              |                  |      |                   |
+   | Connecting     | scsynth:out7     | to   | system:playback_1 |
+   | 9              |                  |      |                   |
+   | Connecting     | scsynth:out9     | to   | system:playback_1 |
+   | 11             |                  |      |                   |
+   | Connecting     | scsynth:out11    | to   | system:playback_1 |
+   | 13             |                  |      |                   |
+   | Connecting     | scsynth:out13    | to   | system:playback_1 |
+   | 15             |                  |      |                   |
+   | Connecting     | scsynth:out15    | to   | system:playback_1 |
+   | 2              |                  |      |                   |
+   | Connecting     | scsynth:out2     | to   | system:playback_2 |
+   | 4              |                  |      |                   |
+   | Connecting     | scsynth:out4     | to   | system:playback_2 |
+   | 6              |                  |      |                   |
+   | Connecting     | scsynth:out6     | to   | system:playback_2 |
+   | 8              |                  |      |                   |
+   | Connecting     | scsynth:out8     | to   | system:playback_2 |
+   | 10             |                  |      |                   |
+   | Connecting     | scsynth:out10    | to   | system:playback_2 |
+   | 12             |                  |      |                   |
+   | Connecting     | scsynth:out12    | to   | system:playback_2 |
+   | 14             |                  |      |                   |
+   | Connecting     | scsynth:out14    | to   | system:playback_2 |
+   | 16             |                  |      |                   |
+   | Connecting     | scsynth:out16    | to   | system:playback_2 |
+
+** recorder
+   #+property: header-args:shell :var dir="/Users/henrik_frisk/Music/pieces/snares/audio/"
+
+   #+name: record_me
+   #+begin_src sclang :results none
+     s.prepareForRecord("~/Music/single.wav", numChannels: 16);
+     s.record;
+   #+end_src
+   #+name: rename_file
+   #+begin_src shell :var fname="isnare_filter_routine.wav"
+     file="/Users/henrik_frisk/Music/single.wav"
+     mv "$file" "$dir$fname"
+     echo "Moved $file to $dir and renamed it $fname"
+   #+end_src
+
+   #+RESULTS: rename_file
+   : Moved /Users/henrik_frisk/Music/single.wav to /Users/henrik_frisk/Music/pieces/snares/audio/ and renamed it isnare_filter_routine.wav
+
+   #+begin_src sclang :results none
+     s.pauseRecording;
+   #+end_src
+   #+name: stop_record
+   #+begin_src sclang :results none
+     s.stopRecording;
+   #+end_src
+
+   #+name: print_files
+   #+begin_src shell
+     ls "$dir"
+   #+end_src
+
+   #+RESULTS: print_files
+   | default.wav                 |
+   | isnare_filter_routine_a.wav |
+   | isnare_filter_routine_b.wav |
+   | rec.wav                     |
+   | rec2.wav                    |
+   | single_hit_del_mod.wav      |
+
+** play routines
+   Routine recorded on July 24
+   #+begin_src shell :noweb yes :results none
+     echo "<<isnare_filter_mod()>>"
+     echo "<<isnare_filter_routine()>>"
+   #+end_src
+** snare synths
+*** snare 1
+    Simple instance of a snare synth
+    #+begin_src sclang :results none
+      (
+      SynthDef(\snare, { | gain=1, freq=200, vol=1 |
+	  var snd;
+	  var env = Env([0, 1, 0], [0.0001, 0.5]);
+	  snd = Snare.ar(0.00001, freq, gain, 1, 1, 0.01, vol) * EnvGen.kr(env, doneAction: Done.freeSelf);
+	  Out.ar(0, snd);
+      }).add;
+      )
+    #+end_src
+
+    #+name: reg_snare_load
+    #+begin_src sclang :results none
+      ~reg_snare = Synth.new("snare", [\freq, 200] );
+    #+end_src
+
+*** snare 2
+    Simple instance of a snare synth with more noise
+    #+begin_src sclang :results none
+      (
+      SynthDef(\snares, { | gain=1, freq=200, vol=1 |
+	  var snd;
+	  var env = Env([0, 1, 0], [0.0001, 0.5]);
+	  snd = Snares.ar(0.00001, freq, gain, 1, 10, 0.01, vol) * EnvGen.kr(env, doneAction: Done.freeSelf);
+	  Out.ar(0, snd);
+      }).add;
+      )
+    #+end_src
+*** snare 3
+    Synth that is driven by an Impulse pulse generator.
+    Load first the two SynthDefs below and use a global variable of ~isnare for the snare synth:
+    #+name: isnare_def
+    #+begin_src sclang :results none
+      (
+      ~controlBus_1 = Bus.control(s, 1);
+      SynthDef(\isnare, { | outBus=0, freq=0, cBus1=1, gain=0.5, osc1=330, osc2=180, tri=111, noise=0.1, position=0, disperse=0 |
+	  var snd;
+	  var trig = In.ar(~impBus.index, 1);
+	  var env = EnvGen.kr(Env.perc, doneAction: Done.freeSelf);
+	  snd = IDispersedSnare.ar(Impulse.ar(freq), position, disperse, osc_1_freq: osc1, osc_2_freq: osc2, triangle_freq: tri) * gain * env;
+	  Out.ar(outBus, snd);
+      }).add;
+
+      SynthDef(\control_synth, { | bus |
+	  Out.kr(bus, SinOsc.kr(2, 0, 1, 1));
+      }).send(s);
+      )
+    #+end_src
+
+    ... and then instantiate the main synth:
+    #+name: isnare_load
+    #+begin_src sclang :results none
+      ~sisnare = Synth.new("isnare", [\cBus, ~controlBus_1.index, \disperse, 0, \freq, 10] );
+    #+end_src
+
+    Example note with decaying hits.
+    #+begin_src sclang :results none
+      Pbind(
+	  \instrument, \isnare,
+	  \dur, 1,
+	  \freq, 10
+      ).play;
+    #+end_src
+    Instantiate the control signal
+    #+begin_src sclang :results none
+      ~c_synth = Synth.before(~sisnare, "control_synth", [\bus, ~controlBus_1.index]);
+      //s.meter;
+    #+end_src
+
+    Plot the controlbus_1
+    #+begin_src sclang :results none
+      {In.kr(~controlBus_1.index)}.plot;
+    #+end_src
+
+    Inspect the controlbus_1
+    #+begin_src sclang :results none
+      {Poll.kr(Impulse.kr(10), 100 + In.kr(~controlBus_1.index))}.play;
+    #+end_src
+
+    Set parameters
+    #+begin_src sclang :results none
+      ~impulse.set(\freq, 0);
+    #+end_src
+
+    #+begin_src sclang :results none
+      ~sisnare.free;
+    #+end_src
+
+    #+name: load_isnare
+    #+begin_src sclang :results none :noweb yes
+      <<isnare_def>>
+    #+end_src
+
+    #+begin_src sclang :results none 
+      var durs = Array.new(64);
+      durs = test;
+      durs.postln;
+    #+end_src
+
+    #+begin_src sclang :results none :noweb eval
+      //~init_durs.value
+      (     
+      ~player1 = Pbind(
+	  \instrument, \isnare,
+	  \dur, Pseq(~init_durs.value, inf),
+	  \freq, Prand([0, 0, 20], inf),
+	  \osc1, Pgauss(330, 10, inf),
+	  \osc2, Pgauss(180, 10, inf),
+	  \tri, Pgauss(110, 30, inf),
+	  \gain, Prand([0.5, 0.3, 0.45, 0.35], inf),
+	  \noise, Pgauss(0.3, 0.1, inf)
+      ).play;
+      )
+    #+end_src
+
+    Test the Pbind ~~player1~
+    #+begin_src sclang :results none
+      //     ~player1.next(());
+      ~player1.stop;
+    #+end_src
+    #+begin_src sclang :results none :noweb eval
+      (     
+      ~player1 = Pbind(
+	  \instrument, \impulseA,
+	  \dur, Pseq(~init_durs.value, 1),
+	  \freq, Prand([0, 0], inf)
+      ).play;
+      ) 
+    #+end_src
+
+    Stop playback
+    #+begin_src sclang :results none
+      ~player1.stop;
+    #+end_src
+
+    Test method to generate the array.
+    #+begin_src sclang :results none
+      ~init_durs.value;
+    #+end_src
+   
+    Create duration array
+    #+name: create_durs
+    #+begin_src sclang :results none
+      (
+      ~create_durs = { |arr=0, div=1, elem=4|
+	  var ldiv = 1/div;
+	  var lelem = elem * div;
+	  arr ++ Array.fill(lelem, {ldiv;});
+      }
+      )
+    #+end_src
+   
+    Load create_durs first (if not loaded silently through the fake variable x)
+    #+name: init_durs
+    #+begin_src sclang :results none :noweb yes
+      (
+      ~init_durs = {
+	  (
+	      ~times = Array.new();
+	      for(1, 3, {arg i; ~times = ~create_durs.value(~times, (2**i), 4);});
+	      ~times.postln;
+	  )
+      }
+      )
+    #+end_src
+
+    Alternative function for creating an array of durations.
+    #+name: durations_array
+    #+begin_src sclang
+      ~durations = {
+	  var durs = Array.new(64);
+	  a = (1!4);
+	  b = (0.5!8);
+	  c = (0.25!16);
+	  d = (0.125!32);
+	  durs = a ++ b;
+	  durs = durs ++ c;
+	  durs = durs ++ d;
+      };
+    #+end_src
+
+*** snare 4 filtered
+    Synth that is driven by an Impulse pulse generator.
+    #+name: isnare_filter_def
+    #+begin_src sclang :results none
+      (
+      ~controlBus_1 = Bus.control(s, 1);
+      SynthDef(\isnare_filter, { | outBus=0, freq=0, cBus1=1, gain=0.5, osc1=330, osc2=180, tri=111, noise=0.1, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16 |
+	  var snd;
+	  var env = EnvGen.kr(Env.perc, doneAction: Done.freeSelf);
+	  var modulator = SinOsc.kr([1!16],[0.1!16]);
+	  var par = [b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16];
+	  par = par * modulator;
+	  snd = IFilteredSnare.ar(Impulse.ar(freq),
+	      band_1: b1, band_2: b2, band_3: b3,
+	      band_4: b4, band_5: b5, band_6: b6,
+	      band_7: b7, band_8: b8, band_9: b9,
+	      band10: b10, band11: b11, band12: b12,
+	      band13: b13, band14: b14, band15: b15,
+	      band16: b16,  osc_1_freq: osc1, osc_2_freq: osc2,
+	      triangle_freq: tri) * gain * env;
+	  Out.ar(outBus, snd);
+      }).add;
+
+      SynthDef(\control_synth, { | bus |
+	  Out.kr(bus, SinOsc.kr(2, 0, 1, 1));
+      }).send(s);
+      )
+    #+end_src
+
+    #+begin_src shell :results none :noweb yes
+      echo <<record_me()>>
+    #+end_src
+    #+begin_src shell :results none :noweb yes
+      echo <<stop_record()>>
+
+    #+end_src
+    #+begin_src shell :noweb yes
+      <<rename_file("isnare_filter_routine_b.wav")>>
+    #+end_src
+
+    #+RESULTS:
+
+    SynthDef for a modulating snare drum synth. Parameters are:
+    - ~freq~: The frequency of the impulse playing the snare.
+    - ~gain~: General gain (0-1)
+    - ~osc1/2~: The frequecy of the two osccilators in the synth.
+    - ~tri~: The triangle wave frequecy
+    - ~noise~: The noise level (0-1)
+    - ~b1-16~: The level of each of the 16 bands of the filterbank in dB (-70 - 10)
+    - ~del~: The delay of each successive band (0 - 1024). If set to 100, b0 will be delayed 100 samples, b1 200 samples, etc.
+    - ~dur~: The duration of the note.
+    - ~mod_freq_stretch~: The difference in frequency of the modulating SinOsc on the level of each band. If set to 0.1 b0 will have frequency 1 Hz, b1 1.1 Hz, b2 1.2 Hz, etc.
+    - ~freq_mod~: If 0, the Impulse freq is not modulated, if 1, it is speeding up, if -1 it is slowing down.
+    #+name: isnare_filter_mod
+    #+begin_src sclang :results none
+      (
+      SynthDef(\isnare_filter_mod, { | out=0, freq=0, freq_mod, cBus1=1, gain=0.5, osc1=330, osc2=180, tri=111, noise=0.1, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, del, del_mod=0, dur, mod_freq_stretch |
+	  var snd, modulator_pf;
+	  var env = EnvGen.kr(Env.new([0, 1, 0.9, 0], [0.0, 0.85, 0.15],[-5, 0, -5]), doneAction: Done.freeSelf, timeScale: dur);
+	  var modulator_d = (EnvGen.kr(Env.new([0,0.1,1], [0,1], [0, -5]), timeScale: dur) * del_mod);
+	  var mod_f = Array.series(16, 1, mod_freq_stretch);
+	  var mod_p = Array.series(16, 0, 0.4);
+	  var modulator_f = SinOsc.kr(mod_f, mod_p, add: 0);
+	  var unused = Array.series(16, 0.1, 0.05);
+	  var par = [b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16];
+	  modulator_pf = Select.kr(freq_mod + 1, [
+		  (EnvGen.kr(Env.new([0, 1, 0], [0,1], [-5, -5]), timeScale: dur) * freq),
+	      freq, 
+		  (EnvGen.kr(Env.new([0, 1, 0], [1,0], [-5, -5]), timeScale: dur) * freq)]);
+	  par = par * modulator_f;
+	  snd = IFilteredSnare.ar(Impulse.ar(modulator_pf),
+	      band_1: par[0], band_2: par[1], band_3: par[2],
+	      band_4: par[3], band_5: par[4], band_6: par[5],
+	      band_7: par[6], band_8: par[7], band_9: par[8],
+	      band10: par[9], band11: par[10], band12: par[11],
+	      band13: par[12], band14: par[13], band15: par[14],
+	      band16: par[15], delay: (modulator_d * 1024), osc_1_freq: osc1, osc_2_freq: osc2,
+	      triangle_freq: tri) * gain * env;
+	  Out.ar(out, snd);
+      }).add;
+      )
+    #+end_src
+
+    #+begin_src sclang :results none
+~sisnare_flt = Synth.new("isnare_filter_mod", [\freq, 14, \dur, 14, \osc1, 200, \osc2, 330, \tri, 340] );
+~sisnare_flt = Synth.new("isnare_filter_mod", [\freq, 10, \freq_mod, 0, \dur, 12, \osc1, 120, \osc2, 235, \tri, 140, \del_mod, 0.5] );
+    #+end_src
+
+    #+name: isnare_filter_routine
+    #+begin_src sclang :results none
+      Pbind(
+	  \instrument, \isnare_filter_mod,
+	  \dur, 5,
+	  \freq, Pgauss(8, 3, inf),
+	  \freq_mod, Prand([0,1], inf),
+	  \del_mod, Pgauss(0.5, 0.5, inf),
+	  \b1, -50,
+	  \b2, -50,
+	  \b3, -50,
+	  \b4, -50,
+	  \b5, -50,
+	  \b6, -50,
+	  \b7, -50,
+	  \b8, -50,
+	  \b9, -50,
+	  \b10, -50,
+	  \b11, -50,
+	  \b12, -50,
+	  \b13, -50,
+	  \b14, -50,
+	  \b15, -50,
+	  \b16, -50,
+	  \osc1, Pgauss(230, 50, inf),
+	  \osc2, Pgauss(180, 50, inf),
+	  \tri, Pgauss(110, 30, inf),
+	  \gain, Prand([0.5, 0.3, 0.45, 0.35], inf),
+	  \noise, Pgauss(0.0, 0.1, inf),
+	  \mod_freq_stretch, Prand([0.1, 0.3, 0.5], inf)
+      ).play;
+    #+end_src
+
+    Example of spatialization with filtering, no delay.
+    #+begin_src sclang :results none
+      Pbind(
+	  \instrument, \isnare_filter_mod,
+\del_mod, 0,
+\freq_mod, Prand([-1, 0, 1], inf),
+	  \dur, 2,
+	  \freq, Pgauss(10, 8, inf),
+	  \b1, Pgauss(-20, 20, inf),
+	  \b2, Pgauss(-20, 20, inf),
+	  \b3, Pgauss(-20, 20, inf),
+	  \b4, Pgauss(-20, 20, inf),
+	  \b5, Pgauss(-20, 20, inf),
+	  \b6, Pgauss(-20, 20, inf),
+	  \b7, Pgauss(-20, 20, inf),
+	  \b8, Pgauss(-20, 20, inf),
+	  \b9, Pgauss(-20, 20, inf),
+	  \b10, Pgauss(-20, 20, inf),
+	  \b11, Pgauss(-20, 20, inf),
+	  \b12, Pgauss(-20, 20, inf),
+	  \b13, Pgauss(-20, 20, inf),
+	  \b14, Pgauss(-20, 20, inf),
+	  \b15, Pgauss(-20, 20, inf),
+	  \b16, Pgauss(-20, 20, inf)
+      ).play;
+    #+end_src
+
+    Controlling the filters
+    #+begin_src sclang :results none
+      (
+      f = { |settings=0|
+	  settings[1].postln;
+      }
+      )
+    #+end_src
+
+    #+begin_src sclang :results none :noweb eval
+      //~init_durs.value
+      (     
+      ~player1 = Pbind(
+	  \instrument, \isnare,
+	  \dur, Pseq(~init_durs.value, inf),
+	  \freq, Prand([0, 0, 20], inf),
+	  \osc1, Pgauss(330, 10, inf),
+	  \osc2, Pgauss(180, 10, inf),
+	  \tri, Pgauss(110, 30, inf),
+	  \gain, Prand([0.5, 0.3, 0.45, 0.35], inf),
+	  \noise, Pgauss(0.3, 0.1, inf)
+      ).play;
+      )
+    #+end_src
+
+    Stop playback
+    #+begin_src sclang :results none
+      ~player1.stop;
+    #+end_src
+
+** test tone
+   #+begin_src sclang :results none
+     (instrument: \snares, freq: 400).play;
+   #+end_src
+
+** pbind for accelerando
+   This is the pbind for the acc defined here: [[*accelerando, fixed tempo][accelerando, fixed tempo]]
+   #+begin_src sclang :results none
+     (
+     var seq = { |length=4|
+	 { |x=0| x+1; if(x==0, {1.0}, {0.1})} ! length;
+     };
+
+     ~accent = Pbind(
+	 \instrument, \snare,
+	 \gain, Pdefn(\accents),
+	 \dur, Pdefn(\duration)
+     );
+     Pdefn(\accents, Pseq(seq.value(4), 1));
+     Pdefn(\duration, 1);
+     )
+   #+end_src
+** accelerando, fixed tempo
+   #+begin_src sclang :results none
+     (
+     var multiplier = 1.1; //the multiplier, lower than one for deaccelerando
+     var seq = { |length=4|
+	 { |x=0| x+1; if(x==0, {1.0}, {0.1})} ! length;
+     };
+
+     ~tClock = TempoClock(1); //start time is 1
+     ~crntBeatsPerBar = 2;
+     ~accent.play(quant: 0, clock: ~tClock);
+     fork {
+	 loop {
+	     var barDur = 4; // Duration in seconds
+	     var beatsPerBar = ~crntBeatsPerBar;
+	     ~tClock.tempo = ~tClock.tempo * multiplier;
+	     "Tempo:".postln;
+	     ~tClock.tempo.postln;
+	     if((~tClock.beatDur*(beatsPerBar+1)) < barDur,
+		 {
+		     var beatsToAdd = 1;
+		     "Length of bar + 1 beat".postln;
+		     (~tClock.beatDur*(beatsPerBar+1)).postln;
+		     (
+			 i = 1;
+			 while( {(~tClock.beatDur*(beatsPerBar+i)) < barDur }, {i = i+1; beatsToAdd = i});
+		     );
+		     beatsToAdd.postln;
+		     ~crntBeatsPerBar = beatsPerBar + beatsToAdd;
+		     Pdefn(\accents, Pseq(seq.value(~crntBeatsPerBar), 1))
+		 },
+		 {
+		     "Length of bar".postln;
+		     (~tClock.beatDur*beatsPerBar).postln;
+		     ((~tClock.beatDur*beatsPerBar)/~tClock.beatDur).postln
+		 });
+	     (~tClock.beatDur*~crntBeatsPerBar).wait;
+	     ~accent.play(quant: 0, clock: ~tClock);
+	 }
+     };
+     )
+   #+end_src
+** poly rhythm
+   #+begin_src sclang :results none
+     (
+     ~clock = TempoClock(2);
+     ~denom = Pbind(
+	 \instrument, \snare,
+	 \dur, 2,
+	 \freq, 400
+     );
+     ~nom = Pbind(
+	 \instrument, \snare,
+	 \dur, 3,
+	 \freq, 400
+     );
+     ~poly = Ppar([~nom, ~denom]).play(quant: 0, clock: ~clock);
+     )
+   #+end_src
+** osc
+*** set netaddress to 'b'
+    #+name: set_netaddress
+    #+begin_src sclang :results none
+      b = NetAddr.new("127.0.0.1", 5510);
+    #+end_src
+*** routine to play 10 hits
+    #+begin_src sclang :results none :noweb yes
+      <<set_netaddress()>>
+      // the value can also be a stream or a function
+      (
+      r = Routine {
+	  10.do( { 
+	      b.sendMsg("/o_dispersed_snare/impulse/play", 1);
+	      0.01.wait;
+	      b.sendMsg("/o_dispersed_snare/impulse/play", 0);
+	      0.1.wait;
+	  });
+      }.play;
+      );
+    #+end_src
+*** task in loop
+    #+begin_src sclang :results none
+      b = NetAddr.new("127.0.0.1", 5510);
+      t = Task({ { 
+	  b.sendMsg("/o_dispersed_snare/impulse/play", 1);
+	  0.01.wait;
+	  b.sendMsg("/o_dispersed_snare/impulse/play", 0);
+	  1.wait;
+      }.loop });
+      t.start;
+    #+end_src
+    #+begin_src sclang :results none
+      t.stop;
+    #+end_src
+*** pbind for osc
+    Sending OSC messages from a Pbind.
+    #+begin_src sclang :results none
+      (
+      ~play = Pbind(
+	  \dur, 1,
+	  \odur, Pfunc {|ev| b.sendMsg("/o_dispersed_snare/impulse/play", 1)},
+	  \sdur, Pfunc {|ev| b.sendMsg("//o_dispersed_snare/impulse/play", 0)}
+      ));
+
+      ~play.play;
+    #+end_src
+** definition of ~play
+   This is made to deal with the faust 'gate' not resetting itself.
+   Set the netaddress and register the routine.
+   #+name: set_play
+   #+begin_src sclang :results none
+     (
+     ~play = {
+	 1.do{
+	     b.sendMsg("/o_dispersed_snare/impulse/play", 1);
+	     0.01.wait;
+	     b.sendMsg("/o_dispersed_snare/impulse/play", 0);
+	 }
+     }
+     )
+   #+end_src
+   Play the routine above:
+   #+begin_src sclang :results none
+     ~play.fork
+   #+end_src
+   #+name: set_play_dep
+   #+begin_src shell :results none :noweb yes
+     <<set_netaddress()>>
+     <<set_play()>>
+   #+end_src
+** play routine 1
+   Depends on [[*deal with faust 'gate'][deal with faust 'gate']]
+   #+begin_src sclang :results none
+     (
+     r = Routine {
+	 0.5.idle(2);
+	 0.25.idle(2);
+	 0.125.idle(2);
+	 0.0625.idle(2);
+     };
+     fork {
+	 loop {
+	     var rest = r.value;
+	     rest.postln;
+	     ~play.fork;
+	     rest.wait;
+	 }
+     }
+     );
+   #+end_src
+** play routine 2
+   Parameters are:
+   1. a scaling factor (default to one)
+   2. the number of notes to play.
+   Depends on the definition of ~~play~      
+   #+begin_src sclang :results none :noweb yes
+     <<set_play()>>
+     <<p_random_rhythm_rout()>>
+     <<p_random_rhythm()>>
+   #+end_src
+   #+name: p_random_rhythm_rout
+   #+begin_src sclang :results none :noweb yes
+     (
+     l = Routine { arg in=1, reps=10;
+	 var length = 1;
+	 p = Prand([0.5, 0.25, 0.125, 1], inf);
+	 q = p.asStream;
+	 50.do { |i=0|
+	     q.next.postln;
+	     length = q.next * in;
+	     b.sendMsg("/o_dispersed_snare/snare/osc_1_freq", [200, 300, 400].choose);
+	     b.sendMsg("/o_dispersed_snare/snare/osc_2_freq", [210, 320, 440].choose);
+	     ~play.fork;
+	     q.next.wait;
+	 }
+     }
+     )
+   #+end_src
+   #+name: p_random_rhythm 
+   #+begin_src sclang :results none
+     l.play.value(1, 100);
+   #+end_src
+** play routine 3
+   #+begin_src sclang :results none
+     (
+     var osc1freq = Array.fill(10, { (100.rand*2)+100 });
+     ~playme = Pbind(
+	 \dur, Prand([0.1, 0.15, 0.05, 0.2, 0.25, 0.3], inf),
+	 \play, Pfunc({[~play.fork, ~play.fork]}),
+	 \osc1f, Pfunc({b.sendMsg("/o_dispersed_snare/snare/osc_1_freq", [ 190, 174, 178, 204, 138, 218, 232, 222, 276, 158 ].choose)}),
+	 \osc2f, Pfunc({b.sendMsg("/o_dispersed_snare/snare/osc_2_freq", [200, 300, 400, 500, 450, 350, 250, 150].choose)}),
+	 \noise_rel, Pfunc({b.sendMsg("/o_dispersed_snare/snare/noise_rel", 0.1.linrand + 0.012 )}),
+	 \noise_lvl, Pfunc({b.sendMsg("/o_dispersed_snare/snare/noise_lvl", 0.5.linrand + 0.012 )}),
+	 \noise_attack, Pfunc({b.sendMsg("/o_dispersed_snare/snare/noise_attack", 0.1.linrand )}),
+     ).play;
+     )
+   #+end_src
+
+** play routine 4
+   #+begin_src sclang :results none
+     (
+     var durs = Array.new(64);
+     a = (1!4);
+     b = (0.5!8);
+     c = (0.25!16);
+     d = (0.125!32);
+     durs = a ++ b;
+     durs = durs ++ c;
+     durs = durs ++ d;
+     ~playme = Pbind(
+	 \dur, Pseq(durs, inf),
+	 \play, Pn(Pfunc({~play.fork}), inf)
+     ).play;
+     )
+   #+end_src
+
+** routine loop
+   #+begin_src sclang :results none
+     (
+     r = Routine({
+	 var delta = 0;
+	 loop {
+	     delta = delta + 1;
+	     "Will wait ".post; delta.postln;
+	     0.5.yield;
+	 }
+     });
+     )
+   #+end_src
+   #+begin_src sclang :results none
+     r.next;
+
+     TempoClock.default.sched(0, r);
+   #+end_src
+   #+begin_src sclang :results none
+     r.stop;
+   #+end_src
+** archive
+   Synth that is driven by an Impulse pulse generator.
+   Load first the two SynthDefs below and use a global variable of ~isnare for the snare synth:
+   #+begin_src sclang :results none
+     (
+     // Here is where the bus object is created in a global variable:
+     ~impBus = Bus.audio(s, 1);
+     ~controlBus_1 = Bus.control(s, 1);
+     SynthDef(\isnare, { | outBus=0, inBus=0, cBus1=1, gain=0.5, freq=200, osc1=330, osc2=180, tri=111, noise=0.1, position=0, disperse=0 |
+	 var snd;
+	 var trig = In.ar(~impBus.index, 1);
+	 snd = IDispersedSnare.ar(trig, position, disperse, osc_1_freq: osc1, osc_2_freq: osc2, triangle_freq: tri) * gain;
+	 Out.ar(outBus, snd);
+     }).add;
+
+     SynthDef(\impulseA, { | effectBus=0, freq=1 |
+	 var outB;
+	 // Only to automatically free each instance
+	 var env = EnvGen.kr(Env.perc, doneAction: Done.freeSelf);
+	 outB = Impulse.ar(freq);
+	 Out.ar(~impBus.index, outB);
+     }).add;
+
+     SynthDef(\control_synth, { | bus |
+	 Out.kr(bus, SinOsc.kr(2, 0, 1, 1));
+     }).send(s);
+     )
+   #+end_src
+
+   ... and then instantiate the main synth:
+   #+name: isnare_load
+   #+begin_src sclang :results none
+     ~sisnare = Synth.new("isnare", [\cBus, ~controlBus_1.index, \disperse, 0] );
+   #+end_src
+
+   Play one single shot:
+   #+begin_src sclang :results none
+     ~impulse = Synth.before(~sisnare, "impulseA", [\freq, 0]);
+     ~c_synth = Synth.before(~sisnare, "control_synth", [\bus, ~controlBus_1.index]);
+     //s.meter;
+   #+end_src
+
+   Set parameters
+   #+begin_src sclang :results none
+     ~impulse.set(\freq, 0);
+     ~sisnare.set(\position, {In.kr(~controlBus_1.index)});
+   #+end_src
+

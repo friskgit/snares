@@ -1,3 +1,4 @@
-*/bin
-/faust/snare/bin/snares_fb
-/faust/snare/bin/max/nosnare.maxpat
+faust/snare/bin/*
+faust/snare/cpp
+faust/snare/
+*~
