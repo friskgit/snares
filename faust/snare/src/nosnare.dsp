@@ -1,4 +1,4 @@
-// -*- compile-command: "cd .. && make jack && cd -"; -*-
+// -*- compile-command: "cd .. && make jack src=src/nosnare.dsp && cd -"; -*-
 
 declare version " 0.1 ";
 declare author " Henrik Frisk " ;
@@ -8,7 +8,6 @@ declare copyright "(c) dinergy 2018 ";
 
 import("stdfaust.lib");
 import("math.lib") ; // for PI definition
-import("music.lib") ; // for osci definition
 
 //---------------`Snare drum synth` --------------------------
 // A take at a snare drum synth
@@ -47,9 +46,17 @@ with {
   attack = hslider("attack", 0.00000001, 0, 0.1, 0.000000001) : si.smooth(0.1);
   rel = hslider("rel", 0.1, 0.0000001, 0.5, 0.0000001) : si.smooth(0.2);
 };
+// Noise envelope
+n_env = en.asr(attack, sustain, rel, imp)
+with {
+  attack = hslider("noise attack", 0.00000001, 0, 0.1, 0.0001) : si.smooth(0.1);
+  sustain = hslider("noise sustain", 0.5, 0, 1, 0.0001) : si.smooth(0.1);
+  rel = hslider("noise rel", 0.1, 0.0000001, 0.5, 0.0001) : si.smooth(0.2);
+};
 
 // Noise
-n = no.multinoise(8) : par(i, 8, _ * env * 0.1);
+nse_vol = hslider("noise vol", 0.1, 0, 1.0, 0.0000001) : si.smooth(0.1);
+n = no.multinoise(8) : par(i, 8, _ * n_env * nse_vol);
 filt = fi.resonbp(frq, q, gain)
 with {
   frq = hslider("frq", 200, 50, 5000, 0.1);

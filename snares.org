@@ -33,40 +33,42 @@
    #+end_src
 
    #+RESULTS:
-   | Dissconnecting | system:capture_1 | from | scsynth:in1       |
-   | Dissconnecting | system:capture_2 | from | scsynth:in2       |
-   | 1              |                  |      |                   |
-   | Connecting     | scsynth:out1     | to   | system:playback_1 |
-   | 3              |                  |      |                   |
-   | Connecting     | scsynth:out3     | to   | system:playback_1 |
-   | 5              |                  |      |                   |
-   | Connecting     | scsynth:out5     | to   | system:playback_1 |
-   | 7              |                  |      |                   |
-   | Connecting     | scsynth:out7     | to   | system:playback_1 |
-   | 9              |                  |      |                   |
-   | Connecting     | scsynth:out9     | to   | system:playback_1 |
-   | 11             |                  |      |                   |
-   | Connecting     | scsynth:out11    | to   | system:playback_1 |
-   | 13             |                  |      |                   |
-   | Connecting     | scsynth:out13    | to   | system:playback_1 |
-   | 15             |                  |      |                   |
-   | Connecting     | scsynth:out15    | to   | system:playback_1 |
-   | 2              |                  |      |                   |
-   | Connecting     | scsynth:out2     | to   | system:playback_2 |
-   | 4              |                  |      |                   |
-   | Connecting     | scsynth:out4     | to   | system:playback_2 |
-   | 6              |                  |      |                   |
-   | Connecting     | scsynth:out6     | to   | system:playback_2 |
-   | 8              |                  |      |                   |
-   | Connecting     | scsynth:out8     | to   | system:playback_2 |
-   | 10             |                  |      |                   |
-   | Connecting     | scsynth:out10    | to   | system:playback_2 |
-   | 12             |                  |      |                   |
-   | Connecting     | scsynth:out12    | to   | system:playback_2 |
-   | 14             |                  |      |                   |
-   | Connecting     | scsynth:out14    | to   | system:playback_2 |
-   | 16             |                  |      |                   |
-   | Connecting     | scsynth:out16    | to   | system:playback_2 |
+   | Dissconnecting | system:capture_1  | from | scsynth:in1       |
+   | Dissconnecting | system:capture_2  | from | scsynth:in2       |
+   | Dissconnecting | system:playback_1 | from | scsynth:out1      |
+   | Dissconnecting | system:playback_2 | from | scsynth:out2      |
+   | 1              |                   |      |                   |
+   | Connecting     | scsynth:out1      | to   | system:playback_1 |
+   | 3              |                   |      |                   |
+   | Connecting     | scsynth:out3      | to   | system:playback_1 |
+   | 5              |                   |      |                   |
+   | Connecting     | scsynth:out5      | to   | system:playback_1 |
+   | 7              |                   |      |                   |
+   | Connecting     | scsynth:out7      | to   | system:playback_1 |
+   | 9              |                   |      |                   |
+   | Connecting     | scsynth:out9      | to   | system:playback_1 |
+   | 11             |                   |      |                   |
+   | Connecting     | scsynth:out11     | to   | system:playback_1 |
+   | 13             |                   |      |                   |
+   | Connecting     | scsynth:out13     | to   | system:playback_1 |
+   | 15             |                   |      |                   |
+   | Connecting     | scsynth:out15     | to   | system:playback_1 |
+   | 2              |                   |      |                   |
+   | Connecting     | scsynth:out2      | to   | system:playback_2 |
+   | 4              |                   |      |                   |
+   | Connecting     | scsynth:out4      | to   | system:playback_2 |
+   | 6              |                   |      |                   |
+   | Connecting     | scsynth:out6      | to   | system:playback_2 |
+   | 8              |                   |      |                   |
+   | Connecting     | scsynth:out8      | to   | system:playback_2 |
+   | 10             |                   |      |                   |
+   | Connecting     | scsynth:out10     | to   | system:playback_2 |
+   | 12             |                   |      |                   |
+   | Connecting     | scsynth:out12     | to   | system:playback_2 |
+   | 14             |                   |      |                   |
+   | Connecting     | scsynth:out14     | to   | system:playback_2 |
+   | 16             |                   |      |                   |
+   | Connecting     | scsynth:out16     | to   | system:playback_2 |
 
 ** recorder
    #+property: header-args:shell :var dir="/Users/henrik_frisk/Music/pieces/snares/audio/"
@@ -115,23 +117,31 @@
    #+end_src
 ** snare synths
 *** snare 1
-    Simple instance of a snare synth
-    #+begin_src sclang :results none
-      (
-      SynthDef(\snare, { | gain=1, freq=200, vol=1 |
-	  var snd;
-	  var env = Env([0, 1, 0], [0.0001, 0.5]);
-	  snd = Snare.ar(0.00001, freq, gain, 1, 1, 0.01, vol) * EnvGen.kr(env, doneAction: Done.freeSelf);
-	  Out.ar(0, snd);
-      }).add;
-      )
-    #+end_src
+**** synthdef
+     Simple instance of a snare synth
+     #+begin_src sclang :results none
+       (
+       SynthDef(\snare, { | gain=4, freq=200, vol=2 |
+	   var snd;
+	   var env = Env([0, 1, 0], [0.0001, 0.5]);
+	   snd = Snare.ar(0.00001, freq, gain, 1, 1, 0.01, vol) * EnvGen.kr(env, doneAction: Done.freeSelf);
+	   Out.ar(0, snd);
+       }).add;
+       )
+     #+end_src
+**** player
+     #+name: reg_snare_load
+     #+begin_src sclang :results none
+       ~reg_snare = Synth.new("snare", [\freq, 100] );
+     #+end_src
 
-    #+name: reg_snare_load
-    #+begin_src sclang :results none
-      ~reg_snare = Synth.new("snare", [\freq, 200] );
-    #+end_src
-
+**** pbind
+     #+begin_src sclang :results none
+       Pbind(\instrument, \snare,
+	   \freq, Prand([100,110,140, 180, 260, 320, 640, 80, 200], 64),
+	   \dur, Prand([0.1, 0.2], inf)
+       ).play;
+     #+end_src
 *** snare 2
     Simple instance of a snare synth with more noise
     #+begin_src sclang :results none
@@ -383,6 +393,7 @@
     #+begin_src sclang :results none
 ~sisnare_flt = Synth.new("isnare_filter_mod", [\freq, 14, \dur, 14, \osc1, 200, \osc2, 330, \tri, 340] );
 ~sisnare_flt = Synth.new("isnare_filter_mod", [\freq, 10, \freq_mod, 0, \dur, 12, \osc1, 120, \osc2, 235, \tri, 140, \del_mod, 0.5] );
+s.meter;
     #+end_src
 
     #+name: isnare_filter_routine
@@ -474,7 +485,41 @@
     #+begin_src sclang :results none
       ~player1.stop;
     #+end_src
+*** bass snare
+**** synthdef
+     #+name: bsnare
+     #+begin_src sclang :results none
+       (
+       ~bass_snare = SynthDef(\bsnare, { | freq=1, mod_freq=1 |
+	   var snd;
+	   snd = BassSnare.ar(Impulse.ar(freq),
+	       osc_1_freq: 50,
+	       osc_2_freq: 55,
+	       triangle_freq: 45,
+	       modulation_freq: mod_freq,
+	       noise_sustain: 0.2,
+	       noise_vol: 0.05,
+	       noise_rel: 0.01,
+	       noise_vol: 0.0);
+	   Out.ar(0, snd);
+       }).add
+       )
+     #+end_src
 
+     #+begin_src sclang :results none
+       ~bsnare = Synth.new("bsnare", [\freq, 2, \mod_freq, 5]);
+     #+end_src
+**** pbind for bsnare
+     #+begin_src sclang :results none
+       (
+       ~bsnare_player = Pbind(
+	   \instrument, \bsnare,
+	   \dur, 0.5,
+	   \freq, Pwhite(1, 4, inf),
+	   \mod_freq, Prand([0, 1, 3, 5, 0], inf);
+       ).play;
+       )
+     #+end_src
 ** test tone
    #+begin_src sclang :results none
      (instrument: \snares, freq: 400).play;
