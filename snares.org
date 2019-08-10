@@ -29,46 +29,20 @@
 	 echo $i
 	 jcon scsynth out$i sys playback_2 1; 
      done
-
    #+end_src
 
-   #+RESULTS:
-   | Dissconnecting | system:capture_1  | from | scsynth:in1       |
-   | Dissconnecting | system:capture_2  | from | scsynth:in2       |
-   | Dissconnecting | system:playback_1 | from | scsynth:out1      |
-   | Dissconnecting | system:playback_2 | from | scsynth:out2      |
-   | 1              |                   |      |                   |
-   | Connecting     | scsynth:out1      | to   | system:playback_1 |
-   | 3              |                   |      |                   |
-   | Connecting     | scsynth:out3      | to   | system:playback_1 |
-   | 5              |                   |      |                   |
-   | Connecting     | scsynth:out5      | to   | system:playback_1 |
-   | 7              |                   |      |                   |
-   | Connecting     | scsynth:out7      | to   | system:playback_1 |
-   | 9              |                   |      |                   |
-   | Connecting     | scsynth:out9      | to   | system:playback_1 |
-   | 11             |                   |      |                   |
-   | Connecting     | scsynth:out11     | to   | system:playback_1 |
-   | 13             |                   |      |                   |
-   | Connecting     | scsynth:out13     | to   | system:playback_1 |
-   | 15             |                   |      |                   |
-   | Connecting     | scsynth:out15     | to   | system:playback_1 |
-   | 2              |                   |      |                   |
-   | Connecting     | scsynth:out2      | to   | system:playback_2 |
-   | 4              |                   |      |                   |
-   | Connecting     | scsynth:out4      | to   | system:playback_2 |
-   | 6              |                   |      |                   |
-   | Connecting     | scsynth:out6      | to   | system:playback_2 |
-   | 8              |                   |      |                   |
-   | Connecting     | scsynth:out8      | to   | system:playback_2 |
-   | 10             |                   |      |                   |
-   | Connecting     | scsynth:out10     | to   | system:playback_2 |
-   | 12             |                   |      |                   |
-   | Connecting     | scsynth:out12     | to   | system:playback_2 |
-   | 14             |                   |      |                   |
-   | Connecting     | scsynth:out14     | to   | system:playback_2 |
-   | 16             |                   |      |                   |
-   | Connecting     | scsynth:out16     | to   | system:playback_2 |
+*** jack for i_dispersed_snare in 1D118
+   #+begin_src shell :results replace
+     jdis -a
+     for i in 1 3 5 7 9 11 13 15; do 
+	 echo $i
+	 jcon scsynth out$i sys playback_1 1; 
+     done
+     for i in 2 4 6 8 10 12 14 16; do 
+	 echo $i
+	 jcon scsynth out$i sys playback_2 1; 
+     done
+   #+end_src
 
 ** recorder
    #+property: header-args:shell :var dir="/Users/henrik_frisk/Music/pieces/snares/audio/"
@@ -85,9 +59,6 @@
      echo "Moved $file to $dir and renamed it $fname"
    #+end_src
 
-   #+RESULTS: rename_file
-   : Moved /Users/henrik_frisk/Music/single.wav to /Users/henrik_frisk/Music/pieces/snares/audio/ and renamed it isnare_filter_routine.wav
-
    #+begin_src sclang :results none
      s.pauseRecording;
    #+end_src
@@ -101,14 +72,6 @@
      ls "$dir"
    #+end_src
 
-   #+RESULTS: print_files
-   | default.wav                 |
-   | isnare_filter_routine_a.wav |
-   | isnare_filter_routine_b.wav |
-   | rec.wav                     |
-   | rec2.wav                    |
-   | single_hit_del_mod.wav      |
-
 ** play routines
    Routine recorded on July 24
    #+begin_src shell :noweb yes :results none
@@ -121,15 +84,16 @@
      Simple instance of a snare synth
      #+begin_src sclang :results none
        (
-       SynthDef(\snare, { | gain=4, freq=200, vol=2 |
+       SynthDef(\snare, { | gain=4, freq=200, vol=2, q=1 |
 	   var snd;
 	   var env = Env([0, 1, 0], [0.0001, 0.5]);
-	   snd = Snare.ar(0.00001, freq, gain, 1, 1, 0.01, vol) * EnvGen.kr(env, doneAction: Done.freeSelf);
+	   snd = Snare.ar(0.00001, freq, gain, 1, q, 0.01, vol) * EnvGen.kr(env, doneAction: Done.freeSelf);
 	   Out.ar(0, snd);
        }).add;
        )
      #+end_src
 **** player
+     Play one hit on the snare above.
      #+name: reg_snare_load
      #+begin_src sclang :results none
        ~reg_snare = Synth.new("snare", [\freq, 100] );
@@ -138,47 +102,146 @@
 **** pbind
      #+begin_src sclang :results none
        Pbind(\instrument, \snare,
-	   \freq, Prand([100,110,140, 180, 260, 320, 640, 80, 200], 64),
-	   \dur, Prand([0.1, 0.2], inf)
+	 \freq, Prand([100,110,140, 180, 260, 320, 640, 80, 200], 64),
+	   \dur, Prand([0.1, 0.2], inf),
+\q, Prand([0.001, 5, 2], inf)
        ).play;
      #+end_src
+
 *** snare 2
     Simple instance of a snare synth with more noise
     #+begin_src sclang :results none
       (
-      SynthDef(\snares, { | gain=1, freq=200, vol=1 |
+      SynthDef(\snares, { | gain=2, freq=200, vol=2, q=10 |
 	  var snd;
 	  var env = Env([0, 1, 0], [0.0001, 0.5]);
-	  snd = Snares.ar(0.00001, freq, gain, 1, 10, 0.01, vol) * EnvGen.kr(env, doneAction: Done.freeSelf);
+	  snd = Snares.ar(attack: 0.00001, freq: freq, gain: gain, q: q, rel: 0.01, vol_0: vol) * EnvGen.kr(env, doneAction: Done.freeSelf);
 	  Out.ar(0, snd);
       }).add;
       )
     #+end_src
+**** player
+     Play one hit on the snare above.
+     #+name: snares_load
+     #+begin_src sclang :results none
+       ~reg_snare = Synth.new("snares", [\freq, 100] );
+     #+end_src
 *** snare 3
     Synth that is driven by an Impulse pulse generator.
-    Load first the two SynthDefs below and use a global variable of ~isnare for the snare synth:
+    Load first the SynthDefs below.
     #+name: isnare_def
     #+begin_src sclang :results none
       (
-      ~controlBus_1 = Bus.control(s, 1);
-      SynthDef(\isnare, { | outBus=0, freq=0, cBus1=1, gain=0.5, osc1=330, osc2=180, tri=111, noise=0.1, position=0, disperse=0 |
+      ~global_dur = 0;
+
+      SynthDef(\isnare, { | inBus1=0, inBus2=1, inBus3=2, inBus4=3, outBus=0, freq=0, cBus1=1, gain=0.5, osc1=330, osc2=180, tri=111, noise=0.1, position=0, disperse=0, dur=1 |
 	  var snd;
-	  var trig = In.ar(~impBus.index, 1);
-	  var env = EnvGen.kr(Env.perc, doneAction: Done.freeSelf);
-	  snd = IDispersedSnare.ar(Impulse.ar(freq), position, disperse, osc_1_freq: osc1, osc_2_freq: osc2, triangle_freq: tri) * gain * env;
+	  var env;
+	  var envelope = Env.new([0, 1, 0.9, 0], [0.1, 0.5, 1],[-5, 0, -5]);
+	  b = 0;
+	  envelope.times.do({ arg i; b = b + i; });
+	  c = dur / b;
+	  env = EnvGen.kr(
+	      envelope,
+	      timeScale: c,
+	      doneAction: Done.freeSelf);
+	  snd = IDispersedSnare.ar(Impulse.ar(In.kr(inBus1)), position, disperse, osc_1_freq: In.kr(inBus2), osc_2_freq: In.kr(inBus2) - 50, triangle_freq: In.kr(inBus3), noise_lvl: In.kr(inBus4)) * gain * env;
 	  Out.ar(outBus, snd);
       }).add;
 
-      SynthDef(\control_synth, { | bus |
-	  Out.kr(bus, SinOsc.kr(2, 0, 1, 1));
+      SynthDef(\control_synth_1, {
+	  Out.kr(\bus.ir,
+	      SinOsc.kr(
+			      // modulate the frequency of the modulator
+			      Line.kr(\start.ir(0.1),
+				  \end.ir(2),
+				  \dur.ir(10),
+				  \lmult.ir(1),
+				  \ladd.ir(0)),
+			      \phase.kr(0),
+			      \mult.ir(1),
+			      \add.ir(0)));
       }).send(s);
+
+      SynthDef(\control_synth_2, {
+	  Out.kr(\bus.ir, Line.kr(\start.kr(0), \end.kr(1), \dur.kr(10), \mult.kr(1), \add.kr(0)));
+      }).send(s);
+
+      ~osc_control_1_bus = Bus.control(s, 1);
+      ~osc_control_2_bus = Bus.control(s, 1);
+      ~line_control_1_bus = Bus.control(s, 1);
+      ~line_control_2_bus = Bus.control(s, 1);
       )
     #+end_src
 
-    ... and then instantiate the main synth:
+    Instantiate the synths. 
     #+name: isnare_load
     #+begin_src sclang :results none
-      ~sisnare = Synth.new("isnare", [\cBus, ~controlBus_1.index, \disperse, 0, \freq, 10] );
+      (
+      ~osc_control_1 = Synth.new(\control_synth_1, [
+	  \bus, ~osc_control_1_bus.index,
+	  \add, 7,
+	  \dur, 2,
+	  \start, 10,
+	  \end, 0.0001,
+	  \mult, 5
+      ]);
+      ~rising_line_1 = Synth.after(~osc_control_1, \control_synth_2, [
+	  \bus, ~line_control_1_bus.index,
+	  \mult, 500,
+	  \add, 50,
+	  \dur, 2]);
+      ~falling_line_1 = Synth.after(~osc_control_1, \control_synth_2, [
+	  \bus, ~line_control_2_bus.index,
+	  \start, 200,
+	  \end, 40,
+	  \dur, 2]);
+      ~isnare_synth = Synth.after(~rising_line_1, \isnare, [
+	  \inBus1, ~osc_control_1_bus.index,
+	  \inBus2, ~line_control_1_bus.index,
+	  \inBus3, ~line_control_2_bus.index,
+	  \freq, 10,
+	  \dur, 2]);
+      )
+    #+end_src
+
+    #+begin_src sclang :results none
+      (
+      ~isnare_synth.free;
+      ~osc_control_1.free;
+      ~rising_line_1.free;
+      )
+    #+end_src
+
+    Play the synths and the modulators with Pbinds
+    #+begin_src sclang :results none
+       ~isnare_synth = Synth.after(~rising_line_1, \isnare, [
+	  \inBus1, ~osc_control_1_bus.index,
+	  \inBus2, ~line_control_1_bus.index,
+	  \inBus3, ~line_control_2_bus.index,
+	  \freq, 10,
+	  \dur, 10]);
+    #+end_src
+
+    #+begin_src sclang :results none
+     ~osc_control_1 = Synth.new(\control_synth_1, [
+	  \bus, ~osc_control_1_bus.index,
+	  \add, 7,
+	  \dur, 10,
+	  \start, 10,
+	  \end, 0.0001,
+	  \mult, 5
+      ]);
+      ~rising_line_1 = Synth.after(~osc_control_1, \control_synth_2, [
+	  \bus, ~line_control_1_bus.index,
+	  \mult, 500,
+	  \add, 50,
+	  \dur, 2]);
+      ~falling_line_1 = Synth.after(~osc_control_1, \control_synth_2, [
+	  \bus, ~line_control_2_bus.index,
+	  \start, 200,
+	  \end, 40,
+	  \dur, 2]);
     #+end_src
 
     Example note with decaying hits.
@@ -202,7 +265,7 @@
 
     Inspect the controlbus_1
     #+begin_src sclang :results none
-      {Poll.kr(Impulse.kr(10), 100 + In.kr(~controlBus_1.index))}.play;
+      {Poll.kr(Impulse.kr(10), In.kr(~controlBus_2.index))}.play;
     #+end_src
 
     Set parameters
@@ -346,8 +409,6 @@
     #+begin_src shell :noweb yes
       <<rename_file("isnare_filter_routine_b.wav")>>
     #+end_src
-
-    #+RESULTS:
 
     SynthDef for a modulating snare drum synth. Parameters are:
     - ~freq~: The frequency of the impulse playing the snare.
@@ -521,6 +582,9 @@ s.meter;
        )
      #+end_src
 ** test tone
+   #+begin_src sclang :results none
+     p = { Out.ar(12, SinOsc.ar(440, 0, 0.1)) }.play
+   #+end_src
    #+begin_src sclang :results none
      (instrument: \snares, freq: 400).play;
    #+end_src
@@ -785,7 +849,6 @@ s.meter;
    #+begin_src sclang :results none
      (
      // Here is where the bus object is created in a global variable:
-     ~impBus = Bus.audio(s, 1);
      ~controlBus_1 = Bus.control(s, 1);
      SynthDef(\isnare, { | outBus=0, inBus=0, cBus1=1, gain=0.5, freq=200, osc1=330, osc2=180, tri=111, noise=0.1, position=0, disperse=0 |
 	 var snd;
