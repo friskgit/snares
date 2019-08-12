@@ -19,6 +19,41 @@
      s.quit;
    #+end_src
 ** jack
+*** status
+    #+begin_src shell
+      jcon -c
+    #+end_src
+
+    #+RESULTS:
+
+*** startup
+    plain two channel interface, don't run from here, it blocks
+    #+begin_src shell
+      startjack -r 48000 -c 2 &
+    #+end_src
+
+    #+RESULTS:
+
+    Edirol
+    #+begin_src sclang :results none
+      startjack -r 48000 -c 2 -d jp_co_roland_RDUSB00E6Dev_AudioEngine:14100000:0
+    #+end_src
+*** connect multi to stereo
+   - Odd multi output to left out
+   - Even to right output
+    #+begin_src shell
+      for i in {0..8}; do
+	  if ((i % 2 == 0)); then
+	      echo "jcon scsynth out$i sys playback_2 1;"
+	  else 
+	      echo "jcon scsynth out$i sys playback_1 1;"
+	  fi
+      done
+    #+end_src
+
+    #+RESULTS:
+
+    specific version of the above.
    #+begin_src shell :results replace
      jdis -a
      for i in 1 3 5 7 9 11 13 15; do 
@@ -30,6 +65,41 @@
 	 jcon scsynth out$i sys playback_2 1; 
      done
    #+end_src
+
+    connect to jconvolver
+   #+begin_src shell :results replace
+jcon scsyn out jcon in 16
+jcon jcon out system play 2
+   #+end_src
+
+    disconnect it
+   #+begin_src shell :results replace
+     for i in 1 3 5 7 9 11 13 15; do 
+	 echo $i
+	 jdis -d scsynth out$i sys playback_1;
+     done
+     for i in 2 4 6 8 10 12 14 16; do 
+	 echo $i
+	 jdis -d scsynth out$i sys playback_2;
+     done
+   #+end_src
+
+   Only as an example, this blocks emacs (look into [[https://emacs.stackexchange.com/questions/30625/how-can-i-start-a-server-in-the-background-from-a-source-code-block-without-free][ob-async]])
+   #+begin_src shell :dir ~/Library/mcfx/convolver_presets/kmh_lilla_salen_29/
+     echo "Starting up jconvolver"
+     jconvolver_static_0.9.2.2 KMH_LILLA_SALEN.conf &
+   #+end_src
+
+*** disconnect stereo
+    #+begin_src shell :results replace
+echo "Hej"
+for i in {1..2}; do
+ echo "$i"
+done
+#      jdis -d sys  sc 1
+    #+end_src
+
+    #+RESULTS:
 
 *** jack for i_dispersed_snare in 1D118
    #+begin_src shell :results replace
@@ -127,14 +197,14 @@
        ~reg_snare = Synth.new("snares", [\freq, 100] );
      #+end_src
 *** snare 3
+**** Example without groups
     Synth that is driven by an Impulse pulse generator.
     Load first the SynthDefs below.
     #+name: isnare_def
     #+begin_src sclang :results none
       (
-      ~global_dur = 0;
-
-      SynthDef(\isnare, { | inBus1=0, inBus2=1, inBus3=2, inBus4=3, outBus=0, freq=0, cBus1=1, gain=0.5, osc1=330, osc2=180, tri=111, noise=0.1, position=0, disperse=0, dur=1 |
+      // Main snare synth
+      SynthDef(\isnare, { | inBus1=0, inBus2=1, inBus3=2, inBus4=3, outBus=0, freq=2, cBus1=1, gain=0.5, osc1=330, osc2=180, tri=111, noise=0.1, position=0, disperse=0, dur=1 |
 	  var snd;
 	  var env;
 	  var envelope = Env.new([0, 1, 0.9, 0], [0.1, 0.5, 1],[-5, 0, -5]);
@@ -145,32 +215,40 @@
 	      envelope,
 	      timeScale: c,
 	      doneAction: Done.freeSelf);
-	  snd = IDispersedSnare.ar(Impulse.ar(In.kr(inBus1)), position, disperse, osc_1_freq: In.kr(inBus2), osc_2_freq: In.kr(inBus2) - 50, triangle_freq: In.kr(inBus3), noise_lvl: In.kr(inBus4)) * gain * env;
+	  snd = IDispersedSnare.ar(Impulse.ar(freq), position, disperse, osc_1_freq: In.kr(inBus2), osc_2_freq: In.kr(inBus2) - 50, triangle_freq: In.kr(inBus3), noise_lvl: In.kr(inBus4)) * gain * env;
 	  Out.ar(outBus, snd);
       }).add;
 
-      SynthDef(\control_synth_1, {
+      // Control synth 1, modulated oscillator
+      SynthDef(\control_osc, {
 	  Out.kr(\bus.ir,
 	      SinOsc.kr(
-			      // modulate the frequency of the modulator
-			      Line.kr(\start.ir(0.1),
-				  \end.ir(2),
-				  \dur.ir(10),
-				  \lmult.ir(1),
-				  \ladd.ir(0)),
-			      \phase.kr(0),
-			      \mult.ir(1),
-			      \add.ir(0)));
+		  // modulate the frequency of the modulator
+		  Line.kr(\start.ir(0.1),
+		      \end.ir(2),
+		      \dur.ir(10),
+		      \lmult.ir(1),
+		      \ladd.ir(0)),
+		  \phase.kr(0),
+		  \mult.ir(1),
+		  \add.ir(0)));
       }).send(s);
 
-      SynthDef(\control_synth_2, {
+      // Control synth 2, line
+      SynthDef(\control_line, {
 	  Out.kr(\bus.ir, Line.kr(\start.kr(0), \end.kr(1), \dur.kr(10), \mult.kr(1), \add.kr(0)));
+      }).send(s);
+
+      // Control synth 3, saw-tooth
+      SynthDef(\control_saw, {
+	  Out.kr(\bus.ir, Saw.kr(\freq.kr(1), \mult.kr(1), \add.kr(0)));
       }).send(s);
 
       ~osc_control_1_bus = Bus.control(s, 1);
       ~osc_control_2_bus = Bus.control(s, 1);
       ~line_control_1_bus = Bus.control(s, 1);
       ~line_control_2_bus = Bus.control(s, 1);
+      ~saw_control_1_bus = Bus.control(s, 1);
       )
     #+end_src
 
@@ -178,7 +256,7 @@
     #+name: isnare_load
     #+begin_src sclang :results none
       (
-      ~osc_control_1 = Synth.new(\control_synth_1, [
+      ~osc_control_1 = Synth.new(\control_osc, [
 	  \bus, ~osc_control_1_bus.index,
 	  \add, 7,
 	  \dur, 2,
@@ -186,62 +264,23 @@
 	  \end, 0.0001,
 	  \mult, 5
       ]);
-      ~rising_line_1 = Synth.after(~osc_control_1, \control_synth_2, [
+      ~rising_line_1 = Synth.after(~osc_control_1, \control_line, [
 	  \bus, ~line_control_1_bus.index,
 	  \mult, 500,
 	  \add, 50,
 	  \dur, 2]);
-      ~falling_line_1 = Synth.after(~osc_control_1, \control_synth_2, [
+      ~falling_line_1 = Synth.after(~osc_control_1, \control_line, [
 	  \bus, ~line_control_2_bus.index,
 	  \start, 200,
 	  \end, 40,
 	  \dur, 2]);
-      ~isnare_synth = Synth.after(~rising_line_1, \isnare, [
-	  \inBus1, ~osc_control_1_bus.index,
+      ~isnare_synth = Synth.after(~saw_control_1, \isnare, [
+	  \inBus1, ~saw_control_1_bus.index,
 	  \inBus2, ~line_control_1_bus.index,
 	  \inBus3, ~line_control_2_bus.index,
 	  \freq, 10,
 	  \dur, 2]);
       )
-    #+end_src
-
-    #+begin_src sclang :results none
-      (
-      ~isnare_synth.free;
-      ~osc_control_1.free;
-      ~rising_line_1.free;
-      )
-    #+end_src
-
-    Play the synths and the modulators with Pbinds
-    #+begin_src sclang :results none
-       ~isnare_synth = Synth.after(~rising_line_1, \isnare, [
-	  \inBus1, ~osc_control_1_bus.index,
-	  \inBus2, ~line_control_1_bus.index,
-	  \inBus3, ~line_control_2_bus.index,
-	  \freq, 10,
-	  \dur, 10]);
-    #+end_src
-
-    #+begin_src sclang :results none
-     ~osc_control_1 = Synth.new(\control_synth_1, [
-	  \bus, ~osc_control_1_bus.index,
-	  \add, 7,
-	  \dur, 10,
-	  \start, 10,
-	  \end, 0.0001,
-	  \mult, 5
-      ]);
-      ~rising_line_1 = Synth.after(~osc_control_1, \control_synth_2, [
-	  \bus, ~line_control_1_bus.index,
-	  \mult, 500,
-	  \add, 50,
-	  \dur, 2]);
-      ~falling_line_1 = Synth.after(~osc_control_1, \control_synth_2, [
-	  \bus, ~line_control_2_bus.index,
-	  \start, 200,
-	  \end, 40,
-	  \dur, 2]);
     #+end_src
 
     Example note with decaying hits.
@@ -252,123 +291,228 @@
 	  \freq, 10
       ).play;
     #+end_src
-    Instantiate the control signal
-    #+begin_src sclang :results none
-      ~c_synth = Synth.before(~sisnare, "control_synth", [\bus, ~controlBus_1.index]);
-      //s.meter;
-    #+end_src
 
-    Plot the controlbus_1
-    #+begin_src sclang :results none
-      {In.kr(~controlBus_1.index)}.plot;
-    #+end_src
+**** Example using groups
+***** Synth and modulator (1)
+      #+name: isnare2_def
+      #+begin_src sclang :results none
+	(
+	// Main snare synth
+~isnare_def = SynthDef(\isnare2, { | position=0, disperse=0 |
+	    var snd, env, envelope, duration;
+	    envelope = Env.new([0, 1, 0.9, 0], [0.1, 0.5, 1], [-5, 0, -5]);
+	    b = 0;
+	    envelope.times.do({ arg i; b = b + i; });
+	    duration = \dur.ir / b;
+	    env = EnvGen.kr(envelope, timeScale: duration, doneAction: Done.freeSelf);
+	    snd = IDispersedSnare.ar(Impulse.ar(\freq.kr(1) * In.kr(\inBus3.kr)),
+		position,
+		disperse,
+		osc_1_freq: (\osc1.kr(330) * In.kr(\inBus1.kr)) + 100,
+		osc_2_freq: (\osc2.kr(180) * In.kr(\inBus2.kr)) + 120,
+		triangle_freq: (\tri.kr * In.kr(\inBus2.kr) + 200),
+		noise_lvl: \noise.kr(0.1)) * \gain.kr(0.5) * env;
+		Out.ar(\outBus.ir, snd);
+	}).add;
 
-    Inspect the controlbus_1
-    #+begin_src sclang :results none
-      {Poll.kr(Impulse.kr(10), In.kr(~controlBus_2.index))}.play;
-    #+end_src
+	// Control synth saw-tooth
+	SynthDef(\control_saw2, {
+		Out.kr(\bus.ir(0), Saw.kr(\freq.kr(1), \mult.kr(1), \add.kr(0)));
+	}).send(s);
 
-    Set parameters
-    #+begin_src sclang :results none
-      ~impulse.set(\freq, 0);
-    #+end_src
+	// Busses
+	~saw_control_bus_1 = Bus.control(s, 1);
+	~saw_control_bus_2 = Bus.control(s, 1);
+	~saw_control_bus_3 = Bus.control(s, 1);
+	)
+      #+end_src
+      
+***** Create group and add control instrument (2)
+      Instantiate a new control instrument:
+      #+name: start_controls
+      #+begin_src sclang :results none
+	~group = Group.new;
+	~freq_ctrl = Synth(\control_saw2, [\bus, ~saw_control_bus_1.index, \freq, 1, \mult, 1, \add, 1], ~group, \addToHead);
+	~freq_ctrl2 = Synth(\control_saw2, [\bus, ~saw_control_bus_2.index, \freq, 1, \mult, 1, \add, 1], ~group, \addToHead);
+	~impulse_ctrl = Synth(\control_saw2, [\bus, ~saw_control_bus_3.index, \freq, 0.5, \mult, 1, \add, 1], ~group, \addToHead);
+		// ~group.group.inspect;
+      #+end_src
 
-    #+begin_src sclang :results none
-      ~sisnare.free;
-    #+end_src
+      Function to set attributes for ~impulse_ctrl~. Use ~~group.set(\freq, 10)~ to set all ~\freq~ attributes in one go.
+      #+name: load_presets
+      #+begin_src sclang :results none
+	~param_update = { | range1=1, freq1=0.01, range2=1, freq2=1, range3=1, freq3=1 |
+	    ~impulse_ctrl.set(\mult, range1);
+	    ~impulse_ctrl.set(\add, range1);
+	    ~impulse_ctrl.set(\freq, 0.3);
 
-    #+name: load_isnare
-    #+begin_src sclang :results none :noweb yes
-      <<isnare_def>>
-    #+end_src
+	    ~freq_ctrl.set(\freq, freq2);
+	    ~freq_ctrl.set(\mult, range2);
+	    ~freq_ctrl.set(\add, range2);
 
-    #+begin_src sclang :results none 
-      var durs = Array.new(64);
-      durs = test;
-      durs.postln;
-    #+end_src
+	    ~freq_ctrl2.set(\freq, freq3);
+	    ~freq_ctrl2.set(\mult, range3);
+	    ~freq_ctrl2.set(\add, range3);
+	};
+	"loaded".postln;
+      #+end_src
+***** Presets
+      Nice and noisy
+      #+name: isnare_preset_1
+      #+begin_src sclang :results none :noweb yes
+	<<load_presets>>
+	~param_update.value(10, 1, 10, 1, 11, 1);
+      #+end_src
 
-    #+begin_src sclang :results none :noweb eval
-      //~init_durs.value
-      (     
-      ~player1 = Pbind(
-	  \instrument, \isnare,
-	  \dur, Pseq(~init_durs.value, inf),
-	  \freq, Prand([0, 0, 20], inf),
-	  \osc1, Pgauss(330, 10, inf),
-	  \osc2, Pgauss(180, 10, inf),
-	  \tri, Pgauss(110, 30, inf),
-	  \gain, Prand([0.5, 0.3, 0.45, 0.35], inf),
-	  \noise, Pgauss(0.3, 0.1, inf)
-      ).play;
-      )
-    #+end_src
+      Dark and bassy
+      #+name: isnare_preset_2
+      #+begin_src sclang :results none :noweb yes :var mark="hoo"
+	<<load_presets>>
+	~param_update.value(1, 1, 0, 1, 0, 1);
+      #+end_src
 
-    Test the Pbind ~~player1~
-    #+begin_src sclang :results none
-      //     ~player1.next(());
-      ~player1.stop;
-    #+end_src
-    #+begin_src sclang :results none :noweb eval
-      (     
-      ~player1 = Pbind(
-	  \instrument, \impulseA,
-	  \dur, Pseq(~init_durs.value, 1),
-	  \freq, Prand([0, 0], inf)
-      ).play;
-      ) 
-    #+end_src
+      Poll a bus:
+      #+begin_src sclang :results none
+	{Poll.kr(Impulse.kr(10), In.kr(~saw_control_bus_3.index))}.play;
+      #+end_src
 
-    Stop playback
-    #+begin_src sclang :results none
-      ~player1.stop;
-    #+end_src
+***** Add and play the main instrument, depends on [[*Create group and add control instrument][Create group...]] and [[*Synth and modulator][Synth and modulator]] (3)
+      Play it:
+      #+name: play_isnare2
+      #+begin_src sclang :results none :noweb yes
+	<<start_controls>>
+	~isnare_synth = Synth.after(~group, \isnare2, [
+	    <<bus_assignment>>
+	    \freq, 10,
+	    \dur, 20]);
+        ~tempo_update.value(20, 0.01);
+      #+end_src
 
-    Test method to generate the array.
-    #+begin_src sclang :results none
-      ~init_durs.value;
-    #+end_src
+***** Play with a Pbind (4)
+      Now including [[*Create group and add control instrument (2)][Create group ...]] with a noweb link. This can be tangled to self contained sclang code (test.sc in this example)
+      #+begin_src sclang :results none :tangle test.sc :noweb yes
+	<<start_controls>>
+	<<isnare_preset_1>>
+	~event_str = Pbind(\instrument, \isnare2,
+	    <<bus_assignment>>
+	    \group, ~group,
+	    \addAction, 1,
+	    \position, 0,
+	    \disperse, 1,
+	    \noise, 0.01,
+	    \freq, Pwalk(Array.series(20, 0, 1), Pwrand([-2, -1, 0, 1, 2], [0.05, 0.1, 0.15, 1, 0.1].normalizeSum, inf), Pseq([1, -1], inf), 10),
+	    \dur, Pgauss(8, 4, inf)
+	).play;
+      #+end_src
+
+      Move repeated stuff out for cleaner Pbind
+      #+name: bus_assignment
+      #+begin_src sclang :results none
+	\inBus1, ~saw_control_bus_1.index,
+	\inBus2, ~saw_control_bus_2.index,
+	\inBus3, ~saw_control_bus_3.index,
+      #+end_src
+
+      To play from the variable.
+      #+begin_src sclang :results none
+	~event_str.play;
+	~event_str.reset;
+      #+end_src
+
+      Free the group
+      #+name: free_group
+      #+begin_src sclang :results none
+	~group.freeAll;
+	~group.free;
+      #+end_src
+**** Stuff
+      Plot a control bus
+      #+begin_src sclang :results none
+	{In.kr(~saw_control_bus_3.index)}.plot;
+      #+end_src
+
+      Inspect a control bus:
+      #+begin_src sclang :results none
+	{Poll.kr(Impulse.kr(10), In.kr(~saw_control_bus_2.index))}.play;
+      #+end_src
+
+      #+begin_src sclang :results none :noweb eval
+	//~init_durs.value
+	(     
+	~player1 = Pbind(
+	    \instrument, \isnare,
+	    \dur, Pseq(~init_durs.value, inf),
+	    \freq, Prand([0, 0, 20], inf),
+	    \osc1, Pgauss(330, 10, inf),
+	    \osc2, Pgauss(180, 10, inf),
+	    \tri, Pgauss(110, 30, inf),
+	    \gain, Prand([0.5, 0.3, 0.45, 0.35], inf),
+	    \noise, Pgauss(0.3, 0.1, inf)
+	).play;
+	)
+      #+end_src
+
+      Test the Pbind ~~player1~
+      #+begin_src sclang :results none
+	//     ~player1.next(());
+	~player1.stop;
+      #+end_src
+      #+begin_src sclang :results none :noweb eval
+	(     
+	~player1 = Pbind(
+	    \instrument, \impulseA,
+	    \dur, Pseq(~init_durs.value, 1),
+	    \freq, Prand([0, 0], inf)
+	).play;
+	) 
+      #+end_src
+
+**** Method generation and manipulation
+      Test method to generate the array.
+      #+begin_src sclang :results none
+	~init_durs.value;
+      #+end_src
    
-    Create duration array
-    #+name: create_durs
-    #+begin_src sclang :results none
-      (
-      ~create_durs = { |arr=0, div=1, elem=4|
-	  var ldiv = 1/div;
-	  var lelem = elem * div;
-	  arr ++ Array.fill(lelem, {ldiv;});
-      }
-      )
-    #+end_src
+      Create duration array
+      #+name: create_durs
+      #+begin_src sclang :results none
+	(
+	~create_durs = { |arr=0, div=1, elem=4|
+	    var ldiv = 1/div;
+	    var lelem = elem * div;
+	    arr ++ Array.fill(lelem, {ldiv;});
+	}
+	)
+      #+end_src
    
-    Load create_durs first (if not loaded silently through the fake variable x)
-    #+name: init_durs
-    #+begin_src sclang :results none :noweb yes
-      (
-      ~init_durs = {
-	  (
-	      ~times = Array.new();
-	      for(1, 3, {arg i; ~times = ~create_durs.value(~times, (2**i), 4);});
-	      ~times.postln;
-	  )
-      }
-      )
-    #+end_src
+      Load create_durs first (if not loaded silently through the fake variable x)
+      #+name: init_durs
+      #+begin_src sclang :results none :noweb yes
+	(
+	~init_durs = {
+	    (
+		~times = Array.new();
+		for(1, 3, {arg i; ~times = ~create_durs.value(~times, (2**i), 4);});
+		~times.postln;
+	    )
+	}
+	)
+      #+end_src
 
-    Alternative function for creating an array of durations.
-    #+name: durations_array
-    #+begin_src sclang
-      ~durations = {
-	  var durs = Array.new(64);
-	  a = (1!4);
-	  b = (0.5!8);
-	  c = (0.25!16);
-	  d = (0.125!32);
-	  durs = a ++ b;
-	  durs = durs ++ c;
-	  durs = durs ++ d;
-      };
-    #+end_src
+      Alternative function for creating an array of durations.
+      #+name: durations_array
+      #+begin_src sclang
+	~durations = {
+	    var durs = Array.new(64);
+	    a = (1!4);
+	    b = (0.5!8);
+	    c = (0.25!16);
+	    d = (0.125!32);
+	    durs = a ++ b;
+	    durs = durs ++ c;
+	    durs = durs ++ d;
+	};
+      #+end_src
 
 *** snare 4 filtered
     Synth that is driven by an Impulse pulse generator.
