@@ -169,7 +169,7 @@
      Call this to create a list of pairs (lists) with attribute name, and value for a give SynthDef. This uses two helper function below that generate the attributes and the values.
 
      In the version below it outputs a list of pairs, useful for the ~isnare2_pbind_list~ above.
-    #+begin_src scheme :noweb yes :var attrs=attribute_list() val=value_list()
+    #+begin_src scheme :noweb yes :var attrs=attribute_list(lgth=19) val=value_list(lgth=10)
       (define valuelist
 	(lambda (lstatt lstval newlst)
 	  (cond ((= 0 (length lstatt)) newlst)
@@ -179,127 +179,58 @@
 		  (cdr lstval)
 		  (append newlst (list (list (car lstatt) (car lstval)))))))))
 
- (valuelist attrs val (list))
+      (valuelist attrs val (list))
     #+end_src
-
-    #+RESULTS:
-    | b1  |  0 |
-    | b2  |  1 |
-    | b3  |  2 |
-    | b4  |  3 |
-    | b5  |  4 |
-    | b6  |  5 |
-    | b7  |  6 |
-    | b8  |  7 |
-    | b9  |  8 |
-    | b10 |  9 |
-    | b11 | 10 |
-    | b12 | 11 |
-    | b13 | 12 |
-    | b14 | 13 |
-    | b15 | 14 |
-    | b16 | 15 |
-
-      (map (lambda (x) (cons (car x) (cadr x))) (valuelist attrs val (list)))
-    #+RESULTS:
 
     Generat the attribute list: b0 -> blgth
     #+name: attribute_list
-    #+begin_src scheme :var lgth=16
+    #+begin_src scheme :var lgth=10
     (define attrlist
-       (lambda (n x)
-	 (if (= n lgth)
+       (lambda (i n x)
+	 (if (= i n)
 	     x
-	     (attrlist (+ n 1) (append x (list (format #f "b~d" (1+ n))))))))
-     (attrlist 0 (list))
+	     (attrlist (+ i 1) n (append x (list (format #f "b~d" (1+ i))))))))
+     (attrlist 0 lgth (list))
     #+end_src
-
-    #+RESULTS: attribute_list
-    | b1 | b2 | b3 | b4 | b5 | b6 | b7 | b8 | b9 | b10 | b11 | b12 | b13 | b14 | b15 | b16 |
 
     Generate a list of increasing values, 0-lgth
     #+name: value_list
-    #+begin_src scheme :var lgth=16
+    #+begin_src scheme :var lgth=10
     (define valuelist
-       (lambda (n x)
-	 (if (= n lgth)
+       (lambda (i n x)
+	 (if (= i n)
 	     x
-	     (valuelist (+ n 1) (append x (list (format #f "~d" n)))))))
-     (valuelist 0 (list))
+	     (valuelist (+ i 1) n (append x (list (format #f "~d" i)))))))
+     (valuelist 0 lgth (list))
     #+end_src
 
-    #+RESULTS: value_list
-    | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
+    See last line for a method for adding parameter/value pairs to the attributes list
+    #+begin_src scheme :results output
+      (define (print-list i lst)
+	(when (< i (length lst))
+	  (format #t "~a,~&" (list-ref lst i))
+	  (print-list (1+ i) lst)))
 
-    #+begin_src scheme :results value
+      (define attributes (list (list "group" "~group")
+			       (list "addAction" 1)
+			       (list "position" 0)
+			       (list "disperse" 0)
+			       (list "noise" 0)
+			       (list "freq" 1)
+			       (list "dur" 1)
+			       (list "inBus1" "~saw_control_bus_1.index")
+			       (list "inBus2" "~saw_control_bus_2.index")
+			       (list "inBus3" "~saw_control_bus_3.index")))
+
+      (print-list 0 (map 
+		     (lambda (x) 
+		       (format #f "\\~a, ~a" (car x) (cadr x))) (append attributes (list (list "newp" 2)))))
+    #+end_src
+
+   #+begin_src scheme :results value
       (map
        (lambda (x) (cons (car x) (cadr x))) (list (list 1 2) (list 3 4)))
     #+end_src
-
-    #+RESULTS:
-    : ((1 . 2) (3 . 4))
-
-    #+begin_src scheme :results value
-(map (lambda (x) (list x)) (list (list 1 2 3 4) (list 5 6 7 8)))
-    #+end_src
-    #+RESULTS:
-    | (1 2 3 4) |
-    | (5 6 7 8) |
-
-    #+begin_src scheme :results value
-(define attributes (list (cons "group" "~group")
-			      (cons "addAction" 1)
-			      (cons "position" 0)
-			      (cons "disperse" 0)
-			      (cons "noise" 0)
-			      (cons "freq" 1)
-			      (cons "dur" 1)
-			      (cons "inBus1" "~saw_control_bus_1.index")
-			      (cons "inBus2" "~saw_control_bus_2.index")
-			      (cons "inBus3" "~saw_control_bus_3.index")))
-
-(car (append "Hej" (cons "hoal" "ert")))
-    #+end_src
-    #+RESULTS:
-
-   #+begin_src scheme :results output
-     (define (print-list i lst)
-       (when (< i (length lst))
-	 (format #t "~a,~&" (list-ref lst i))
-	 (print-list (1+ i) lst)))
-
-     (define attributes (list (list "group" "~group")
-			      (list "addAction" 1)
-			      (list "position" 0)
-			      (list "disperse" 0)
-			      (list "noise" 0)
-			      (list "freq" 1)
-			      (list "dur" 1)
-			      (list "inBus1" "~saw_control_bus_1.index")
-			      (list "inBus2" "~saw_control_bus_2.index")
-			      (list "inBus3" "~saw_control_bus_3.index")))
-
-     (print-list 0 (map 
-		    (lambda (x) 
-		      (format #f "\\~a, ~a" (car x) (cadr x))) (append attributes (cons 1 2))))
-   #+end_src
-
-   #+RESULTS:
-   : ERROR: In procedure scm-error:
-   : In procedure map: Not a list: (("group" "~group") ("addAction" 1) ("position" 0) ("disperse" 0) ("noise" 0) ("freq" 1) ("dur" 1) ("inBus1" "~saw_control_bus_1.index") ("inBus2" "~saw_control_bus_2.index") ("inBus3" "~saw_control_bus_3.index") 1 . 2)
-   : 
-   : Entering a new prompt.  Type `,bt' for a backtrace or `,q' to continue.
-   : scheme@(guile-user) [1]> 
-
-    #+begin_src scheme :results value 
-(fold cons '() '(1 2 3 4))
-    #+end_src
-
-    #+RESULTS:
-    : <unnamed port>:5:0: In procedure module-lookup: Unbound variable: fold
-    : 
-    : Entering a new prompt.  Type `,bt' for a backtrace or `,q' to continue.
-    : scheme@(guile-user) [1]> 
 
 *** make p-arrays
 **** repeat list code 
@@ -362,87 +293,87 @@
      - param: the parameter to address ("\dur")
      #+name: repeat_list_full
      #+begin_src scheme :results output :var source_list=(list 0.5 0.25 0.125 0.0625) reps=4 function="Pseq" param="\\dur"
-     (define (pseries lst i)
-       (let ((max (length lst)))
-	 (when (< i max)
-	   (if (= i (- max 1))
-	       (format #t "~a ], inf)" (list-ref lst i))
-	       (format #t "~a, " (list-ref lst i)))
-	   (pseries lst (1+ i)))))
+       (define (pseries lst i)
+	 (let ((max (length lst)))
+	   (when (< i max)
+	     (if (= i (- max 1))
+		 (format #t "~a ], inf)" (list-ref lst i))
+		 (format #t "~a, " (list-ref lst i)))
+	     (pseries lst (1+ i)))))
 
-     (define (repeat n lst)
-       (map (lambda (x) (make-list (* (inexact->exact (floor (/ 1 x))) n) x)) lst))
+       (define (repeat n lst)
+	 (map (lambda (x) (make-list (* (inexact->exact (floor (/ 1 x))) n) x)) lst))
 
-     (format #t "~a, " param)
-     (format #t "~a([" function)
-     (pseries (apply append (repeat reps source_list)) 0)
-   #+end_src
+       (format #t "~a, " param)
+       (format #t "~a([" function)
+       (pseries (apply append (repeat reps source_list)) 0)
+     #+end_src
 
-   #+RESULTS: repeat_list_full
-   : \dur, Pseq([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625 ], inf)
+     #+RESULTS: repeat_list_full
+     : \dur, Pseq([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625 ], inf)
 
-   #+begin_src scheme :results output :var source_list=(list 0.5 0.25 0.125 0.0625) reps=4 function="Pseq" param="\\dur" :noweb-ref testing
-     (define (pseries lst i)
-       (let ((max (length lst)))
-	 (when (< i max)
-	   (if (= i (- max 1))
-	       (format #t "~a ], inf)" (list-ref lst i))
-	       (format #t "~a, " (list-ref lst i)))
-	   (pseries lst (1+ i)))))
+     #+begin_src scheme :results output :var source_list=(list 0.5 0.25 0.125 0.0625) reps=4 function="Pseq" param="\\dur" :noweb-ref testing
+       (define (pseries lst i)
+	 (let ((max (length lst)))
+	   (when (< i max)
+	     (if (= i (- max 1))
+		 (format #t "~a ], inf)" (list-ref lst i))
+		 (format #t "~a, " (list-ref lst i)))
+	     (pseries lst (1+ i)))))
 
-     (define (repeat n lst)
-       (map (lambda (x) (make-list (* (inexact->exact (floor (/ 1 x))) n) x)) lst))
+       (define (repeat n lst)
+	 (map (lambda (x) (make-list (* (inexact->exact (floor (/ 1 x))) n) x)) lst))
 
-     (format #t "~a, " param)
-     (format #t "~a([" function)
-     (pseries (apply append (repeat reps source_list)) 0)
-   #+end_src
+       (format #t "~a, " param)
+       (format #t "~a([" function)
+       (pseries (apply append (repeat reps source_list)) 0)
+     #+end_src
 
 **** make p-function
-    These function all output a variety of P-functions that takes an array as first argument. The exact function to use is specified in the variable 'function'.
+     These function all output a variety of P-functions that takes an array as first argument. The exact function to use is specified in the variable 'function'.
     
-   Basic function to create a Prand with a list of numbers from 'start' to 'end'. This could equally well be injected in the template [[*sclang template][sclang template]]. Note that it is necessary to escape the backslash in the ~(format)~ function.
-   Variables:
-   - start:
-   - end:
-   - function: the Supercollider function to apply ("Pseq")
-   - param: the parameter to address ("\dur")
-   #+name: make_incr_pfunction
-   #+begin_src scheme :results output :var start=0 end=20 function="Prand" param="\\dur"
-     (define (lp i max)
-       (when (< i max)
-	 (if (= i (- max 1))
-	     (format #t "~a ], inf)" i)
-	     (format #t "~a, " i))
-	 (lp (+ 1 i) max)))
-     (format #t "~a, " param)
-     (format #t "~a([" function)
-     (lp start end)
-   #+end_src
+     Basic function to create a Prand with a list of numbers from 'start' to 'end'. This could equally well be injected in the template [[*sclang template][sclang template]]. Note that it is necessary to escape the backslash in the ~(format)~ function.
+     Variables:
+     - start:
+     - end:
+     - function: the Supercollider function to apply ("Pseq")
+     - param: the parameter to address ("\dur")
+     #+name: make_incr_pfunction
+     #+begin_src scheme :results output :var start=0 end=20 function="Prand" param="\\dur"
+       (define (lp i max)
+	 (when (< i max)
+	   (if (= i (- max 1))
+	       (format #t "~a ], inf)" i)
+	       (format #t "~a, " i))
+	   (lp (+ 1 i) max)))
+       (format #t "~a, " param)
+       (format #t "~a([" function)
+       (lp start end)
+     #+end_src
 
-   Similar call to [[*make_pfunction][make_incr_pfunction]] but creating a Pseq instead.
-   #+call: make_incr_pfunction(start=5, end=13, function="Pseq")
+     Similar call to [[*make_pfunction][make_incr_pfunction]] but creating a Pseq instead.
+     #+call: make_incr_pfunction(start=5, end=13, function="Pseq")
 
 **** relying on other calls
-   Basic function to create a P-type function with a list of numbers supplied as the argument ~elements~. This could equally well be injected in the template [[*sclang template][sclang template]]. Note that it is necessary to escape the backslash in the ~(format)~ function. This calles ~repeat_list()~ for the list.
-   Variables:
-   - function: the Supercollider function to apply ("Pseq")
-   - param: the parameter to address ("\dur")
-  #+name: format_list
-  #+begin_src scheme :results output :noweb yes :var elements = repeat_list() function="Pseq" param="\\dur"
-    (define (pseries lst i)
-      (let ((max (length lst)))
-	(when (< i max)
-	  (if (= i (- max 1))
-	      (format #t "~a ], inf)" (list-ref lst i))
-	      (format #t "~a, " (list-ref lst i)))
-	  (pseries lst (1+ i)))))
-     (format #t "~a, " param)
-     (format #t "~a([" function)
-    (pseries elements 0)
-  #+end_src
+     Basic function to create a P-type function with a list of numbers supplied as the argument ~elements~. This could equally well be injected in the template [[*sclang template][sclang template]]. Note that it is necessary to escape the backslash in the ~(format)~ function. This calles ~repeat_list()~ for the list.
+     Variables:
+     - function: the Supercollider function to apply ("Pseq")
+     - param: the parameter to address ("\dur")
+     #+name: format_list
+     #+begin_src scheme :results output :noweb yes :var elements = repeat_list() function="Pseq" param="\\dur"
+       (define (pseries lst i)
+	 (let ((max (length lst)))
+	   (when (< i max)
+	     (if (= i (- max 1))
+		 (format #t "~a ], inf)" (list-ref lst i))
+		 (format #t "~a, " (list-ref lst i)))
+	     (pseries lst (1+ i)))))
+       (format #t "~a, " param)
+       (format #t "~a([" function)
+       (pseries elements 0)
+     #+end_src
 
-#+call: format_list(elements = list_multiplier_sin(mult=2, add=0))
+     #+call: format_list(elements = list_multiplier_sin(mult=2, add=0))
 
 *** make lists
 **** multiply
