@@ -89,17 +89,18 @@
    #+end_src
 
 *** noweb isnare2
+    This creates a Pbind with the attributes defined in ~isnare2_pbind_list~ ([[*pbind attribute list][pbind attribute list]]).
     - C-c C-c on a code block generates a Pbind
     - C-c C-v t tangles all of the generated files to sclang_output.sc
 
    Variables:
    - inst: the SC instrument to send the stream to
    #+begin_src scheme :var inst="\\isnare2" :tangle isnare2_pbind.scm :noweb yes
-
      ;; Include repeat_list
      <<repeat_list_alt>>
      <<isnare2_pbind_list>>
-     ;; Pbind definition to output with instrument
+     ;; Instantiate the group and the control instruments
+     (display "~group = Group.new; ~freq_ctrl = Synth(\\control_saw2, [\\bus, ~saw_control_bus_1.index, \\freq, 1, \\mult, 1, \\add, 1], ~group, \\addToHead); ~freq_ctrl2 = Synth(\\control_saw2, [\\bus, ~saw_control_bus_2.index, \\freq, 1, \\mult, 1, \\add, 1], ~group, \\addToHead); ~impulse_ctrl = Synth(\\control_saw2, [\\bus, ~saw_control_bus_3.index, \\freq, 0.5, \\mult, 1, \\add, 1], ~group, \\addToHead);")
      (display "Pbind(\\instrument, ")
      (format #t "~a,~&" inst)
 
@@ -109,11 +110,6 @@
 
      ;; Repeat the four statements below this for more parameters
      ;; Add a parameter to the EventList
-     (format #t "~a, " "\\dur")
-     (format #t "~a([" "Pseq") 
-     ;; Add data to it
-     (pseries (apply append (repeat 4 '(1 0.5 0.25))) 0)
-     (format #t "], ~a" "inf") 
 
      ;; Close the Pbind
      (display ").play")
@@ -121,15 +117,23 @@
 
    #+RESULTS:
    #+BEGIN_SRC sclang :tangle sclang_output.txt
-   Pbind(\instrument, \isnare2,
+   ~group = Group.new; ~freq_ctrl = Synth(\control_saw2, [\bus, ~saw_control_bus_1.index, \freq, 1, \mult, 1, \add, 1], ~group, \addToHead); ~freq_ctrl2 = Synth(\control_saw2, [\bus, ~saw_control_bus_2.index, \freq, 1, \mult, 1, \add, 1], ~group, \addToHead); ~impulse_ctrl = Synth(\control_saw2, [\bus, ~saw_control_bus_3.index, \freq, 0.5, \mult, 1, \add, 1], ~group, \addToHead);Pbind(\instrument, \isnare2,
    \group, ~group,
    \addAction, 1,
    \position, 0,
+   \disperse, 0,
+   \noise, 0,
+   \freq, 1,
+   \dur, 1,
    \inBus1, ~saw_control_bus_1.index,
    \inBus2, ~saw_control_bus_2.index,
    \inBus3, ~saw_control_bus_3.index,
-   \dur, Pseq([1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25], inf).play
+   ).play
    #+END_SRC
+
+**** Call preset in snares.org
+     #+name: preset_1
+     #+call: snares.org:isnare_preset_1()
 
 *** pbind attribute list
    :PROPERTIES:
@@ -145,36 +149,134 @@
      (define attributes (list (cons "group" "~group")
 			      (cons "addAction" 1)
 			      (cons "position" 0)
+			      (cons "disperse" 0)
+			      (cons "noise" 0)
+			      (cons "freq" 1)
+			      (cons "dur" 1)
 			      (cons "inBus1" "~saw_control_bus_1.index")
 			      (cons "inBus2" "~saw_control_bus_2.index")
 			      (cons "inBus3" "~saw_control_bus_3.index")))
 
    #+end_src
 
-   #+RESULTS: isnare2_pbind_list
-   : \group, ~group,
-   : \addAction, 1,
-   : \position, 0,
-   : \inBus1, ~saw_control_bus_1.index,
-   : \inBus2, ~saw_control_bus_2.index,
-   : \inBus3, ~saw_control_bus_3.index,
-
-*** testing
+** helper functions
+*** pbind filter attributes
    :PROPERTIES:
-   :header-args: :results value code
+   :header-args: :results value
    :END:
 
-   #+begin_src scheme
-     (define attributes (list (cons "group" "~group")
+**** attribute/value factory
+     Call this to create a list of pairs (lists) with attribute name, and value for a give SynthDef. This uses two helper function below that generate the attributes and the values.
+
+     In the version below it outputs a list of pairs, useful for the ~isnare2_pbind_list~ above.
+    #+begin_src scheme :noweb yes :var attrs=attribute_list() val=value_list()
+      (define valuelist
+	(lambda (lstatt lstval newlst)
+	  (cond ((= 0 (length lstatt)) newlst)
+		((= 0 (length lstval)) newlst)
+		((valuelist
+		  (cdr lstatt)
+		  (cdr lstval)
+		  (append newlst (list (list (car lstatt) (car lstval)))))))))
+
+      (map (lambda (x) (cons (car x) (cadr x))) (valuelist attrs val (list)))
+    #+end_src
+
+    #+RESULTS:
+    : ((b1 . 0) (b2 . 1) (b3 . 2) (b4 . 3) (b5 . 4) (b6 . 5) (b7 . 6) (b8 . 7) (b9 . 8) (b10 . 9) (b11 . 10) (b12 . 11) (b13 . 12) (b14 . 13) (b15 . 14) (b16 . 15))
+
+    Generat the attribute list: b0 -> blgth
+    #+name: attribute_list
+    #+begin_src scheme :var lgth=16
+    (define attrlist
+       (lambda (n x)
+	 (if (= n lgth)
+	     x
+	     (attrlist (+ n 1) (append x (list (format #f "b~d" (1+ n))))))))
+     (attrlist 0 (list))
+    #+end_src
+
+    Generate a list of increasing values, 0-lgth
+    #+name: value_list
+    #+begin_src scheme :var lgth=16
+    (define valuelist
+       (lambda (n x)
+	 (if (= n lgth)
+	     x
+	     (valuelist (+ n 1) (append x (list (format #f "~d" n)))))))
+     (valuelist 0 (list))
+    #+end_src
+
+    #+begin_src scheme :results value
+      (map
+       (lambda (x) (cons (car x) (cadr x))) (list (list 1 2) (list 3 4)))
+    #+end_src
+
+    #+RESULTS:
+    : ((1 . 2) (3 . 4))
+
+    #+begin_src scheme :results value
+(map (lambda (x) (list x)) (list (list 1 2 3 4) (list 5 6 7 8)))
+    #+end_src
+    #+RESULTS:
+    | (1 2 3 4) |
+    | (5 6 7 8) |
+
+    #+begin_src scheme :results value
+(define attributes (list (cons "group" "~group")
 			      (cons "addAction" 1)
 			      (cons "position" 0)
-			      (cons "disperse" 1)))
-     (map 
-      (lambda (x) 
-	(format #f "\\~a, ~a," (car x) (cdr x))) attributes)
+			      (cons "disperse" 0)
+			      (cons "noise" 0)
+			      (cons "freq" 1)
+			      (cons "dur" 1)
+			      (cons "inBus1" "~saw_control_bus_1.index")
+			      (cons "inBus2" "~saw_control_bus_2.index")
+			      (cons "inBus3" "~saw_control_bus_3.index")))
+
+(car (append "Hej" (cons "hoal" "ert")))
+    #+end_src
+    #+RESULTS:
+
+   #+begin_src scheme :results output
+     (define (print-list i lst)
+       (when (< i (length lst))
+	 (format #t "~a,~&" (list-ref lst i))
+	 (print-list (1+ i) lst)))
+
+     (define attributes (list (list "group" "~group")
+			      (list "addAction" 1)
+			      (list "position" 0)
+			      (list "disperse" 0)
+			      (list "noise" 0)
+			      (list "freq" 1)
+			      (list "dur" 1)
+			      (list "inBus1" "~saw_control_bus_1.index")
+			      (list "inBus2" "~saw_control_bus_2.index")
+			      (list "inBus3" "~saw_control_bus_3.index")))
+
+     (print-list 0 (map 
+		    (lambda (x) 
+		      (format #f "\\~a, ~a" (car x) (cadr x))) (append attributes (cons 1 2))))
    #+end_src
 
-** helper functions
+   #+RESULTS:
+   : ERROR: In procedure scm-error:
+   : In procedure map: Not a list: (("group" "~group") ("addAction" 1) ("position" 0) ("disperse" 0) ("noise" 0) ("freq" 1) ("dur" 1) ("inBus1" "~saw_control_bus_1.index") ("inBus2" "~saw_control_bus_2.index") ("inBus3" "~saw_control_bus_3.index") 1 . 2)
+   : 
+   : Entering a new prompt.  Type `,bt' for a backtrace or `,q' to continue.
+   : scheme@(guile-user) [1]> 
+
+    #+begin_src scheme :results value 
+(fold cons '() '(1 2 3 4))
+    #+end_src
+
+    #+RESULTS:
+    : <unnamed port>:5:0: In procedure module-lookup: Unbound variable: fold
+    : 
+    : Entering a new prompt.  Type `,bt' for a backtrace or `,q' to continue.
+    : scheme@(guile-user) [1]> 
+
 *** make p-arrays
 **** repeat list code 
      These are the definitions only for a list creation call, such as ~(pseries (apply append (repeat reps source_list)) 0)~ which will return a repeat list based on the input in ~source_list~.
@@ -199,7 +301,6 @@
        (define (repeat n lst)
 	 (map (lambda (x) (make-list (* (inexact->exact (floor (/ 1 x))) n) x)) lst))
      #+end_src
-
 
 **** repeat list code alt
      These are the definitions only for a list creation call, such as ~(pseries (apply append (repeat reps source_list)) 0)~ which will return a repeat list based on the input in ~source_list~.
@@ -297,7 +398,6 @@
 
    Similar call to [[*make_pfunction][make_incr_pfunction]] but creating a Pseq instead.
    #+call: make_incr_pfunction(start=5, end=13, function="Pseq")
-
 
 **** relying on other calls
    Basic function to create a P-type function with a list of numbers supplied as the argument ~elements~. This could equally well be injected in the template [[*sclang template][sclang template]]. Note that it is necessary to escape the backslash in the ~(format)~ function. This calles ~repeat_list()~ for the list.

@@ -27,31 +27,73 @@
     #+RESULTS:
 
 *** startup
-    plain two channel interface, don't run from here, it blocks
-    #+begin_src shell
-      startjack -r 48000 -c 2 &
+    plain two channel interface, start asynchronous
+    #+begin_src shell :async
+      startjack -r 48000 -c 2
     #+end_src
 
     #+RESULTS:
 
     Edirol
-    #+begin_src sclang :results none
-      startjack -r 48000 -c 2 -d jp_co_roland_RDUSB00E6Dev_AudioEngine:14100000:0
+    #+begin_src shell :async
+      startjack -r 48000 -c 2 -d jp_co_roland_RDUSB00E6Dev_AudioEngine:14500000:0
     #+end_src
+
+    #+RESULTS:
+
+    #+begin_src shell
+      startjack -l
+    #+end_src
+
+    #+RESULTS:
+
+*** jconvolver
+   start jconvolver 
+   #+begin_src shell :dir ~/Library/mcfx/convolver_presets/kmh_lilla_salen_29/ :async
+     echo "Starting up jconvolver"
+     jconvolver_static_0.9.2.2 KMH_LILLA_SALEN.conf &
+   #+end_src
+
+   #+RESULTS:
+   : Starting up jconvolver
+
+   connect jconvolver to jack
+   #+begin_src shell 
+     jcon jcon out sys play 2
+   #+end_src
+
+   #+RESULTS:
+   | Connecting | jconvolver:out_1 | to | system:playback_1 |
+   | Connecting | jconvolver:out_2 | to | system:playback_2 |
+
+    connect supercollider to jconvolver
+   #+begin_src shell :results replace
+     jcon scsyn out jcon in 16
+     jcon jcon out system play 2
+   #+end_src
+
 *** connect multi to stereo
    - Odd multi output to left out
    - Even to right output
     #+begin_src shell
       for i in {0..8}; do
 	  if ((i % 2 == 0)); then
-	      echo "jcon scsynth out$i sys playback_2 1;"
+	      jcon scsynth out$i sys playback_2 1;
 	  else 
-	      echo "jcon scsynth out$i sys playback_1 1;"
+	      jcon scsynth out$i sys playback_1 1;
 	  fi
       done
     #+end_src
 
     #+RESULTS:
+    | Connecting | scsynth:out1 | to | system:playback_1 |
+    | Connecting | scsynth:out2 | to | system:playback_2 |
+    | Connecting | scsynth:out3 | to | system:playback_1 |
+    | Connecting | scsynth:out4 | to | system:playback_2 |
+    | Connecting | scsynth:out5 | to | system:playback_1 |
+    | Connecting | scsynth:out6 | to | system:playback_2 |
+    | Connecting | scsynth:out7 | to | system:playback_1 |
+    | Connecting | scsynth:out8 | to | system:playback_2 |
 
     specific version of the above.
    #+begin_src shell :results replace
@@ -66,12 +108,6 @@
      done
    #+end_src
 
-    connect to jconvolver
-   #+begin_src shell :results replace
-jcon scsyn out jcon in 16
-jcon jcon out system play 2
-   #+end_src
-
     disconnect it
    #+begin_src shell :results replace
      for i in 1 3 5 7 9 11 13 15; do 
@@ -82,12 +118,6 @@ jcon jcon out system play 2
 	 echo $i
 	 jdis -d scsynth out$i sys playback_2;
      done
-   #+end_src
-
-   Only as an example, this blocks emacs (look into [[https://emacs.stackexchange.com/questions/30625/how-can-i-start-a-server-in-the-background-from-a-source-code-block-without-free][ob-async]])
-   #+begin_src shell :dir ~/Library/mcfx/convolver_presets/kmh_lilla_salen_29/
-     echo "Starting up jconvolver"
-     jconvolver_static_0.9.2.2 KMH_LILLA_SALEN.conf &
    #+end_src
 
 *** disconnect stereo
@@ -148,6 +178,10 @@ done
      echo "<<isnare_filter_mod()>>"
      echo "<<isnare_filter_routine()>>"
    #+end_src
+** test tone
+   #+begin_src sclang :results none
+     {SinOsc.ar(440, 0, 0.1)}.play;
+   #+end_src
 ** snare synths
 *** snare 1
 **** synthdef
@@ -169,7 +203,7 @@ done
        ~reg_snare = Synth.new("snare", [\freq, 100] );
      #+end_src
 
-**** pbind
+**** pbind: fast irregular, no snare.
      #+begin_src sclang :results none
        Pbind(\instrument, \snare,
 	 \freq, Prand([100,110,140, 180, 260, 320, 640, 80, 200], 64),
@@ -196,7 +230,7 @@ done
      #+begin_src sclang :results none
        ~reg_snare = Synth.new("snares", [\freq, 100] );
      #+end_src
-*** snare 3
+*** snare 3 (isnare2)
 **** Example without groups
     Synth that is driven by an Impulse pulse generator.
     Load first the SynthDefs below.
@@ -298,7 +332,7 @@ done
       #+begin_src sclang :results none
 	(
 	// Main snare synth
-~isnare_def = SynthDef(\isnare2, { | position=0, disperse=0 |
+	~isnare_def = SynthDef(\isnare2, { | position=0, disperse=0 |
 	    var snd, env, envelope, duration;
 	    envelope = Env.new([0, 1, 0.9, 0], [0.1, 0.5, 1], [-5, 0, -5]);
 	    b = 0;
@@ -306,18 +340,18 @@ done
 	    duration = \dur.ir / b;
 	    env = EnvGen.kr(envelope, timeScale: duration, doneAction: Done.freeSelf);
 	    snd = IDispersedSnare.ar(Impulse.ar(\freq.kr(1) * In.kr(\inBus3.kr)),
-		position,
-		disperse,
-		osc_1_freq: (\osc1.kr(330) * In.kr(\inBus1.kr)) + 100,
-		osc_2_freq: (\osc2.kr(180) * In.kr(\inBus2.kr)) + 120,
-		triangle_freq: (\tri.kr * In.kr(\inBus2.kr) + 200),
-		noise_lvl: \noise.kr(0.1)) * \gain.kr(0.5) * env;
-		Out.ar(\outBus.ir, snd);
+			position,
+			disperse,
+			osc_1_freq: (\osc1.kr(330) * In.kr(\inBus1.kr)) + 100,
+			osc_2_freq: (\osc2.kr(180) * In.kr(\inBus2.kr)) + 120,
+			triangle_freq: (\tri.kr * In.kr(\inBus2.kr) + 200),
+			noise_lvl: \noise.kr(0.1)) * \gain.kr(0.5) * env;
+	    Out.ar(\outBus.ir, snd);
 	}).add;
 
 	// Control synth saw-tooth
 	SynthDef(\control_saw2, {
-		Out.kr(\bus.ir(0), Saw.kr(\freq.kr(1), \mult.kr(1), \add.kr(0)));
+	    Out.kr(\bus.ir(0), Saw.kr(\freq.kr(1), \mult.kr(1), \add.kr(0)));
 	}).send(s);
 
 	// Busses
@@ -328,14 +362,26 @@ done
       #+end_src
       
 ***** Create group and add control instrument (2)
-      Instantiate a new control instrument:
+      Instantiate all control instruments. This could be integrated into the main routine above: [[*Synth and modulator (1)][Synth and modulator (1)]] thus not needed to be loaded separately.
       #+name: start_controls
       #+begin_src sclang :results none
 	~group = Group.new;
-	~freq_ctrl = Synth(\control_saw2, [\bus, ~saw_control_bus_1.index, \freq, 1, \mult, 1, \add, 1], ~group, \addToHead);
-	~freq_ctrl2 = Synth(\control_saw2, [\bus, ~saw_control_bus_2.index, \freq, 1, \mult, 1, \add, 1], ~group, \addToHead);
-	~impulse_ctrl = Synth(\control_saw2, [\bus, ~saw_control_bus_3.index, \freq, 0.5, \mult, 1, \add, 1], ~group, \addToHead);
-		// ~group.group.inspect;
+	~freq_ctrl = Synth(\control_saw2, [
+	    \bus, ~saw_control_bus_1.index,
+	    \freq, 1,
+	    \mult, 1,
+	    \add, 1], ~group, \addToHead);
+	~freq_ctrl2 = Synth(\control_saw2, [
+	    \bus, ~saw_control_bus_2.index,
+	    \freq, 1, 
+	    \mult, 1, 
+	    \add, 1], ~group, \addToHead);
+	~impulse_ctrl = Synth(\control_saw2, [
+	    \bus, ~saw_control_bus_3.index, 
+	    \freq, 0.5, 
+	    \mult, 1, 
+	    \add, 1], ~group, \addToHead);
+	// ~group.group.inspect;
       #+end_src
 
       Function to set attributes for ~impulse_ctrl~. Use ~~group.set(\freq, 10)~ to set all ~\freq~ attributes in one go.
@@ -371,11 +417,47 @@ done
 	~param_update.value(1, 1, 0, 1, 0, 1);
       #+end_src
 
+      Heavily modulated
+      #+name: isnare_preset_3
+      #+begin_src sclang :results none :noweb yes :var mark="hoo"
+	<<load_presets>>
+	~param_update.value(4, 5, 1.1, 100, 2, 110);
+      #+end_src
+
+      Medium dark
+      #+name: isnare_preset_3
+      #+begin_src sclang :results none :noweb yes :var mark="hoo"
+	<<load_presets>>
+	~param_update.value(6, 100, 0.01, 0.002, 1.3, 0.001);
+      #+end_src
+
       Poll a bus:
       #+begin_src sclang :results none
 	{Poll.kr(Impulse.kr(10), In.kr(~saw_control_bus_3.index))}.play;
       #+end_src
+***** Updating values in a routine
+      Nice and noisy, lots of variation.
+      #+begin_src sclang :results none
+	(
+	~routine = Routine({
+	    var delta;
+	    loop {
+			delta = rrand(1, 10);
+			"Will wait ".post; delta.postln;
+			~impulse_ctrl.set(\add, delta);
+			~freq_ctrl.set(\add, delta * 0.5);
+			~freq_ctrl2.set(\mult, delta);
+			1.yield;
+	    }
+	});
+	)
+	~routine.play;
+      #+end_src
 
+      #+begin_src sclang :results none
+
+~routine.stop;
+      #+end_src
 ***** Add and play the main instrument, depends on [[*Create group and add control instrument][Create group...]] and [[*Synth and modulator][Synth and modulator]] (3)
       Play it:
       #+name: play_isnare2
@@ -392,7 +474,7 @@ done
       Now including [[*Create group and add control instrument (2)][Create group ...]] with a noweb link. This can be tangled to self contained sclang code (test.sc in this example)
       #+begin_src sclang :results none :tangle test.sc :noweb yes
 	<<start_controls>>
-	<<isnare_preset_1>>
+	<<isnare_preset_2>>
 	~event_str = Pbind(\instrument, \isnare2,
 	    <<bus_assignment>>
 	    \group, ~group,
@@ -596,9 +678,9 @@ done
     #+end_src
 
     #+begin_src sclang :results none
-~sisnare_flt = Synth.new("isnare_filter_mod", [\freq, 14, \dur, 14, \osc1, 200, \osc2, 330, \tri, 340] );
-~sisnare_flt = Synth.new("isnare_filter_mod", [\freq, 10, \freq_mod, 0, \dur, 12, \osc1, 120, \osc2, 235, \tri, 140, \del_mod, 0.5] );
-s.meter;
+      ~sisnare_flt = Synth.new("isnare_filter_mod", [\freq, 14, \dur, 14, \osc1, 200, \osc2, 330, \tri, 340] );
+      ~sisnare_flt = Synth.new("isnare_filter_mod", [\freq, 10, \freq_mod, 0, \dur, 12, \osc1, 120, \osc2, 235, \tri, 140, \del_mod, 0.5] );
+      s.meter;
     #+end_src
 
     #+name: isnare_filter_routine
@@ -638,8 +720,8 @@ s.meter;
     #+begin_src sclang :results none
       Pbind(
 	  \instrument, \isnare_filter_mod,
-\del_mod, 0,
-\freq_mod, Prand([-1, 0, 1], inf),
+	  \del_mod, 0,
+	  \freq_mod, Prand([-1, 0, 1], inf),
 	  \dur, 2,
 	  \freq, Pgauss(10, 8, inf),
 	  \b1, Pgauss(-20, 20, inf),
