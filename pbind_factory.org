@@ -179,11 +179,29 @@
 		  (cdr lstval)
 		  (append newlst (list (list (car lstatt) (car lstval)))))))))
 
-      (map (lambda (x) (cons (car x) (cadr x))) (valuelist attrs val (list)))
+ (valuelist attrs val (list))
     #+end_src
 
     #+RESULTS:
-    : ((b1 . 0) (b2 . 1) (b3 . 2) (b4 . 3) (b5 . 4) (b6 . 5) (b7 . 6) (b8 . 7) (b9 . 8) (b10 . 9) (b11 . 10) (b12 . 11) (b13 . 12) (b14 . 13) (b15 . 14) (b16 . 15))
+    | b1  |  0 |
+    | b2  |  1 |
+    | b3  |  2 |
+    | b4  |  3 |
+    | b5  |  4 |
+    | b6  |  5 |
+    | b7  |  6 |
+    | b8  |  7 |
+    | b9  |  8 |
+    | b10 |  9 |
+    | b11 | 10 |
+    | b12 | 11 |
+    | b13 | 12 |
+    | b14 | 13 |
+    | b15 | 14 |
+    | b16 | 15 |
+
+      (map (lambda (x) (cons (car x) (cadr x))) (valuelist attrs val (list)))
+    #+RESULTS:
 
     Generat the attribute list: b0 -> blgth
     #+name: attribute_list
@@ -196,6 +214,9 @@
      (attrlist 0 (list))
     #+end_src
 
+    #+RESULTS: attribute_list
+    | b1 | b2 | b3 | b4 | b5 | b6 | b7 | b8 | b9 | b10 | b11 | b12 | b13 | b14 | b15 | b16 |
+
     Generate a list of increasing values, 0-lgth
     #+name: value_list
     #+begin_src scheme :var lgth=16
@@ -206,6 +227,9 @@
 	     (valuelist (+ n 1) (append x (list (format #f "~d" n)))))))
      (valuelist 0 (list))
     #+end_src
+
+    #+RESULTS: value_list
+    | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 |
 
     #+begin_src scheme :results value
       (map
