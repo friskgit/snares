@@ -182,6 +182,15 @@ done
    #+begin_src sclang :results none
      {SinOsc.ar(440, 0, 0.1)}.play;
    #+end_src
+
+   #+begin_src sclang :results none
+r = Pbind(
+\note, Pseq([1, 2, 3, ], inf)
+)
+   #+end_src
+   #+begin_src sclang :results none
+
+   #+end_src
 ** snare synths
 *** snare 1
 **** synthdef

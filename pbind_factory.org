@@ -36,7 +36,7 @@
      (display ").play")
    #+end_src
 
-*** noweb version
+*** noweb version 
     This version of the [[*plain][plain]] example above inserts the code of the ~repeat_list_full~ function definition ([[*repeat list code][repeat list code]]). The Scheme code can be tangled, in this case to 'tangleme.scm'. The result can be saved to file by adding a :file header and specify the name of the file. Finally, the result block (sclang code) can be tangled, but the result block is not generated when the :file directive is present, which writes to sclang_output.txt. Note that this file name is set in the header-args for [[*scheme boiler plate][scheme boiler plate]] and all the code in all results block will appended to the same file.
 
     In summary:
@@ -71,9 +71,11 @@
    #+END_SRC
 
 *** pbind for isnare_def
-   Variables:
-   - inst: the SC instrument to send the stream to
-   - dur: the parameter to generate data for, in this case it defaults to make_pseq
+    This version includes data using :vars. This is more clumsy in terms of execution than using noweb.
+
+    Variables:
+    - inst: the SC instrument to send the stream to
+    - dur: the parameter to generate data for, in this case it defaults to make_pseq
    #+begin_src scheme :tangle vars.scm :var inst="\\isnare" :var dur = repeat_list_full(source_list=(list 0.5 0.4 0.3 0.2)) freq = format_list(elements = list_multiplier_sin(mult=300), param = "\\osc1", function="Prand") noise = format_list(elements = list_multiplier_sin(mult=0.01, add=0), param = "\\noise", function="Prand") freq = format_list(elements = list_multiplier_sin(mult=20, add=2), param = "\\freq", function="Pseq")
      (use-modules (ice-9 format))
      (display "Pbind(\\instrument, ")
@@ -115,22 +117,6 @@
      (display ").play")
    #+end_src
 
-   #+RESULTS:
-   #+BEGIN_SRC sclang :tangle sclang_output.txt
-   ~group = Group.new; ~freq_ctrl = Synth(\control_saw2, [\bus, ~saw_control_bus_1.index, \freq, 1, \mult, 1, \add, 1], ~group, \addToHead); ~freq_ctrl2 = Synth(\control_saw2, [\bus, ~saw_control_bus_2.index, \freq, 1, \mult, 1, \add, 1], ~group, \addToHead); ~impulse_ctrl = Synth(\control_saw2, [\bus, ~saw_control_bus_3.index, \freq, 0.5, \mult, 1, \add, 1], ~group, \addToHead);Pbind(\instrument, \isnare2,
-   \group, ~group,
-   \addAction, 1,
-   \position, 0,
-   \disperse, 0,
-   \noise, 0,
-   \freq, 1,
-   \dur, 1,
-   \inBus1, ~saw_control_bus_1.index,
-   \inBus2, ~saw_control_bus_2.index,
-   \inBus3, ~saw_control_bus_3.index,
-   ).play
-   #+END_SRC
-
 **** Call preset in snares.org
      #+name: preset_1
      #+call: snares.org:isnare_preset_1()
@@ -159,6 +145,8 @@
 
    #+end_src
 
+   #+RESULTS: isnare2_pbind_list
+
 ** helper functions
 *** pbind filter attributes
    :PROPERTIES:
@@ -166,71 +154,220 @@
    :END:
 
 **** attribute/value factory
-     Call this to create a list of pairs (lists) with attribute name, and value for a give SynthDef. This uses two helper function below that generate the attributes and the values.
+***** main pbind function
+      See last line (call to print-list function) for a method for adding parameter/value pairs to the ~attributes~ list through the variable params as a list of lists: ~(list (list "new1" 1) (list "new2" 2))~, but also, as below, by calling the function filter_attributes.
 
-     In the version below it outputs a list of pairs, useful for the ~isnare2_pbind_list~ above.
-    #+begin_src scheme :noweb yes :var attrs=attribute_list(lgth=19) val=value_list(lgth=10)
+      Functions:
+      - print-list: format the Pbind
+      - attributes: the default list of attributes
+
+      Variables: 
+      - params: a call to filter_attributes (see [[*filter attributes][filter attributes]]) that provides a list of Pseq arrays.
+
+	Removed:
+      params=filter_attributes(items=6)
+
+	(print-list 0 (map 
+		       (lambda (x) 
+			 (format #f "\\~a, ~a" (car x) (cadr x))) (append attributes params)))
+
+      #+begin_src scheme :results output :noweb yes :var lgth=10 items=20
+	<<filter_attributes>>
+
+	(define params (attributes_array (attrlist 0 lgth (list)) (repeats 0 items lgth (list)) (list)))
+
+	(define (print-list i lst)
+	  (when (< i (length lst))
+	    (format #t "~a,~&" (list-ref lst i))
+	    (print-list (1+ i) lst)))
+
+	(define attributes (list (list "group" "~group")
+				 (list "addAction" 1)
+				 (list "position" 0)
+				 (list "disperse" 0)
+				 (list "noise" 0)
+				 (list "freq" 1)
+				 (list "dur" 1)
+				 (list "inBus1" "~saw_control_bus_1.index")
+				 (list "inBus2" "~saw_control_bus_2.index")
+				 (list "inBus3" "~saw_control_bus_3.index")))
+
+	(print-list 0 (map 
+		       (lambda (x) 
+			 (format #f "\\~a, ~a" (car x) (cadr x))) (append attributes params)))
+
+       #+end_src
+
+       #+RESULTS:
+       #+begin_example
+       \group, ~group,
+       \addAction, 1,
+       \position, 0,
+       \disperse, 0,
+       \noise, 0,
+       \freq, 1,
+       \dur, 1,
+       \inBus1, ~saw_control_bus_1.index,
+       \inBus2, ~saw_control_bus_2.index,
+       \inBus3, ~saw_control_bus_3.index,
+       \b1, Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf),
+       \b2, Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf),
+       \b3, Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf),
+       \b4, Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf),
+       \b5, Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf),
+       \b6, Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf),
+       \b7, Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf),
+       \b8, Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf),
+       \b9, Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf),
+       \b10, Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf),
+       #+end_example
+
+
+       #+begin_src scheme :var params=filter_attributes(items=8)
+params
+       #+end_src
+
+
+***** shift list
+      Shift items in a list and resturn a list of lists, all items shifted by one.
+      #+name: shift_list
+      #+begin_src scheme
+	(define duplicate-shift
+	  (lambda (n lst newlst)
+	    (cond ((= 0 n) newlst)
+		  ((duplicate-shift (- n 1) 
+				    (append (cdr lst) (list (car lst)))
+				    (append newlst (list (append (cdr lst) (list (car lst))))))))))
+      #+end_src
+***** use shift list
+      Example use of [[*shift list][shift list]].
+      #+begin_src scheme :noweb yes
+	(define lst (list 1 2 3 4 5 6 7 8 9))
+	<<shift_list>>
+	(duplicate-shift 10 lst (list lst))
+      #+end_src
+
+***** shift list and sine mapping
+      #+begin_src scheme :noweb yes
+	(define lst (iota 32))
+	<<shift_list>>
+	(duplicate-shift 6 (map (lambda (x) (sin (* 0.1 x))) lst) (list (list)))
+      #+end_src
+
+      #+begin_src scheme
+(define lst (list 1 2 3 4))
+	(append (cdr lst) (list (car lst)))
+      #+end_src
+
+      #+RESULTS:
+      | 2 | 3 | 4 | 1 |
+
+***** filter attributes
+      Call this to create a list of pairs (lists) with attribute name, and value for a give SynthDef. This uses two helper function below that generate the attributes and the values. In the version below it outputs a list of pairs, useful for the ~isnare2_pbind_list~ above.
+
+      The code from ~attribute_list~ (see [[*attribute list][attribute list]]) is included and called by
+      The code from ~value_sequence~ is included and called by ~repeats 0 3 5 (list)~ (see [[*value sequence][value sequence]]).
+
+      To use this include <<filter_attributes>> and call:
+      
+      ~(attributes_array (attrlist 0 length (list)) (repeats 0 items length (list)) (list))~
+
+      The two variables ~length~ and ~items~ need to be set. See [[*filter attributes example][filter attributes example]] for a working example.
+      #+name: filter_attributes
+     #+begin_src scheme :noweb yes :var lgth=10 items=3
+	<<attribute_list>>
+	<<value_sequence>>
+	<<single_value_list>>
+
+	(define attributes_array
+	  (lambda (lstatt lstval newlst)
+	    (cond ((= 0 (length lstatt)) newlst)
+		  ((= 0 (length lstval)) newlst)
+		  ((attributes_array
+		    (cdr lstatt)
+		    (cdr lstval)
+		    (append newlst (list (list (car lstatt) (car lstval)))))))))
+     #+end_src
+
+****** filter attributes example
+       #+begin_src scheme :noweb yes
+	 <<filter_attributes>>
+ (attributes_array (attrlist 0 4 (list)) (repeats 0 3 4 (list)) (list))
+       #+end_src
+
+       #+RESULTS:
+       | b1 | Pseq([1.0, 0.5, 0.3333333333333333, ], inf) |
+       | b2 | Pseq([1.0, 0.5, 0.3333333333333333, ], inf) |
+       | b3 | Pseq([1.0, 0.5, 0.3333333333333333, ], inf) |
+       | b4 | Pseq([1.0, 0.5, 0.3333333333333333, ], inf) |
+
+
+***** attribute list
+     Generate the attribute list: b0 -> blgth
+     Call this function with ~(attrlist startindx length list-to-append-to)~.
+     #+name: attribute_list
+     #+begin_src scheme :var lgth=10
+     (define attrlist
+	(lambda (i n x)
+	  (if (= i n)
+	      x
+	      (attrlist (+ i 1) n (append x (list (format #f "b~d" (1+ i))))))))
+     #+end_src
+
+***** single values for attribute lists
+      Generate a list of increasing values, 0-lgth
+      Call this function with (valuelist startndx length list-to-append-to)
+      #+name: single_value_list
+      #+begin_src scheme :var lgth=10
       (define valuelist
-	(lambda (lstatt lstval newlst)
-	  (cond ((= 0 (length lstatt)) newlst)
-		((= 0 (length lstval)) newlst)
-		((valuelist
-		  (cdr lstatt)
-		  (cdr lstval)
-		  (append newlst (list (list (car lstatt) (car lstval)))))))))
+	 (lambda (i n x)
+	   (if (= i n)
+	       x
+	       (valuelist (+ i 1) n (append x (list (format #f "~d, ~d" i i)))))))
+      #+end_src
 
-      (valuelist attrs val (list))
-    #+end_src
+      #+RESULTS: single_value_list
 
-    Generat the attribute list: b0 -> blgth
-    #+name: attribute_list
-    #+begin_src scheme :var lgth=10
-    (define attrlist
-       (lambda (i n x)
-	 (if (= i n)
-	     x
-	     (attrlist (+ i 1) n (append x (list (format #f "b~d" (1+ i))))))))
-     (attrlist 0 lgth (list))
-    #+end_src
+***** value sequence
+     The following function creates a sequence of Psecs with lgth number of items in the array. Call with ~(repeats startndx items lines list-to-append-to)~.
+     #+name: value_sequence
+     #+begin_src scheme :results value
+       (define seq-array
+	 (lambda (i n x)
+	   (if (= i n)
+	       x
+	       (seq-array (+ i 1) n
+			  (append x (list
+				     (/ 1 (+ 1.0 i))))))))
 
-    Generate a list of increasing values, 0-lgth
-    #+name: value_list
-    #+begin_src scheme :var lgth=10
-    (define valuelist
-       (lambda (i n x)
-	 (if (= i n)
-	     x
-	     (valuelist (+ i 1) n (append x (list (format #f "~d" i)))))))
-     (valuelist 0 lgth (list))
-    #+end_src
+       (define repeats
+	 (lambda (n lgth items x)
+	   (if (= n items)
+	       x
+	       (repeats (+ n 1) lgth items
+			(append x (list
+				   (format #f "Pseq([~{~a, ~}], inf)"
+					   (seq-array 0 lgth '()))))))))
+     #+end_src
 
-    See last line for a method for adding parameter/value pairs to the attributes list
-    #+begin_src scheme :results output
-      (define (print-list i lst)
-	(when (< i (length lst))
-	  (format #t "~a,~&" (list-ref lst i))
-	  (print-list (1+ i) lst)))
+     #+begin_src scheme :noweb yes
+<<value_sequence>>
+(repeats 0 20 10 (list))
+     #+end_src
 
-      (define attributes (list (list "group" "~group")
-			       (list "addAction" 1)
-			       (list "position" 0)
-			       (list "disperse" 0)
-			       (list "noise" 0)
-			       (list "freq" 1)
-			       (list "dur" 1)
-			       (list "inBus1" "~saw_control_bus_1.index")
-			       (list "inBus2" "~saw_control_bus_2.index")
-			       (list "inBus3" "~saw_control_bus_3.index")))
+     #+RESULTS:
+     | Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf) | Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf) | Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf) | Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf) | Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf) | Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf) | Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf) | Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf) | Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf) | Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 0.09090909090909091, 0.08333333333333333, 0.07692307692307693, 0.07142857142857142, 0.06666666666666667, 0.0625, 0.058823529411764705, 0.05555555555555555, 0.05263157894736842, 0.05, ], inf) |
 
-      (print-list 0 (map 
-		     (lambda (x) 
-		       (format #f "\\~a, ~a" (car x) (cadr x))) (append attributes (list (list "newp" 2)))))
-    #+end_src
-
-   #+begin_src scheme :results value
-      (map
-       (lambda (x) (cons (car x) (cadr x))) (list (list 1 2) (list 3 4)))
-    #+end_src
+     Generate a list of increasing values, 0-lgth
+     #+name: value_list
+     #+begin_src scheme :var lgth=10
+     (define valuelist
+	(lambda (i n x)
+	  (if (= i n)
+	      x
+	      (valuelist (+ i 1) n (append x (list (format #f "Pseq([~d], inf)" (+ i 1))))))))
+      (valuelist 0 lgth (list))
+     #+end_src
 
 *** make p-arrays
 **** repeat list code 
@@ -257,6 +394,14 @@
 	 (map (lambda (x) (make-list (* (inexact->exact (floor (/ 1 x))) n) x)) lst))
      #+end_src
 
+     #+RESULTS: repeat_list
+     : ice-9/psyntax.scm:2338:44: In procedure expand-let:
+     : Syntax error:
+     : unknown file:5:0: no expressions in body in form (let ((source_list (quote (0.5 0.25 0.125 0.0625))) (reps (quote 4)) (function (quote "Pseq")) (param (quote "\\dur"))) (define (pseries lst i) (let ((max (length lst))) (when (< i max) (if (= i (- max 1)) (format #t "~a ], inf)" (list-ref lst i)) (format #t "~a, " (list-ref lst i))) (pseries lst (#{1+}# i))))) (define (repeat n lst) (map (lambda (x) (make-list (* (inexact->exact (floor (/ 1 x))) n) x)) lst)))
+     : 
+     : Entering a new prompt.  Type `,bt' for a backtrace or `,q' to continue.
+     : scheme@(guile-user) [1]> 
+
 **** repeat list code alt
      These are the definitions only for a list creation call, such as ~(pseries (apply append (repeat reps source_list)) 0)~ which will return a repeat list based on the input in ~source_list~.
      Functions:
@@ -279,7 +424,12 @@
 
        (define (repeat n lst)
 	 (map (lambda (x) (make-list (* (inexact->exact (floor (/ 1 x))) n) x)) lst))
+
+(pseries (apply append (repeat reps source_list)) 0)
      #+end_src
+
+     #+RESULTS: repeat_list_alt
+     : 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625
 
 **** repeat list full
      This functions returns a full EventList string.
@@ -312,24 +462,7 @@
      #+RESULTS: repeat_list_full
      : \dur, Pseq([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625 ], inf)
 
-     #+begin_src scheme :results output :var source_list=(list 0.5 0.25 0.125 0.0625) reps=4 function="Pseq" param="\\dur" :noweb-ref testing
-       (define (pseries lst i)
-	 (let ((max (length lst)))
-	   (when (< i max)
-	     (if (= i (- max 1))
-		 (format #t "~a ], inf)" (list-ref lst i))
-		 (format #t "~a, " (list-ref lst i)))
-	     (pseries lst (1+ i)))))
-
-       (define (repeat n lst)
-	 (map (lambda (x) (make-list (* (inexact->exact (floor (/ 1 x))) n) x)) lst))
-
-       (format #t "~a, " param)
-       (format #t "~a([" function)
-       (pseries (apply append (repeat reps source_list)) 0)
-     #+end_src
-
-**** make p-function
+**** make p-function series
      These function all output a variety of P-functions that takes an array as first argument. The exact function to use is specified in the variable 'function'.
     
      Basic function to create a Prand with a list of numbers from 'start' to 'end'. This could equally well be injected in the template [[*sclang template][sclang template]]. Note that it is necessary to escape the backslash in the ~(format)~ function.
@@ -354,6 +487,9 @@
      Similar call to [[*make_pfunction][make_incr_pfunction]] but creating a Pseq instead.
      #+call: make_incr_pfunction(start=5, end=13, function="Pseq")
 
+     #+RESULTS:
+     : \dur, Pseq([5, 6, 7, 8, 9, 10, 11, 12 ], inf)
+
 **** relying on other calls
      Basic function to create a P-type function with a list of numbers supplied as the argument ~elements~. This could equally well be injected in the template [[*sclang template][sclang template]]. Note that it is necessary to escape the backslash in the ~(format)~ function. This calles ~repeat_list()~ for the list.
      Variables:
@@ -372,6 +508,13 @@
        (format #t "~a([" function)
        (pseries elements 0)
      #+end_src
+
+     #+RESULTS: format_list
+     : ERROR: In procedure length:
+     : In procedure length: Wrong type argument in position 1: "ice-9/psyntax.scm:2338:44: In procedure expand-let:\nSyntax error:\nunknown file:5:0: no expressions in body in form (let ((source_list (quote (0.5 0.25 0.125 0.0625))) (reps (quote 4)) (function (quote \"Pseq\")) (param (quote \"\\\\dur\"))) (define (pseries lst i) (let ((max (length lst))) (when (< i max) (if (= i (- max 1)) (format #t \"~a ], inf)\" (list-ref lst i)) (format #t \"~a, \" (list-ref lst i))) (pseries lst (#{1+}# i))))) (define (repeat n lst) (map (lambda (x) (make-list (* (inexact->exact (floor (/ 1 x))) n) x)) lst)))\n\nEntering a new prompt.  Type `,bt' for a backtrace or `,q' to continue.\nscheme@(guile-user) [1]> "
+     : 
+     : Entering a new prompt.  Type `,bt' for a backtrace or `,q' to continue.
+     : scheme@(guile-user) [1]> 
 
      #+call: format_list(elements = list_multiplier_sin(mult=2, add=0))
 

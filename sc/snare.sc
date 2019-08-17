@@ -3,8 +3,8 @@ ServerOptions.devices;
 s = Server.local;
 Server.local = Server.default;
 o = Server.local.options; // Get the local server's options
-// o.device = "JackRouter";
-o.device = "Built-in Output";
+ o.device = "JackRouter";
+//o.device = "Built-in Output";
 o.numInputBusChannels = 2; // Set Input to number of Inputs
 o.numOutputBusChannels = 2; // lets start after chan 36 so as not to see the mic input
 o.numAudioBusChannels = 16;
