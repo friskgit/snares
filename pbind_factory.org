@@ -245,24 +245,24 @@
 		    (append newlst (list (list (car lstatt) (car lstval)))))))))
       #+end_src
 
-****** filter attributes example
-       Simple example with a specified list.
-       #+begin_src scheme :noweb yes
-	 <<filter_attributes>>
-	 (attributes-array (attrlist 0 4 (list)) (repeats 0 3 4 (list)) (list))
-       #+end_src
-
-       #+RESULTS:
-       
+****** filter attributes examples
        Example using sequenced_array and shift_list to generate the input to make-pbind-array-list.
+
+       Functions: 
+       - attributes-array /attr-list pseq-list new-list/
+       - attrlist /index rows result/
+       - make-pbind-array-list /index rows list-of-pseq/
+       - make-shift-list /size sequence result . flag/: set the flag to 1 for a non-shifted list.
+       - seq-array-sin /index size result/: choose the type of parameter list.
        #+begin_src scheme :noweb yes
 	 <<sequenced_array>>
 	 <<shift_list>>
 	 <<value_sequence>>
-	 (make-pbind-array-list 0 4 (make-shift-list 4 (seq-array-sin 0 9 (list))) '())
+	 <<filter_attributes>>
+	 (attributes-array (attrlist 0 4 (list)) (make-pbind-array-list 0 4 (make-shift-list 4 (seq-array-sin 0 9 (list)) 0) '()) (list))
        #+end_src
 
-       Example using sequenced_array and shift_list to generate the input to make-pbind-array-list.
+       Example using sequenced_array and shift_list to generate the input to make-pbind-array-list. Same as above but with arguemnts.
        #+begin_src scheme :noweb yes
 	 <<filter_attributes>>
 	 <<sequenced_array>>
@@ -274,20 +274,11 @@
 	 (attributes-array (attrlist 0 5 (list)) pseq (list))
        #+end_src
 
-       Same as above without saving the list in a variable.
-       #+begin_src scheme :noweb yes
-	 <<filter_attributes>>
-	 <<sequenced_array>>
-	 <<shift_list>>
-	 <<value_sequence>>
-	 ;; create the array of pbind data
-	 (define pseq (make-pbind-array-list 0 4 (make-shift-list 4 (seq-array-sin 0 9 (list))) '()))
-	 ;; create a table of parameter/value pairs.
-	 (attributes-array 
-	  (attrlist 0 5 (list))
-	  (make-pbind-array-list 0 4 (make-shift-list 4 (seq-array-sin 0 9 (list))) '())
-	  (list))
-       #+end_src
+       #+RESULTS:
+       | b1 | Pseq([0.0, 0.3420201433684985, 0.6427876097563697, 0.8660254038528064, 0.9848077530438666, 0.9848077529726349, 0.8660254036477031, 0.6427876094421329, 0.3420201429830303, ], inf) |
+       | b2 | Pseq([0.3420201433684985, 0.6427876097563697, 0.8660254038528064, 0.9848077530438666, 0.9848077529726349, 0.8660254036477031, 0.6427876094421329, 0.3420201429830303, 0.0, ], inf) |
+       | b3 | Pseq([0.6427876097563697, 0.8660254038528064, 0.9848077530438666, 0.9848077529726349, 0.8660254036477031, 0.6427876094421329, 0.3420201429830303, 0.0, 0.3420201433684985, ], inf) |
+       | b4 | Pseq([0.8660254038528064, 0.9848077530438666, 0.9848077529726349, 0.8660254036477031, 0.6427876094421329, 0.3420201429830303, 0.0, 0.3420201433684985, 0.6427876097563697, ], inf) |
 
 ***** attribute list
      Generate the attribute list: b0 -> blgth
@@ -311,7 +302,7 @@
 
 ***** single values for attribute lists
       Generate a list of increasing values, 0-lgth
-      Call this function with (valuelist startndx length list-to-append-to)
+      Call this function with (valuelist startndx length list-to-append-to) which generates a list of pairs (as strings): | 0, 0 | 1, 1 | 2, 2 | 3, 3 | 4, 4 | 5, 5 | 6, 6 | 7, 7 | 8, 8 | 9, 9 |
       #+name: single_value_list
       #+begin_src scheme :var lgth=10
       (define valuelist
@@ -321,7 +312,11 @@
 	       (valuelist (+ i 1) n (append x (list (format #f "~d, ~d" i i)))))))
       #+end_src
 
-      #+RESULTS: single_value_list
+      Example call
+      #+begin_src scheme :noweb yes
+	<<single_value_list>>
+	(valuelist 0 10 '())
+      #+end_src
 
 ***** value sequence
      The following function creates a sequence of Psecs with lgth number of items in the array. 
@@ -453,7 +448,7 @@
 
        Functions:
        - duplicate-shift /rows list newlist/: take a list a duplicated it while shifting it one step to the right.
-       - make-shift-list /rows list/: utility function that calls duplicate-list.
+       - make-shift-list /rows list . flag/: utility function that calls duplicate-list. If ~flag~ is supplied with a value of 1 a non-shifted list is generated.
        #+name: shift_list
        #+begin_src scheme
 	 (define duplicate-shift
@@ -464,28 +459,25 @@
 				     (append newlst (list (append (cdr lst) (list (car lst))))))))))
 
 	 (define make-shift-list
-	   (lambda (rows lst)
-	     (duplicate-shift rows lst (list lst))))
-
-	 (define make-noshift-list
-	   (lambda (rows lst)
-	     (make-list rows lst)))
+	   (lambda (rows lst . flag)
+	     (let ((flag (if (pair? flag) (car flag) 0)))
+	       (cond ((= flag 0) (duplicate-shift rows lst (list lst)))
+		     ((= flag 1) (make-list rows lst))))))
        #+end_src
 
        Example use of [[*shift list][shift list]] using [[*value sequence][value sequence]]. The latter creates an array of numbers that is duplicated and shifted to the right
        #+begin_src scheme :noweb yes
 	 <<sequenced_array>>
 	 <<shift_list>>
-	 (make-shift-list 5 (seq-array 0 3 (list)))
+	 (make-shift-list 5 (seq-array 0 3 (list)) 1)
        #+end_src
 
        #+RESULTS:
        | 0.0 | 0.5 | 1.0 |
-       | 0.5 | 1.0 | 0.0 |
-       | 1.0 | 0.0 | 0.5 |
        | 0.0 | 0.5 | 1.0 |
-       | 0.5 | 1.0 | 0.0 |
-       | 1.0 | 0.0 | 0.5 |
+       | 0.0 | 0.5 | 1.0 |
+       | 0.0 | 0.5 | 1.0 |
+       | 0.0 | 0.5 | 1.0 |
 
        Example use of shift list and sine mapping, not relying on ~value_sequence~.
        #+begin_src scheme :noweb yes
