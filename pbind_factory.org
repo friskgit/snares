@@ -152,7 +152,6 @@
    :PROPERTIES:
    :header-args: :results value
    :END:
-
 **** attribute/value factory
 ***** main pbind function
       See last line (call to print-list function) for a method for adding parameter/value pairs to the ~attributes~ list through the variable params as a list of lists: ~(list (list "new1" 1) (list "new2" 2))~, but also, as below, by calling the function filter_attributes.
@@ -161,123 +160,134 @@
       - print-list: format the Pbind
       - attributes: the default list of attributes
 
+      Functions included from ~filter_attributes~:
+      - attributes-array
+
+      Function included from [[*attribute list][attribute list]]:
+      - attrlist
+
+      Function included from [[*value sequence][value sequence]]:
+      - repeats
+
       Variables: 
       - params: a call to filter_attributes (see [[*filter attributes][filter attributes]]) that provides a list of Pseq arrays.
 
-	Removed:
-      params=filter_attributes(items=6)
+      Removed:
+      - params=filter_attributes(items=6)
 
 	(print-list 0 (map 
-		       (lambda (x) 
-			 (format #f "\\~a, ~a" (car x) (cadr x))) (append attributes params)))
+	(lambda (x) 
+	(format #f "\\~a, ~a" (car x) (cadr x))) (append attributes params)))
 
-      #+begin_src scheme :results output :noweb yes :var lgth=10 items=20
-	<<filter_attributes>>
+	#+begin_src scheme :results output :noweb yes :var lgth=10 items=20
+	  <<filter_attributes>>
 
-	(define params (attributes_array (attrlist 0 lgth (list)) (repeats 0 items lgth (list)) (list)))
+	  (define params (attributes-array (attrlist 0 lgth (list)) (repeats 0 items lgth (list)) (list)))
 
-	(define (print-list i lst)
-	  (when (< i (length lst))
-	    (format #t "~a,~&" (list-ref lst i))
-	    (print-list (1+ i) lst)))
+	  (define (print-list i lst)
+	    (when (< i (length lst))
+	      (format #t "~a,~&" (list-ref lst i))
+	      (print-list (1+ i) lst)))
 
-	(define attributes (list (list "group" "~group")
-				 (list "addAction" 1)
-				 (list "position" 0)
-				 (list "disperse" 0)
-				 (list "noise" 0)
-				 (list "freq" 1)
-				 (list "dur" 1)
-				 (list "inBus1" "~saw_control_bus_1.index")
-				 (list "inBus2" "~saw_control_bus_2.index")
-				 (list "inBus3" "~saw_control_bus_3.index")))
+	  (define attributes (list (list "group" "~group")
+				   (list "addAction" 1)
+				   (list "position" 0)
+				   (list "disperse" 0)
+				   (list "noise" 0)
+				   (list "freq" 1)
+				   (list "dur" 1)
+				   (list "inBus1" "~saw_control_bus_1.index")
+				   (list "inBus2" "~saw_control_bus_2.index")
+				   (list "inBus3" "~saw_control_bus_3.index")))
 
-	(print-list 0 (map 
-		       (lambda (x) 
-			 (format #f "\\~a, ~a" (car x) (cadr x))) (append attributes params)))
+	  (print-list 0 (map 
+			 (lambda (x) 
+			   (format #f "\\~a, ~a" (car x) (cadr x))) (append attributes params)))
 
-       #+end_src
+	#+end_src
 
-       #+begin_src scheme :var params=filter_attributes(items=8)
-	 params
-       #+end_src
+	#+begin_src scheme :var params=filter_attributes(items=8)
+	  params
+	#+end_src
 
-
-***** shift list
-      Shift items in a list and resturn a list of lists, all items shifted by one.
-      #+name: shift_list
-      #+begin_src scheme
-	(define duplicate-shift
-	  (lambda (n lst newlst)
-	    (cond ((= 0 n) newlst)
-		  ((duplicate-shift (- n 1) 
-				    (append (cdr lst) (list (car lst)))
-				    (append newlst (list (append (cdr lst) (list (car lst))))))))))
-      #+end_src
-
-***** use shift list
-      Example use of [[*shift list][shift list]] with [[*value sequence][value sequence]]. The latter creates an array of numbers that are duplicated and shifted to the right
       #+begin_src scheme :noweb yes
-	<<value_sequence>>       
-	<<shift_list>>
-
-	(define lst (seq-array 0 10 (list)))
-	(duplicate-shift 10 lst (list lst))
-      #+end_src
-
-***** shift list and sine mapping
-      #+begin_src scheme :noweb yes
-	(define lst (iota 32))
-	<<shift_list>>
-	(duplicate-shift 6 (map (lambda (x) (sin (* 0.1 x))) lst) (list (list)))
-      #+end_src
-
-      #+begin_src scheme
-	(define lst (list 1 2 3 4 5))
-	(append (cdr lst) (list (car lst)))
+	  <<filter_attributes>>
+(repeats 0 2 2 (list))
       #+end_src
 
       #+RESULTS:
-      | 2 | 3 | 4 | 5 | 1 |
+      | Pseq([1.0, 0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, ], inf) | Pseq([0.5, 0.3333333333333333, 0.25, 0.2, 0.16666666666666666, 0.14285714285714285, 0.125, 0.1111111111111111, 0.1, 1.0, ], inf) |
 
 ***** filter attributes
       Call this to create a list of pairs (lists) with attribute name, and value for a give SynthDef. This uses two helper function below that generate the attributes and the values. In the version below it outputs a list of pairs, useful for the ~isnare2_pbind_list~ above.
 
-      The code from ~attribute_list~ (see [[*attribute list][attribute list]]) is included and called by
+      The code from ~attribute_list~ (see [[*attribute list][attribute list]]) is included and called in the last row (attr_
       The code from ~value_sequence~ is included and called by ~repeats 0 3 5 (list)~ (see [[*value sequence][value sequence]]).
 
       To use this include <<filter_attributes>> and call:
       
-      ~(attributes_array (attrlist 0 length (list)) (repeats 0 items length (list)) (list))~
+      ~(attributes-array (attrlist 0 length (list)) (repeats 0 items length (list)) (list))~
 
       The two variables ~length~ and ~items~ need to be set. See [[*filter attributes example][filter attributes example]] for a working example.
       #+name: filter_attributes
-     #+begin_src scheme :noweb yes :var lgth=10 items=3
+      #+begin_src scheme :noweb yes :var lgth=10 items=3
 	<<attribute_list>>
 	<<value_sequence>>
 	<<single_value_list>>
 
-	(define attributes_array
+	(define attributes-array
 	  (lambda (lstatt lstval newlst)
 	    (cond ((= 0 (length lstatt)) newlst)
 		  ((= 0 (length lstval)) newlst)
-		  ((attributes_array
+		  ((attributes-array
 		    (cdr lstatt)
 		    (cdr lstval)
 		    (append newlst (list (list (car lstatt) (car lstval)))))))))
-     #+end_src
+      #+end_src
 
 ****** filter attributes example
+       Simple example with a specified list.
        #+begin_src scheme :noweb yes
 	 <<filter_attributes>>
- (attributes_array (attrlist 0 4 (list)) (repeats 0 3 4 (list)) (list))
+	 (attributes-array (attrlist 0 4 (list)) (repeats 0 3 4 (list)) (list))
        #+end_src
 
        #+RESULTS:
-       | b1 | Pseq([1.0, 0.5, 0.3333333333333333, ], inf) |
-       | b2 | Pseq([1.0, 0.5, 0.3333333333333333, ], inf) |
-       | b3 | Pseq([1.0, 0.5, 0.3333333333333333, ], inf) |
-       | b4 | Pseq([1.0, 0.5, 0.3333333333333333, ], inf) |
+       
+       Example using sequenced_array and shift_list to generate the input to make-pbind-array-list.
+       #+begin_src scheme :noweb yes
+	 <<sequenced_array>>
+	 <<shift_list>>
+	 <<value_sequence>>
+	 (make-pbind-array-list 0 4 (make-shift-list 4 (seq-array-sin 0 9 (list))) '())
+       #+end_src
+
+       Example using sequenced_array and shift_list to generate the input to make-pbind-array-list.
+       #+begin_src scheme :noweb yes
+	 <<filter_attributes>>
+	 <<sequenced_array>>
+	 <<shift_list>>
+	 <<value_sequence>>
+	 ;; create the array of pbind data
+	 (define pseq (make-pbind-array-list 0 4 (make-shift-list 4 (seq-array-sin 0 9 (list))) '()))
+	 ;; create a table of parameter/value pairs.
+	 (attributes-array (attrlist 0 5 (list)) pseq (list))
+       #+end_src
+
+       Same as above without saving the list in a variable.
+       #+begin_src scheme :noweb yes
+	 <<filter_attributes>>
+	 <<sequenced_array>>
+	 <<shift_list>>
+	 <<value_sequence>>
+	 ;; create the array of pbind data
+	 (define pseq (make-pbind-array-list 0 4 (make-shift-list 4 (seq-array-sin 0 9 (list))) '()))
+	 ;; create a table of parameter/value pairs.
+	 (attributes-array 
+	  (attrlist 0 5 (list))
+	  (make-pbind-array-list 0 4 (make-shift-list 4 (seq-array-sin 0 9 (list))) '())
+	  (list))
+       #+end_src
 
 ***** attribute list
      Generate the attribute list: b0 -> blgth
@@ -325,58 +335,204 @@
 
      Parameters for repeats:
      - n: start index
-     - lgth: the number of rows
-     - items: the number of items in the list
+     - lgth: the number of Pseqs
+     - data: an array of sequences to be entered as the parameter value
      - x: the list to contain the result
+
+ ;; make individual calls for seq-array for each item in the list, generating equal set of parameters
      #+name: value_sequence
-     #+begin_src scheme :results value
+     #+begin_src scheme :noweb yes :results output
+	      <<sequenced_array>>
+
+	      (define make-pbind-array-list
+		(lambda (n lgth data x . pmode)
+		  (let ((mode (if (pair? pmode) (car pmode) "Pseq")))
+		  (cond ((= n lgth) x)
+			((= n (length data)) x)
+			((make-pbind-array-list (+ n 1) lgth data
+						(append x (list
+							   (format #f "~a([~{~a, ~}], inf)"
+								   mode (list-ref data n)))) mode))))))
+
+	      (define make-pbind-array
+		(lambda (n lgth items x . pmode)
+		  (let ((mode (if (pair? pmode) (car pmode) "Pseq")))
+		    (if (= n lgth)
+			x
+			(make-pbind-array (+ n 1) lgth items
+					  (append x (list
+						     (format #f "~a([~{~a, ~}], ~a)"
+							     mode (seq-array 0 items '()) "inf"))) mode)))))
+     #+end_src
+
+     Example call for ~make-pbind-array~ generating 4 Pseq, each with a list of two members formatted as a Pbind routine. An optional fifth argument can be supplied with another Pattern sequence: ~(make-pbind-array 0 4 2 '() "Prand")~
+     #+begin_src scheme :noweb yes
+       <<value_sequence>>
+       (make-pbind-array 0 4 2 '())
+     #+end_src
+
+     Example call for ~make-pbind-array-list~ generating 4 Pseq, each with a list taken from the members of the third argument. The fourt argument is the empty list in which the results are inserted. An optional fifth argument can be supplied with another Pattern sequence: ~(make-pbind-array-list 0 4 '('() '()) '() "Prand")~
+     #+begin_src scheme :noweb yes
+       <<value_sequence>>
+       (make-pbind-array-list 0 4 (list (list 1 2 3) (list 4 4 4) (list 5 5 5) (list 6 6 6)) '())
+     #+end_src
+
+     #+RESULTS:
+     | Pseq([1, 2, 3, ], inf) | Pseq([4, 4, 4, ], inf) | Pseq([5, 5, 5, ], inf) | Pseq([6, 6, 6, ], inf) |
+
+     #+begin_src scheme :noweb yes
+	 <<sequenced_array>>
+	 <<shift_list>>
+	 <<value_sequence>>
+	 (make-pbind-array-list 0 4 (make-shift-list 4 (seq-array 0 3 (list))) '())
+     #+end_src
+
+     #+RESULTS:
+     | Pseq([0.0, 0.5, 1.0, ], inf) | Pseq([0.5, 1.0, 0.0, ], inf) | Pseq([1.0, 0.0, 0.5, ], inf) | Pseq([0.0, 0.5, 1.0, ], inf) |
+
+     #+begin_src scheme :noweb yes
+       <<value_sequence>>
+       <<sequenced_array>>
+       (make-pbind-array-list 0 4 (make-list 4 (seq-array 0 3 (list))) '())
+     #+end_src
+
+     #+RESULTS:
+     | Pseq([0.0, 0.5, 1.0, ], inf) | Pseq([0.0, 0.5, 1.0, ], inf) | Pseq([0.0, 0.5, 1.0, ], inf) | Pseq([0.0, 0.5, 1.0, ], inf) |
+
+     #+name: sequenced_array
+     #+begin_src scheme
+       (define pi 3.141592654)
 
        (define seq-array
 	 (lambda (i n x)
 	   (if (= i n)
 	       x
 	       (seq-array (+ i 1) n
-			  (append x (list
-				     (/ 1 (+ 1.0 i))))))))
+			  (append x (list (/ i (- n 1.0))))))))
 
-       (define repeats
-	 (lambda (n lgth items x)
-	   (if (= n items)
+       (define seq-array-reciprocal
+	 (lambda (i n x)
+	   (if (= i n)
 	       x
-	       (repeats (+ n 1) lgth items
-			(append x (list
-				   (format #f "Pseq([~{~a, ~}], inf)"
-					   (seq-array 0 lgth '()))))))))
+	       (seq-array-reciprocal (+ i 1) n
+				     (append x (list
+						(/ 1 (+ 1.0 i))))))))
+
+       (define seq-array-exponential
+	 (lambda (i n x)
+	   (if (= i n)
+	       x
+	       (seq-array-exponential (+ i 1) n
+				      (append x (list
+						 (/ (expt 2 i) (expt 2 (- n 1.0)))))))))
+
+       (define seq-array-log
+	 (lambda (i n x)
+	   (if (= i n)
+	       x
+	       (seq-array-log (+ i 1) n
+			      (append x (list (/ (log (+ i 1)) (log n))))))))
+
+       (define seq-array-sin
+	 (lambda (i n x)
+	   (if (= i n)
+	       x
+	       (seq-array-sin (+ i 1) n
+			      (append x (list (sin (* (/ i n) pi))))))))
+
      #+end_src
 
-     value_sequence example call for the ~seq-array~ function.
+    value_sequence example call for the ~seq-array~ function, creating a list of sequence arrays:
      #+begin_src scheme :noweb yes
-       <<value_sequence>>
-       (seq-array 0 10 (list))
+       <<sequenced_array>>
+       (seq-array 0 3 (list))
      #+end_src
 
-     #+RESULTS:
-     | 1.0 | 0.5 | 0.3333333333333333 | 0.25 | 0.2 | 0.16666666666666666 | 0.14285714285714285 | 0.125 | 0.1111111111111111 | 0.1 |
+****** shift list
+       Shift items in a list and resturn a list of lists, all items shifted by one.
 
-     value_sequence example call for the ~seq-array~ function.
-     #+begin_src scheme :noweb yes
-       <<value_sequence>>
-       (repeats 0 2 2 (list))
-     #+end_src
+       Functions:
+       - duplicate-shift /rows list newlist/: take a list a duplicated it while shifting it one step to the right.
+       - make-shift-list /rows list/: utility function that calls duplicate-list.
+       #+name: shift_list
+       #+begin_src scheme
+	 (define duplicate-shift
+	   (lambda (n lst newlst)
+	     (cond ((= 0 n) newlst)
+		   ((duplicate-shift (- n 1) 
+				     (append (cdr lst) (list (car lst)))
+				     (append newlst (list (append (cdr lst) (list (car lst))))))))))
 
-     #+RESULTS:
-     | Pseq([1.0, 0.5, ], inf) | Pseq([1.0, 0.5, ], inf) |
+	 (define make-shift-list
+	   (lambda (rows lst)
+	     (duplicate-shift rows lst (list lst))))
 
-     Generate a list of increasing values, 0-lgth
-     #+name: value_list
-     #+begin_src scheme :var lgth=10
-     (define valuelist
-	(lambda (i n x)
-	  (if (= i n)
-	      x
-	      (valuelist (+ i 1) n (append x (list (format #f "Pseq([~d], inf)" (+ i 1))))))))
-      (valuelist 0 lgth (list))
-     #+end_src
+	 (define make-noshift-list
+	   (lambda (rows lst)
+	     (make-list rows lst)))
+       #+end_src
+
+       Example use of [[*shift list][shift list]] using [[*value sequence][value sequence]]. The latter creates an array of numbers that is duplicated and shifted to the right
+       #+begin_src scheme :noweb yes
+	 <<sequenced_array>>
+	 <<shift_list>>
+	 (make-shift-list 5 (seq-array 0 3 (list)))
+       #+end_src
+
+       #+RESULTS:
+       | 0.0 | 0.5 | 1.0 |
+       | 0.5 | 1.0 | 0.0 |
+       | 1.0 | 0.0 | 0.5 |
+       | 0.0 | 0.5 | 1.0 |
+       | 0.5 | 1.0 | 0.0 |
+       | 1.0 | 0.0 | 0.5 |
+
+       Example use of shift list and sine mapping, not relying on ~value_sequence~.
+       #+begin_src scheme :noweb yes
+	 (define lst (iota 5))
+	 <<shift_list>>
+	 (duplicate-shift 3 (map (lambda (x) (sin (* 0.1 x))) lst) (list (list)))
+       #+end_src
+
+
+
+****** unused
+	 #+begin_src scheme
+	   <<shift_list>>
+
+	   (define seq-array
+	     (lambda (i n x)
+	       (if (= i n)
+		   x
+		   (seq-array (+ i 1) n
+			      (append x (list
+					 (/ 1 (+ 1.0 i))))))))
+
+	   (define shifted-seq (duplicate-shift 10 (seq-array 0 10 (list)) (list (seq-array 0 10 (list)))))
+
+	   (define repeats
+	     (lambda (n lgth items x)
+	       (if (= n items)
+		   x
+		   (repeats (+ n 1) lgth items
+			    (append x (list
+				       (format #f "Pseq([~{~a, ~}], inf)"
+					       (list-ref shifted-seq n))))))))
+	 #+end_src
+
+	 Generate a list of increasing values, 0-lgth
+	 #+name: value_list
+	 #+begin_src scheme :var lgth=10
+	 (define valuelist
+	    (lambda (i n x)
+	      (if (= i n)
+		  x
+		  (valuelist (+ i 1) n (append x (list (format #f "Pseq([~d], inf)" (+ i 1))))))))
+	  (valuelist 0 lgth (list))
+	 #+end_src
+
+	 #+RESULTS: value_list
+	 | Pseq([1], inf) | Pseq([2], inf) | Pseq([3], inf) | Pseq([4], inf) | Pseq([5], inf) | Pseq([6], inf) | Pseq([7], inf) | Pseq([8], inf) | Pseq([9], inf) | Pseq([10], inf) |
 
 *** make p-arrays
 **** repeat list code 
@@ -500,7 +656,7 @@
      : \dur, Pseq([5, 6, 7, 8, 9, 10, 11, 12 ], inf)
 
 **** relying on other calls
-     Basic function to create a P-type function with a list of numbers supplied as the argument ~elements~. This could equally well be injected in the template [[*sclang template][sclang template]]. Note that it is necessary to escape the backslash in the ~(format)~ function. This calles ~repeat_list()~ for the list.
+     Basic function to create a P-type function with a list of numbers supplied as the argument ~elements~. This could equally well be injected in the template [[*sclang template][sclang template]]. Note that it is necessary to escape the backslash in the ~(format)~ function. This calles ~repeat
      Variables:
      - function: the Supercollider function to apply ("Pseq")
      - param: the parameter to address ("\dur")
@@ -585,3 +741,4 @@
 
      (apply append (repeat reps source_list))
    #+end_src
+   
