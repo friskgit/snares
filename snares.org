@@ -76,7 +76,7 @@
    - Odd multi output to left out
    - Even to right output
     #+begin_src shell
-      for i in {0..8}; do
+      for i in {0..16}; do
 	  if ((i % 2 == 0)); then
 	      jcon scsynth out$i sys playback_2 1;
 	  else 
@@ -86,14 +86,22 @@
     #+end_src
 
     #+RESULTS:
-    | Connecting | scsynth:out1 | to | system:playback_1 |
-    | Connecting | scsynth:out2 | to | system:playback_2 |
-    | Connecting | scsynth:out3 | to | system:playback_1 |
-    | Connecting | scsynth:out4 | to | system:playback_2 |
-    | Connecting | scsynth:out5 | to | system:playback_1 |
-    | Connecting | scsynth:out6 | to | system:playback_2 |
-    | Connecting | scsynth:out7 | to | system:playback_1 |
-    | Connecting | scsynth:out8 | to | system:playback_2 |
+    | Connecting | scsynth:out1  | to | system:playback_1 |
+    | Connecting | scsynth:out2  | to | system:playback_2 |
+    | Connecting | scsynth:out3  | to | system:playback_1 |
+    | Connecting | scsynth:out4  | to | system:playback_2 |
+    | Connecting | scsynth:out5  | to | system:playback_1 |
+    | Connecting | scsynth:out6  | to | system:playback_2 |
+    | Connecting | scsynth:out7  | to | system:playback_1 |
+    | Connecting | scsynth:out8  | to | system:playback_2 |
+    | Connecting | scsynth:out9  | to | system:playback_1 |
+    | Connecting | scsynth:out10 | to | system:playback_2 |
+    | Connecting | scsynth:out11 | to | system:playback_1 |
+    | Connecting | scsynth:out12 | to | system:playback_2 |
+    | Connecting | scsynth:out13 | to | system:playback_1 |
+    | Connecting | scsynth:out14 | to | system:playback_2 |
+    | Connecting | scsynth:out15 | to | system:playback_1 |
+    | Connecting | scsynth:out16 | to | system:playback_2 |
 
     specific version of the above.
    #+begin_src shell :results replace
@@ -188,9 +196,6 @@ r = Pbind(
 \note, Pseq([1, 2, 3, ], inf)
 )
    #+end_src
-   #+begin_src sclang :results none
-
-   #+end_src
 ** snare synths
 *** snare 1
 **** synthdef
@@ -220,7 +225,8 @@ r = Pbind(
 \q, Prand([0.001, 5, 2], inf)
        ).play;
      #+end_src
-
+     
+     
      #+begin_src sclang :results none
        a = Pbind(\instrument, \snare,
 	 \freq, Prand([100,110,140, 180, 260, 320, 640, 80, 200], 64),
@@ -472,13 +478,12 @@ Ptpar([0.0, a, 0.1, b, 0.2, a]).play;
 			1.yield;
 	    }
 	});
-	)
 	~routine.play;
+	)
       #+end_src
 
       #+begin_src sclang :results none
-
-~routine.stop;
+	~routine.stop;
       #+end_src
 ***** Add and play the main instrument, depends on [[*Create group and add control instrument][Create group...]] and [[*Synth and modulator][Synth and modulator]] (3)
       Play it:
@@ -791,6 +796,54 @@ Ptpar([0.0, a, 0.1, b, 0.2, a]).play;
       ).play;
     #+end_src
 
+    #+begin_src sclang :results none
+	    a = Pbind(\instrument, \isnare_filter_mod,
+	    \dur, 0.2,
+	    \freq, 10,
+	    \freq_mod, 1,
+	    \del_mod, 1,
+	    \b1, Pseq([-0.0, -24.721359553116837, -47.02282018870768, -64.72135955578251, -76.08452130766864, -80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, ], inf),
+	    \b2, Pseq([-24.721359553116837, -47.02282018870768, -64.72135955578251, -76.08452130766864, -80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, -0.0, ], inf),
+	    \b3, Pseq([-47.02282018870768, -64.72135955578251, -76.08452130766864, -80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, -0.0, -24.721359553116837, ], inf),
+	    \b4, Pseq([-64.72135955578251, -76.08452130766864, -80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, -0.0, -24.721359553116837, -47.02282018870768, ], inf),
+	    \b5, Pseq([-76.08452130766864, -80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, -0.0, -24.721359553116837, -47.02282018870768, -64.72135955578251, ], inf),
+	    \b6, Pseq([-80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, -0.0, -24.721359553116837, -47.02282018870768, -64.72135955578251, -76.08452130766864, ], inf),
+	    \b7, Pseq([-76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, -0.0, -24.721359553116837, -47.02282018870768, -64.72135955578251, -76.08452130766864, -80.0, ], inf),
+	    \b8, Pseq([-64.72135953649345, -47.02282016215851, -24.721359521906425, -0.0, -24.721359553116837, -47.02282018870768, -64.72135955578251, -76.08452130766864, -80.0, -76.08452129752777, ], inf),
+	    \b9, Pseq([-47.02282016215851, -24.721359521906425, -0.0, -24.721359553116837, -47.02282018870768, -64.72135955578251, -76.08452130766864, -80.0, -76.08452129752777, -64.72135953649345, ], inf),
+	    \b10, Pseq([-24.721359521906425, -0.0, -24.721359553116837, -47.02282018870768, -64.72135955578251, -76.08452130766864, -80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, ], inf),
+	    \b11, Pseq([-0.0, -24.721359553116837, -47.02282018870768, -64.72135955578251, -76.08452130766864, -80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, ], inf),
+	    \b12, Pseq([-24.721359553116837, -47.02282018870768, -64.72135955578251, -76.08452130766864, -80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, -0.0, ], inf),
+	    \b13, Pseq([-47.02282018870768, -64.72135955578251, -76.08452130766864, -80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, -0.0, -24.721359553116837, ], inf),
+	    \b14, Pseq([-64.72135955578251, -76.08452130766864, -80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, -0.0, -24.721359553116837, -47.02282018870768, ], inf),
+	    \b15, Pseq([-76.08452130766864, -80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, -0.0, -24.721359553116837, -47.02282018870768, -64.72135955578251, ], inf),
+	    \b16, Pseq([-80.0, -76.08452129752777, -64.72135953649345, -47.02282016215851, -24.721359521906425, -0.0, -24.721359553116837, -47.02282018870768, -64.72135955578251, -76.08452130766864, ], inf),
+	    );
+
+	    b = Pbind(\instrument, \isnare_filter_mod,
+	    \dur, 0.05,
+	    \freq, 1,
+	    \freq_mod, 1,
+	    \del_mod, 1,
+	    \b1, Prand([-80.0, -40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, ], inf),
+	    \b2, Prand([-40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, ], inf),
+	    \b3, Prand([-26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, ], inf),
+	    \b4, Prand([-20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, ], inf),
+	    \b5, Prand([-16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, ], inf),
+	    \b6, Prand([-13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, -16.0, ], inf),
+	    \b7, Prand([-11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, ], inf),
+	    \b8, Prand([-10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, ], inf),
+	    \b9, Prand([-8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, ], inf),
+	    \b10, Prand([-8.0, -80.0, -40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, ], inf),
+	    \b11, Prand([-80.0, -40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, ], inf),
+	    \b12, Prand([-40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, ], inf),
+	    \b13, Prand([-26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, ], inf),
+	    \b14, Prand([-20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, ], inf),
+	    \b15, Prand([-16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, ], inf),
+	    \b16, Prand([-13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, -16.0, ], inf),
+	    );
+Ptpar([0, a, 0.2, b]).play;
+    #+end_src
     Controlling the filters
     #+begin_src sclang :results none
       (
@@ -801,7 +854,7 @@ Ptpar([0.0, a, 0.1, b, 0.2, a]).play;
     #+end_src
 
     #+begin_src sclang :results none :noweb eval
-      //~init_durs.value
+      ~init_durs.value
       (     
       ~player1 = Pbind(
 	  \instrument, \isnare,
@@ -925,7 +978,7 @@ Ptpar([0.0, a, 0.1, b, 0.2, a]).play;
 ** poly rhythm
    #+begin_src sclang :results none
      (
-     ~clock = TempoClock(2);
+     ~clock = TempoClock(16);
      ~denom = Pbind(
 	 \instrument, \snare,
 	 \dur, 2,
@@ -986,137 +1039,115 @@ Ptpar([0.0, a, 0.1, b, 0.2, a]).play;
 
       ~play.play;
     #+end_src
-** definition of ~play
-   This is made to deal with the faust 'gate' not resetting itself.
-   Set the netaddress and register the routine.
-   #+name: set_play
-   #+begin_src sclang :results none
-     (
-     ~play = {
-	 1.do{
-	     b.sendMsg("/o_dispersed_snare/impulse/play", 1);
-	     0.01.wait;
-	     b.sendMsg("/o_dispersed_snare/impulse/play", 0);
-	 }
-     }
-     )
-   #+end_src
-   Play the routine above:
-   #+begin_src sclang :results none
-     ~play.fork
-   #+end_src
-   #+name: set_play_dep
-   #+begin_src shell :results none :noweb yes
-     <<set_netaddress()>>
-     <<set_play()>>
-   #+end_src
-** play routine 1
-   Depends on [[*deal with faust 'gate'][deal with faust 'gate']]
-   #+begin_src sclang :results none
-     (
-     r = Routine {
-	 0.5.idle(2);
-	 0.25.idle(2);
-	 0.125.idle(2);
-	 0.0625.idle(2);
-     };
-     fork {
-	 loop {
-	     var rest = r.value;
-	     rest.postln;
-	     ~play.fork;
-	     rest.wait;
-	 }
-     }
-     );
-   #+end_src
-** play routine 2
-   Parameters are:
-   1. a scaling factor (default to one)
-   2. the number of notes to play.
-   Depends on the definition of ~~play~      
-   #+begin_src sclang :results none :noweb yes
-     <<set_play()>>
-     <<p_random_rhythm_rout()>>
-     <<p_random_rhythm()>>
-   #+end_src
-   #+name: p_random_rhythm_rout
-   #+begin_src sclang :results none :noweb yes
-     (
-     l = Routine { arg in=1, reps=10;
-	 var length = 1;
-	 p = Prand([0.5, 0.25, 0.125, 1], inf);
-	 q = p.asStream;
-	 50.do { |i=0|
-	     q.next.postln;
-	     length = q.next * in;
-	     b.sendMsg("/o_dispersed_snare/snare/osc_1_freq", [200, 300, 400].choose);
-	     b.sendMsg("/o_dispersed_snare/snare/osc_2_freq", [210, 320, 440].choose);
-	     ~play.fork;
-	     q.next.wait;
-	 }
-     }
-     )
-   #+end_src
-   #+name: p_random_rhythm 
-   #+begin_src sclang :results none
-     l.play.value(1, 100);
-   #+end_src
-** play routine 3
-   #+begin_src sclang :results none
-     (
-     var osc1freq = Array.fill(10, { (100.rand*2)+100 });
-     ~playme = Pbind(
-	 \dur, Prand([0.1, 0.15, 0.05, 0.2, 0.25, 0.3], inf),
-	 \play, Pfunc({[~play.fork, ~play.fork]}),
-	 \osc1f, Pfunc({b.sendMsg("/o_dispersed_snare/snare/osc_1_freq", [ 190, 174, 178, 204, 138, 218, 232, 222, 276, 158 ].choose)}),
-	 \osc2f, Pfunc({b.sendMsg("/o_dispersed_snare/snare/osc_2_freq", [200, 300, 400, 500, 450, 350, 250, 150].choose)}),
-	 \noise_rel, Pfunc({b.sendMsg("/o_dispersed_snare/snare/noise_rel", 0.1.linrand + 0.012 )}),
-	 \noise_lvl, Pfunc({b.sendMsg("/o_dispersed_snare/snare/noise_lvl", 0.5.linrand + 0.012 )}),
-	 \noise_attack, Pfunc({b.sendMsg("/o_dispersed_snare/snare/noise_attack", 0.1.linrand )}),
-     ).play;
-     )
-   #+end_src
+*** definition of ~play
+    This is made to deal with the faust 'gate' not resetting itself.
+    Set the netaddress and register the routine.
+    #+name: set_play
+    #+begin_src sclang :results none
+      (
+      ~play = {
+	  1.do{
+	      b.sendMsg("/o_dispersed_snare/impulse/play", 1);
+	      0.01.wait;
+	      b.sendMsg("/o_dispersed_snare/impulse/play", 0);
+	  }
+      }
+      )
+    #+end_src
+    Play the routine above:
+    #+begin_src sclang :results none
+      ~play.fork
+    #+end_src
+    #+name: set_play_dep
+    #+begin_src shell :results none :noweb yes
+      <<set_netaddress()>>
+      <<set_play()>>
+    #+end_src
+*** play routine 1
+    Depends on [[*deal with faust 'gate'][deal with faust 'gate']]
+    #+begin_src sclang :results none
+      (
+      r = Routine {
+	  0.5.idle(2);
+	  0.25.idle(2);
+	  0.125.idle(2);
+	  0.0625.idle(2);
+      };
+      fork {
+	  loop {
+	      var rest = r.value;
+	      rest.postln;
+	      ~play.fork;
+	      rest.wait;
+	  }
+      }
+      );
+    #+end_src
+*** play routine 2
+    Parameters are:
+    1. a scaling factor (default to one)
+    2. the number of notes to play.
+    Depends on the definition of ~~play~      
+    #+begin_src sclang :results none :noweb yes
+      <<set_play()>>
+      <<p_random_rhythm_rout()>>
+      <<p_random_rhythm()>>
+    #+end_src
+    #+name: p_random_rhythm_rout
+    #+begin_src sclang :results none :noweb yes
+      (
+      l = Routine { arg in=1, reps=10;
+	  var length = 1;
+	  p = Prand([0.5, 0.25, 0.125, 1], inf);
+	  q = p.asStream;
+	  50.do { |i=0|
+	      q.next.postln;
+	      length = q.next * in;
+	      b.sendMsg("/o_dispersed_snare/snare/osc_1_freq", [200, 300, 400].choose);
+	      b.sendMsg("/o_dispersed_snare/snare/osc_2_freq", [210, 320, 440].choose);
+	      ~play.fork;
+	      q.next.wait;
+	  }
+      }
+      )
+    #+end_src
+    #+name: p_random_rhythm 
+    #+begin_src sclang :results none
+      l.play.value(1, 100);
+    #+end_src
+*** play routine 3
+    #+begin_src sclang :results none
+      (
+      var osc1freq = Array.fill(10, { (100.rand*2)+100 });
+      ~playme = Pbind(
+	  \dur, Prand([0.1, 0.15, 0.05, 0.2, 0.25, 0.3], inf),
+	  \play, Pfunc({[~play.fork, ~play.fork]}),
+	  \osc1f, Pfunc({b.sendMsg("/o_dispersed_snare/snare/osc_1_freq", [ 190, 174, 178, 204, 138, 218, 232, 222, 276, 158 ].choose)}),
+	  \osc2f, Pfunc({b.sendMsg("/o_dispersed_snare/snare/osc_2_freq", [200, 300, 400, 500, 450, 350, 250, 150].choose)}),
+	  \noise_rel, Pfunc({b.sendMsg("/o_dispersed_snare/snare/noise_rel", 0.1.linrand + 0.012 )}),
+	  \noise_lvl, Pfunc({b.sendMsg("/o_dispersed_snare/snare/noise_lvl", 0.5.linrand + 0.012 )}),
+	  \noise_attack, Pfunc({b.sendMsg("/o_dispersed_snare/snare/noise_attack", 0.1.linrand )}),
+      ).play;
+      )
+    #+end_src
 
-** play routine 4
-   #+begin_src sclang :results none
-     (
-     var durs = Array.new(64);
-     a = (1!4);
-     b = (0.5!8);
-     c = (0.25!16);
-     d = (0.125!32);
-     durs = a ++ b;
-     durs = durs ++ c;
-     durs = durs ++ d;
-     ~playme = Pbind(
-	 \dur, Pseq(durs, inf),
-	 \play, Pn(Pfunc({~play.fork}), inf)
-     ).play;
-     )
-   #+end_src
-
-** routine loop
-   #+begin_src sclang :results none
-     (
-     r = Routine({
-	 var delta = 0;
-	 loop {
-	     delta = delta + 1;
-	     "Will wait ".post; delta.postln;
-	     0.5.yield;
-	 }
-     });
-     )
-   #+end_src
-   #+begin_src sclang :results none
-     r.next;
-
-     TempoClock.default.sched(0, r);
-   #+end_src
-   #+begin_src sclang :results none
-     r.stop;
-   #+end_src
+*** play routine 4
+    #+begin_src sclang :results none
+      (
+      var durs = Array.new(64);
+      a = (1!4);
+      b = (0.5!8);
+      c = (0.25!16);
+      d = (0.125!32);
+      durs = a ++ b;
+      durs = durs ++ c;
+      durs = durs ++ d;
+      ~playme = Pbind(
+	  \dur, Pseq(durs, inf),
+	  \play, Pn(Pfunc({~play.fork}), inf)
+      ).play;
+      )
+    #+end_src
 ** archive
    Synth that is driven by an Impulse pulse generator.
    Load first the two SynthDefs below and use a global variable of ~isnare for the snare synth:
@@ -1163,4 +1194,26 @@ Ptpar([0.0, a, 0.1, b, 0.2, a]).play;
      ~impulse.set(\freq, 0);
      ~sisnare.set(\position, {In.kr(~controlBus_1.index)});
    #+end_src
+
+*** routine loop
+    #+begin_src sclang :results none
+      (
+      r = Routine({
+	  var delta = 0;
+	  loop {
+	      delta = delta + 1;
+	      "Will wait ".post; delta.postln;
+	      0.5.yield;
+	  }
+      });
+      )
+    #+end_src
+    #+begin_src sclang :results none
+      r.next;
+
+      TempoClock.default.sched(0, r);
+    #+end_src
+    #+begin_src sclang :results none
+      r.stop;
+    #+end_src
 
