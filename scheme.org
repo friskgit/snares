@@ -1,0 +1,33 @@
+#+begin_src scheme :results value
+(define a (list 1 2 3 4))
+
+(define (list-set! list k val)
+    (if (zero? k)
+        (set-car! list val)
+        (list-set! (cdr list) (- k 1) val)))
+
+(list-set! a 2 100) 
+#+end_src
+
+#+RESULTS:
+: #<unspecified>
+
+#+begin_src scheme :results value
+(display (append '(1) 2))
+#+end_src
+
+#+RESULTS:
+: #<unspecified>
+
+#+begin_src scheme :results value
+(length (make-list 16 0))
+#+end_src
+
+#+RESULTS:
+: 16
+
+#+begin_src scheme :results output
+(car (list 1 2 3))
+#+end_src
+
+#+RESULTS:
