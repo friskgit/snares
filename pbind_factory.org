@@ -6,16 +6,17 @@
    :header-args: :results value code :exports code :noweb yes 
    :END:
    By providing a boiler plate in sclang that fetches data through noweb references a complete Pbind can be constructed. This particular instance fetches a ~\dur~ key word with a ~Pseq()~ data list.
-  #+begin_src sclang :tangle pbind.sc :var seq=o_value_sequence()
+  #+begin_src sclang :tangle pbind.sc 
     Pbind(\instrument, \snare,
+	<<repeat_list_full()>>
     ).play
   #+end_src
 
   #+RESULTS:
   #+BEGIN_SRC sclang
-  seq
-      Pbind(\instrument, \snare,
-      ).play
+  Pbind(\instrument, \snare,
+      \dur, Pseq([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625 ], inf)
+  ).play
   #+END_SRC
 
 ** scheme boiler plate
@@ -686,6 +687,33 @@
 #+RESULTS:
 : \dur, Pseq([0.5, 0.5, 0.25, 0.25, 0.25, 0.25 ], inf)
 
+**** repeat list full
+     This functions returns a full EventList string.
+     Functions:
+     - pseries: function that prints out the items of a list in the context of a Pseq or similar.
+     - repeat: Repeats items of a list
+     Variables:
+     - source_list: the source for the list manipulation.
+     - reps: the number of repetitions for the original item, other items are repeated ~(* (/ 1 divisor) repeats)~
+     - function: the Supercollider function to apply ("Pseq")
+     - param: the parameter to address ("\dur")
+     #+name: repeat_list_full
+     #+begin_src scheme :results output :var source_list=(list 0.5 0.25 0.125 0.0625) reps=4 function="Pseq" param="\\dur"
+       (define (pseries lst i)
+	 (let ((max (length lst)))
+	   (when (< i max)
+	     (if (= i (- max 1))
+		 (format #t "~a ], inf)" (list-ref lst i))
+		 (format #t "~a, " (list-ref lst i)))
+	     (pseries lst (1+ i)))))
+
+       (define (repeat n lst)
+	 (map (lambda (x) (make-list (* (inexact->exact (floor (/ 1 x))) n) x)) lst))
+
+       (format #t "~a, " param)
+       (format #t "~a([" function)
+       (pseries (apply append (repeat reps source_list)) 0)
+     #+end_src
 **** make p-function series
      These function all output a variety of P-functions that takes an array as first argument. The exact function to use is specified in the variable 'function'.
     
