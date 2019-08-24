@@ -21,7 +21,7 @@
 
 ** scheme boiler plate
    :PROPERTIES:
-   :header-args: :results output raw :exports code :noweb yes :wrap "SRC sclang :tangle sclang_output.txt" 
+   :header-args: :results output raw :exports code :noweb yes :wrap "SRC sclang :tangle sclang_output.sc" 
    :END:
    This is similar to the [[*sclang template][sclang template]] example above, but uses scheme. For some reason it does not appear to be possible to tangle the result of this evaluation, but it works fine with writing it to file on C-c C-c. It applies the various outputs of ~make_pseq()~ and the like as variables. Removing the :file directive makes it output a ready a execute sclang results block.
 *** plain
@@ -37,7 +37,7 @@
    #+end_src
 
 *** noweb version 
-    This version of the [[*plain][plain]] example above inserts the code of the ~repeat_list_full~ function definition ([[*repeat list code][repeat list code]]). The Scheme code can be tangled, in this case to 'tangleme.scm'. The result can be saved to file by adding a :file header and specify the name of the file. Finally, the result block (sclang code) can be tangled, but the result block is not generated when the :file directive is present, which writes to sclang_output.txt. Note that this file name is set in the header-args for [[*scheme boiler plate][scheme boiler plate]] and all the code in all results block will appended to the same file.
+    This version of the [[*plain][plain]] example above inserts the code of the ~repeat_list~ function definition ([[*repeat list for rhythmic patterns][repeat list for rhythmic patterns]]). The Scheme code can be tangled, in this case to 'tangleme.scm'. The result can be saved to file by adding a :file header and specify the name of the file. Finally, the result block (sclang code) can be tangled, but the result block is not generated when the :file directive is present, which writes to sclang_output.txt. Note that this file name is set in the header-args for [[*scheme boiler plate][scheme boiler plate]] and all the code in all results block will appended to the same file.
 
     In summary:
     - C-c C-c on a code block generates a Pbind
@@ -52,12 +52,8 @@
 
      ;; Pbind definition to output with instrument
      (display "Pbind(\\instrument, ")
-     (format #t "~a," inst)
+     (format #t "~a,~&" inst)
 
-     ;; Repeat the three statements below this for more parameters
-     ;; Add a parameter to the EventList
-     (format #t "~a, " "\\dur")
-     (format #t "~a([" "Pseq")
      ;; Add data to it
      (pseries (apply append (repeat 4 '(1 0.5 0.25))) 0)
 
@@ -66,8 +62,9 @@
    #+end_src
 
    #+RESULTS:
-   #+BEGIN_SRC sclang :tangle sclang_output.txt
-   Pbind(\instrument, \snare,\dur, Pseq([1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25 ], inf)).play
+   #+BEGIN_SRC sclang :tangle sclang_output.sc
+   Pbind(\instrument, \snare,
+   \dur, Pseq([1, 1, 1, 1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25 ], inf)).play
    #+END_SRC
 
 *** pbind for isnare_def
@@ -86,7 +83,7 @@
      (display ", ")
      (display noise)
      (display ", ")
-     (display freq)
+     (display something)
      (display ").play")
    #+end_src
 
@@ -117,35 +114,25 @@
      (display ").play")
    #+end_src
 
+   #+RESULTS:
+   #+BEGIN_SRC sclang :tangle sclang_output.sc
+   ~group = Group.new; ~freq_ctrl = Synth(\control_saw2, [\bus, ~saw_control_bus_1.index, \freq, 1, \mult, 1, \add, 1], ~group, \addToHead); ~freq_ctrl2 = Synth(\control_saw2, [\bus, ~saw_control_bus_2.index, \freq, 1, \mult, 1, \add, 1], ~group, \addToHead); ~impulse_ctrl = Synth(\control_saw2, [\bus, ~saw_control_bus_3.index, \freq, 0.5, \mult, 1, \add, 1], ~group, \addToHead);Pbind(\instrument, \isnare2,
+   \group, ~group,
+   \addAction, 1,
+   \position, 0,
+   \disperse, 0,
+   \noise, 0,
+   \freq, 1,
+   \dur, 1,
+   \inBus1, ~saw_control_bus_1.index,
+   \inBus2, ~saw_control_bus_2.index,
+   \inBus3, ~saw_control_bus_3.index,
+   ).play
+   #+END_SRC
+
 **** Call preset in snares.org
      #+name: preset_1
      #+call: snares.org:isnare_preset_1()
-
-*** pbind attribute list
-   :PROPERTIES:
-   :header-args: :results output
-   :END:
-   #+name: isnare2_pbind_list
-   #+begin_src scheme
-     (define (print-list i lst)
-       (when (< i (length lst))
-	 (format #t "~a,~&" (list-ref lst i))
-	 (print-list (1+ i) lst)))
-
-     (define attributes (list (cons "group" "~group")
-			      (cons "addAction" 1)
-			      (cons "position" 0)
-			      (cons "disperse" 0)
-			      (cons "noise" 0)
-			      (cons "freq" 1)
-			      (cons "dur" 1)
-			      (cons "inBus1" "~saw_control_bus_1.index")
-			      (cons "inBus2" "~saw_control_bus_2.index")
-			      (cons "inBus3" "~saw_control_bus_3.index")))
-
-   #+end_src
-
-   #+RESULTS: isnare2_pbind_list
 
 ** helper functions
 *** pbind filter attributes
@@ -169,120 +156,113 @@
       - attributes: the default list of attributes
       - make-filter-attributes /length arrays-size method shifted/: genrate the key/value pair list to be appended to ~attributes~
 
-	  Functions included from ~filter_attributes~:
-	- attributes-array
+      Functions included from ~filter_attributes~:
+      - attributes-array
 
-	  Function included from [[*attribute list][attribute list]]:
-	  - attrlist
+      Function included from [[*attribute list][attribute list]]:
+      - attrlist
 
-	  Variables: 
-	  - params: a call to filter_attributes (see [[*filter attributes][filter attributes]]) that provides a list of Pseq arrays.
-	    #+begin_src scheme :results output raw :exports code :noweb yes :wrap "SRC sclang :tangle sclang_output.txt :results none"
-	      <<filter_attributes>>
-	      <<shift_list>>
+      Variables: 
+      - params: a call to filter_attributes (see [[*filter attributes][filter attributes]]) that provides a list of Pseq arrays.
+    #+begin_src scheme :results output raw :exports code :noweb yes :wrap "SRC sclang :tangle sclang_output.sc :results none"
+      <<filter_attributes>>
+      <<shift_list>>
 
-	      (define l 16) ;; length of array
-	      (define a 10) ;; number of items in the Pseq
-	      (define m 1) ;; method for generating 'a'
-	      (define s 1) ;; whether or not 'a' should be shifted
-	      (define p "Pseq") ;; function for the array (Pseq, Pshuf, Prand, Pxrand, Place)
+      (define l 8) ;; length of array
+      (define a 4) ;; number of items in the Pseq
+      (define m 4) ;; method for generating 'a'
+      (define s 1) ;; whether or not 'a' should be shifted
+      (define p "Pshuf") ;; function for the array (Pseq, Pshuf, Prand, Pxrand, Place)
 
-	      (define make-filter-attributes
-		(lambda (lgth array-size method shifted)
-		  (attributes-array (attrlist 0 lgth (list))
-				    (make-pbind-array-list 0 lgth
-							   (make-shift-list lgth
-									    (map
-									     (lambda (x) (* -80 x))
-									     (select-seq-array 
-									      0 array-size (list) method))
-									    shifted) '() p) (list))))
+      (define make-filter-attributes
+	(lambda (lgth array-size method shifted)
+	  (attributes-array (attrlist 0 lgth (list))
+			    (make-pbind-array-list 0 lgth
+						   (make-shift-list lgth
+								    (map
+								     (lambda (x) (* -80 x))
+								     (select-seq-array 
+								      0 array-size (list) method))
+								    shifted) '() p) (list))))
 
-	      (define (print-list i lst)
-		(when (< i (length lst))
-		  (format #t "~a,~&" (list-ref lst i))
-		  (print-list (1+ i) lst)))
+      (define (print-list i lst)
+	(when (< i (length lst))
+	  (format #t "~a,~&" (list-ref lst i))
+	  (print-list (1+ i) lst)))
 
-	      (define attributes (list (list "group" "~group")
-				       (list "addAction" 1)
-				       (list "position" 0)
-				       (list "disperse" 0)
-				       (list "noise" 0)
-				       (list "freq" 1)
-				       (list "dur" 1)
-				       (list "inBus1" "~saw_control_bus_1.index")
-				       (list "inBus2" "~saw_control_bus_2.index")
-				       (list "inBus3" "~saw_control_bus_3.index")))
+      (define attributes (list (list "group" "~group")
+			       (list "addAction" 1)
+			       (list "position" 0)
+			       (list "disperse" 0)
+			       (list "noise" 0)
+			       (list "freq" 1)
+			       (list "dur" 1)
+			       (list "inBus1" "~saw_control_bus_1.index")
+			       (list "inBus2" "~saw_control_bus_2.index")
+			       (list "inBus3" "~saw_control_bus_3.index")))
 
-	      (define filter-mod-attributes (list (list "instrument" "\\isnare_filter_mod")
-						  (list "dur" 0.05)
-						  (list "freq" 1)
-						  (list "freq_mod" 0)
-						  (list "del_mod" 0)))
-	      (format #t "~a(" "Pbind")
-	      (print-list 0 (map 
-			     (lambda (x) 
-			       (format #f "\\~a, ~a" (car x) (cadr x)))
-			     (append filter-mod-attributes
-				     (make-filter-attributes l a m s))))
-	      (format #t ")~a" ".play;")
+      (define filter-mod-attributes (list (list "instrument" "\\isnare_filter_mod_8")
+					  (list "dur" (format #f "~a" (car (make-pbind-array-list 0 1 (make-shift-list 4 (select-seq-array 1 20 (list) 0) 1) '()))))
+					  (list "freq" 1)
+					  (list "freq_mod" 0)
+					  (list "del_mod" 0)))
+      (format #t "~a(" "Pbind")
+      (print-list 0 (map 
+		     (lambda (x) 
+		       (format #f "\\~a, ~a" (car x) (cadr x)))
+		     (append filter-mod-attributes
+			     (make-filter-attributes l a m s))))
+      (format #t ")~a" ".play;")
+
+	    
 
 	    #+end_src
 
 	    #+RESULTS:
-	    #+BEGIN_SRC sclang :tangle sclang_output.txt :results none
-	    Pbind(\instrument, \isnare_filter_mod,
-	    \dur, 0.05,
-	    \freq, 1,
+	    #+BEGIN_SRC sclang :tangle sclang_output.sc :results none
+	    Pbind(\instrument, \isnare_filter_mod_8,
+	    \dur, Pseq([0.05263157894736842, 0.10526315789473684, 0.15789473684210525, 0.21052631578947367, 0.2631578947368421, 0.3157894736842105, 0.3684210526315789, 0.42105263157894735, 0.47368421052631576, 0.5263157894736842, 0.5789473684210527, 0.631578947368421, 0.6842105263157895, 0.7368421052631579, 0.7894736842105263, 0.8421052631578947, 0.8947368421052632, 0.9473684210526315, 1.0, ], inf),
+	    \freq, 10,
 	    \freq_mod, 0,
 	    \del_mod, 0,
-	    \b1, Pseq([-80.0, -40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, ], inf),
-	    \b2, Pseq([-40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, ], inf),
-	    \b3, Pseq([-26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, ], inf),
-	    \b4, Pseq([-20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, ], inf),
-	    \b5, Pseq([-16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, ], inf),
-	    \b6, Pseq([-13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, -16.0, ], inf),
-	    \b7, Pseq([-11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, ], inf),
-	    \b8, Pseq([-10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, ], inf),
-	    \b9, Pseq([-8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, ], inf),
-	    \b10, Pseq([-8.0, -80.0, -40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, ], inf),
-	    \b11, Pseq([-80.0, -40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, ], inf),
-	    \b12, Pseq([-40.0, -26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, ], inf),
-	    \b13, Pseq([-26.666666666666664, -20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, ], inf),
-	    \b14, Pseq([-20.0, -16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, ], inf),
-	    \b15, Pseq([-16.0, -13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, ], inf),
-	    \b16, Pseq([-13.333333333333332, -11.428571428571427, -10.0, -8.88888888888889, -8.0, -80.0, -40.0, -26.666666666666664, -20.0, -16.0, ], inf),
+	    \b1, Pshuf([-0.0, -56.568542500724995, -80.0, -56.5685424775202, ], inf),
+	    \b2, Pshuf([-56.568542500724995, -80.0, -56.5685424775202, -0.0, ], inf),
+	    \b3, Pshuf([-80.0, -56.5685424775202, -0.0, -56.568542500724995, ], inf),
+	    \b4, Pshuf([-56.5685424775202, -0.0, -56.568542500724995, -80.0, ], inf),
+	    \b5, Pshuf([-0.0, -56.568542500724995, -80.0, -56.5685424775202, ], inf),
+	    \b6, Pshuf([-56.568542500724995, -80.0, -56.5685424775202, -0.0, ], inf),
+	    \b7, Pshuf([-80.0, -56.5685424775202, -0.0, -56.568542500724995, ], inf),
+	    \b8, Pshuf([-56.5685424775202, -0.0, -56.568542500724995, -80.0, ], inf),
 	    ).play;
 	    #+END_SRC
 
 	  Example use of the attribute list function:
-
-	  | b1 | b2 | b3 | b4 |
 	  #+begin_src scheme :noweb yes
 	    <<filter_attributes>>
 	    (attrlist 0 4 '())
 	  #+end_src
 
-	  #+RESULTS:
-	  | b1 | b2 | b3 | b4 |
-
 	  Example to generate a list of Psequences:
-
-	  | Pseq([0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0, ], inf) | Pseq([0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0, 0.0, ], inf) |
+          | Pseq([0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1.0, ], inf) |
 	  #+begin_src scheme :noweb yes :results value
 	    <<filter_attributes>>
 	    <<shift_list>>
-	    (make-pbind-array-list 0 4 (make-shift-list 4 (select-seq-array 0 9 (list) 0) 1) '())
+	    (make-pbind-array-list 0 1 (make-shift-list 4 (select-seq-array 4 9 (list) 0) 1) '())
 	  #+end_src
 
-	  Example of use of the simpler call to make-pbind-array to generate a list of Psequences:
+	  #+RESULTS:
+	  | Pseq([0.5, 0.625, 0.75, 0.875, 1.0, ], inf) |
 
+	  Example of use of the simpler call to make-pbind-array to generate a list of Psequences:
 	  | Pseq([0.0, 0.3333333333333333, 0.6666666666666666, 1.0, ], inf) | Pseq([0.0, 0.3333333333333333, 0.6666666666666666, 1.0, ], inf) |
 	  #+begin_src scheme :noweb yes :results value
 	    <<filter_attributes>>
 	    <<shift_list>>
-	    (make-pbind-array 0 4 4 '())
+	    (format #f "~a" (car (make-pbind-array 0 4 4 '())))
 	  #+end_src
+
+	  #+RESULTS:
+	  : (Pseq([0.0, 0.3333333333333333, 0.6666666666666666, 1.0, ], inf) Pseq([0.0, 0.3333333333333333, 0.6666666666666666, 1.0, ], inf) Pseq([0.0, 0.3333333333333333, 0.6666666666666666, 1.0, ], inf) Pseq([0.0, 0.3333333333333333, 0.6666666666666666, 1.0, ], inf))
 
 ***** filter attributes
       Call this to create a list of pairs (lists) with attribute name, and value for a give SynthDef. This uses two helper function below that generate the attributes and the values. In the version below it outputs a list of pairs, useful for the ~isnare2_pbind_list~ above.
@@ -408,11 +388,16 @@
 	       (valuelist (+ i 1) n (append x (list (format #f "~d, ~d" i i)))))))
       #+end_src
 
+      #+RESULTS: single_value_list
+
       Example call
       #+begin_src scheme :noweb yes
 	<<single_value_list>>
 	(valuelist 0 10 '())
       #+end_src
+
+      #+RESULTS:
+      | 0, 0 | 1, 1 | 2, 2 | 3, 3 | 4, 4 | 5, 5 | 6, 6 | 7, 7 | 8, 8 | 9, 9 |
 
 ***** value sequence
      The following function creates a sequence of Psecs with lgth number of items in the array. 
@@ -456,9 +441,6 @@
        <<value_sequence>>
        (make-pbind-array 0 4 4 '())
      #+end_src
-
-     #+RESULTS:
-     | Pseq([0.0, 0.3333333333333333, 0.6666666666666666, 1.0, ], inf) | Pseq([0.0, 0.3333333333333333, 0.6666666666666666, 1.0, ], inf) | Pseq([0.0, 0.3333333333333333, 0.6666666666666666, 1.0, ], inf) | Pseq([0.0, 0.3333333333333333, 0.6666666666666666, 1.0, ], inf) |
 
      Example call for ~make-pbind-array-list~ generating 4 Pseq, each with a list taken from the members of the third argument. The fourt argument is the empty list in which the results are inserted. An optional fifth argument can be supplied with another Pattern sequence: ~(make-pbind-array-list 0 4 '('() '()) '() "Prand")~
      #+begin_src scheme :noweb yes
@@ -587,15 +569,16 @@
        #+begin_src scheme :noweb yes
 	 <<sequenced_array>>
 	 <<shift_list>>
-	 (make-shift-list 5 (seq-array 0 3 (list)) 0)
+	 (make-shift-list 5 (seq-array 0 3 (list)) 1)
        #+end_src
 
        #+RESULTS:
        | 0.0 | 0.5 | 1.0 |
+       | 0.5 | 1.0 | 0.0 |
+       | 1.0 | 0.0 | 0.5 |
        | 0.0 | 0.5 | 1.0 |
-       | 0.0 | 0.5 | 1.0 |
-       | 0.0 | 0.5 | 1.0 |
-       | 0.0 | 0.5 | 1.0 |
+       | 0.5 | 1.0 | 0.0 |
+       | 1.0 | 0.0 | 0.5 |
 
        Example use of shift list and sine mapping, not relying on ~value_sequence~.
        #+begin_src scheme :noweb yes
@@ -603,6 +586,12 @@
 	 <<shift_list>>
 	 (duplicate-shift 3 (map (lambda (x) (sin (* 0.1 x))) lst) (list (list)))
        #+end_src
+
+       #+RESULTS:
+       |---------------------+---------------------+--------------------+---------------------+---------------------|
+       | 0.09983341664682815 | 0.19866933079506122 | 0.2955202066613396 |  0.3894183423086505 |                 0.0 |
+       | 0.19866933079506122 |  0.2955202066613396 | 0.3894183423086505 |                 0.0 | 0.09983341664682815 |
+       |  0.2955202066613396 |  0.3894183423086505 |                0.0 | 0.09983341664682815 | 0.19866933079506122 |
 
 
 
@@ -658,10 +647,10 @@
       Call:
      ~(pseries (apply append (repeat reps source_list)) 0)~ 
      #+name: repeat_list
-     #+begin_src scheme :results output :var s=(list 0.5 0.25) r=1 f="Pseq" p="\\dur"
-       (define source_list s)
-       (define reps r)
-       (define function f)
+     #+begin_src scheme :results output :var s=(list 0.6 0.25) r=1 f="Pseq" p="\\dur"
+       (define source_list (list 0.5 0.25 0.125 0.0625))
+       (define reps 4)
+       (define function "Pseq")
        (define param "\\dur")
 
        (define (pseries lst i)
@@ -675,20 +664,18 @@
        (define (repeat n lst)
 	 (format #t "~a, ~a([" param function)
 	 (map (lambda (x) (make-list (* (inexact->exact (floor (/ 1 x))) n) x)) lst))
-
-       (pseries (apply append (repeat reps source_list)) 0)
      #+end_src
 
-     #+RESULTS: repeat_list
-     : \dur, Pseq([0.5, 0.5, 0.25, 0.25, 0.25, 0.25 ], inf)
-
-#+call: repeat_list(r=1)
+#+begin_src scheme :noweb yes :results output
+  <<repeat_list>>
+  (pseries (apply append (repeat reps source_list)) 0)
+#+end_src
 
 #+RESULTS:
-: \dur, Pseq([0.5, 0.5, 0.25, 0.25, 0.25, 0.25 ], inf)
+: \dur, Pseq([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625 ], inf)
 
 **** repeat list full
-     This functions returns a full EventList string.
+     This functions returns a full EventList string and is a slight variation of the above.
      Functions:
      - pseries: function that prints out the items of a list in the context of a Pseq or similar.
      - repeat: Repeats items of a list
@@ -714,6 +701,10 @@
        (format #t "~a([" function)
        (pseries (apply append (repeat reps source_list)) 0)
      #+end_src
+
+     #+RESULTS: repeat_list_full
+     : \dur, Pseq([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.125, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625, 0.0625 ], inf)
+
 **** make p-function series
      These function all output a variety of P-functions that takes an array as first argument. The exact function to use is specified in the variable 'function'.
     
@@ -725,7 +716,7 @@
      - param: the parameter to address ("\dur")
      - multi: the multipler for the output 
      #+name: make_incr_pfunction
-     #+begin_src scheme :results output :var start=0 end=20 function="Prand" param="\\dur" multi=1
+     #+begin_src scheme :results output :var start=0 end=20 function="Pseq" param="\\dur" multi=1
        (define (lp i max multiplier)
 	 (when (< i max)
 	   (let ((m (* (/ i max) multiplier)))
@@ -741,7 +732,7 @@
      #+end_src
 
      #+RESULTS: make_incr_pfunction
-     : \dur, Prand([0.0, 0.005000000000000001, 0.020000000000000004, 0.045, 0.08000000000000002, 0.125, 0.18, 0.24499999999999997, 0.32000000000000006, 0.405, 0.5, 0.6050000000000001, 0.72, 0.8450000000000001, 0.9799999999999999, 1.125, 1.2800000000000002, 1.4449999999999998, 1.62, 19/10 ], inf)
+     : \dur, Pseq([0.0, 0.0025000000000000005, 0.010000000000000002, 0.0225, 0.04000000000000001, 0.0625, 0.09, 0.12249999999999998, 0.16000000000000003, 0.2025, 0.25, 0.30250000000000005, 0.36, 0.42250000000000004, 0.48999999999999994, 0.5625, 0.6400000000000001, 0.7224999999999999, 0.81, 19/20 ], inf)
 
      Similar call to [[*make_pfunction][make_incr_pfunction]] but creating a Pseq instead.
      #+call: make_incr_pfunction(start=5, end=13, function="Pseq")
@@ -755,7 +746,7 @@
      - function: the Supercollider function to apply ("Pseq")
      - param: the parameter to address ("\dur")
      #+name: format_list
-     #+begin_src scheme :results output :noweb yes :var elements=(list 0.5 0.5 0.4 0.4) function="Pseq" param="\\dur"
+     #+begin_src scheme :results output :noweb yes :var elements=(list 0.5 0.1 0.4 0.4) function="Pseq" param="\\dur"
        (define (pseries lst i)
 	 (let ((max (length lst)))
 	   (when (< i max)
@@ -769,7 +760,7 @@
      #+end_src
 
      #+RESULTS: format_list
-     : \dur, Pseq([0.5, 0.5, 0.4, 0.4 ], inf)
+     : \dur, Pseq([0.5, 0.1, 0.4, 0.4 ], inf)
 
 **** inject list, format\_list\_bare
      Basic function to create a P-type function with a list of numbers intended for inclusion via noweb, similar to [[*inject list][the one above]]. This could equally well be injected in the template [[*sclang template][sclang template]]. Note that it is necessary to escape the backslash in the ~(format)~ function. This calles ~repeat~. This is intended for use with the \dur parameter.
