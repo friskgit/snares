@@ -108,11 +108,11 @@
      jdis -a
      for i in 1 3 5 7 9 11 13 15; do 
 	 echo $i
-	 jcon scsynth out$i sys playback_1 1; 
+	 jcon filtered out_$i sys playback_1 1; 
      done
      for i in 2 4 6 8 10 12 14 16; do 
 	 echo $i
-	 jcon scsynth out$i sys playback_2 1; 
+	 jcon filtered out_$i sys playback_2 1; 
      done
    #+end_src
 
