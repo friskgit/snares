@@ -22,5 +22,5 @@ impgrp(x) = vgroup("impulse", x);
 imp = ba.pulse(impgrp(hslider("tempo", 5000, 500, 10000, 1)));
 //imp = os.impulse;
 
-process = component("generic_snarefs.dsp") : component("filter_bank.dsp")[bands = 16;] ;
+process = imp : component("generic_snarefs.dsp") : component("filter_bank.dsp")[bands = 16;] ;
 

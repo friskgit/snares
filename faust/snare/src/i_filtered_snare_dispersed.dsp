@@ -27,18 +27,20 @@ import("music.lib") ; // for osci definition
 // 18 Juli 2019	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------
 
-// Number of bands and number of output channels.
+// Number of bands and number of output channels. Offset is if channels < bands.
 bands=16;
-channels = 16;
+channels = 2;
+offset = outgrp(hslider("offset", 0, 0, channels, 1));
 
 // Impulse control
 impgrp(x) = vgroup("impulse", x);
-imp = ba.pulse(impgrp(hslider("tempo", 5000, 500, 10000, 1)));
+imp = ba.pulse(impgrp(hslider("tempo", 5000, 50, 48000, 1)));
 
 // Output control
 outgrp(x) = vgroup("[1]output", x);
 port = outgrp(hslider("output port", 0, 0, 16, 1));
-// two distribution possibilities
+ongrellls
+// Two distribution possibilities, wrapped or wrapped_rnd
 ch_wrapped_rnd(x) = ma.modulo(+(outputctrl, x), channels);
 ch_wrapped(x) = ma.modulo(+(port, x), channels);
 disperser(x) = ch_wrapped(x), ch_wrapped_rnd(x) : ba.selectn(2, outgrp(checkbox("[0]random")));
@@ -52,6 +54,6 @@ outputctrl = rndctrl : ba.sAndH(imp);
 process = imp : component("generic_snarefs.dsp") :
 	  component("filter_bank.dsp")[bands=bands;] :
 	  par(i, bands, ba.selectoutn(bands, disperser(i))) :>
-	  par(i, bands, *(_,1));
+	  par(i, bands, _);
 
 

@@ -19,7 +19,7 @@ import("stdfaust.lib");
 // 18 Juli 2019	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------
 
-bands = 8;
+bands = 16;
      
 // Control the output channel
 del_group(x) = vgroup("delay", x);
@@ -38,4 +38,7 @@ with {
   bp = bypass_group(checkbox("[0] Bypassc[tooltip: When this is checked, the filter-bank has no effect]"));
   };
 
-process(trig, sig) = sig : fb ;
+ch_wrapped(x) = ma.modulo((offset+x), bands);
+offset = hslider("offset", 0, 0, bands, 1);
+
+process(trig, sig) = sig : fb : par(i, bands, ba.selectoutn(bands, ch_wrapped(i))) :> par(i, bands, _);

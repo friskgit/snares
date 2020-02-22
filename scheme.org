@@ -26,8 +26,9 @@
 #+RESULTS:
 : 16
 
-#+begin_src scheme :results output
+#+begin_src scheme :results value
 (car (list 1 2 3))
 #+end_src
 
 #+RESULTS:
+: 1
