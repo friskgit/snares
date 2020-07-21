@@ -1,17 +1,17 @@
-(
+b(
 ServerOptions.devices;
 s = Server.local;
 Server.local = Server.default;
 o = Server.local.options; // Get the local server's options
- o.device = "JackRouter";
-//o.device = "Built-in Output";
+//o.device = "JackRouter";
+o.device = "Built-in Output";
 o.numInputBusChannels = 2; // Set Input to number of Inputs
 o.numOutputBusChannels = 2; // lets start after chan 36 so as not to see the mic input
 o.numAudioBusChannels = 16;
 o.blockSize = 512;
 o.numWireBufs = 1024 * 16;
 o.memSize = 2.pow(18);
-o.sampleRate = 48000;
+o.sampleRate = 44100;
 s.makeWindow;
 s.boot;
 )
@@ -166,7 +166,7 @@ seq.value(6);
     \instrument, \snare,
     \gain, Pseq([0.1, 0.1, 0.1, 0.1], 40),
     \dur, 0.2; 
-).play(clock: tClock);
+).play(clock: Clock);
 )
 )
 
@@ -358,3 +358,251 @@ x = Routine({
     delta.yield; });
 10.do({ x.next.postln })
 
+
+{ Poll.kr (Impulse.kr(10), Line.kr(0, 1, 5)) }.play;
+
+{ Poll.kr (Impulse.kr(10), Phasor.kr(Impulse.kr(0.01), 1.0, -pi, pi, 0)) }.play;
+    
+{ Poll.kr(Impulse.kr(10), Sweep.kr(0, 1)) }.play(s);
+
+
+(
+SynthDef(\lineReset, { |out, start= 0, end= 1, dur= 1, t_trig= 1, run= 1|
+    var phasor = Sweep.ar(t_trig, run / dur).linlin(0, 1, start, end, \minmax);
+    phasor.poll;
+    Out.ar(out, SinOsc.ar(phasor, 0, 0.2));
+}).add;
+)
+a = Synth(\lineReset, [\start, 400, \end, 800, \dur, 2])
+a.set(\t_trig, 1)
+a.set(\run, 0)
+a.set(\run, 1)
+a.set(\t_trig, 1)
+a.free
+
+//shorter duration and downwards...
+a= Synth(\lineReset, [\start, 1000, \end, 500, \dur, 0.5])
+a.set(\t_trig, 1)
+a.set(\run, 0)
+a.set(\run, 1)
+a.set(\t_trig, 1)
+a.free
+
+List[0.1, 0.2, 0.3].at(2).postln;
+
+a = Array.iota(0, 10).normalize;
+a.postln;
+a.normalize;
+
+(0..100).normalize;
+
+Array.fill([2, 2, 3], { arg i, j, k;  i * 100 + (j * 10) + k });
+Array.fill(10, { arg i; i * 0.1 });
+
+a.postln;
+a.do({ arg item; item * 0.1; });
+
+['a', 'b', 'c'].do({ arg item, i; [i, item].postln; });
+
+[(1..10)].do({ arg item, i; [item/10].postln; });
+
+(
+var a, x;
+a = Pfunc({ exprand(0.1, 2.0) + #[1, 2, 3, 6].choose }, { \reset.postln });
+x = a.asStream;
+x.nextN(20).postln;
+x.reset;
+)
+
+(
+SynthDef("help-out", { arg out=0, freq=440;
+    var source, source2;
+        source = SinOsc.ar(freq, 0, 0.1);
+source = SinOsc.ar(freq+10, 0, 0.1);
+        // write to the bus, adding to previous contents
+        Out.ar(out, [source, source2]);
+
+}).add;
+)
+
+
+Synth("help-out", [\freq, 500]);
+Synth("help-out", [\freq, 600]);
+Synth("help-out", [\freq, 700]);
+
+(
+
+	SynthDef.new("tutorial-SinOsc-stereo", { var outArray;
+
+		outArray = [SinOsc.ar(440, 0, 0.2), SinOsc.ar(700, 0, 0.2)];
+
+		Out.ar(0, outArray); // writes to busses 0 and 1 
+
+	}).play;
+
+)
+
+Line.ar(start: 0, end: 1, dur: 1, mul: 1, add: 0, doneAction: 0).plot;
+
+(
+{
+    //    
+    // var mod = Line.kr(1, 10, 10);
+    // LinExp.kr(mod, -1,1, 100, 900);
+        Linen.kr(Impulse.kr(0), 0.01, 0.6, 1.0, doneAction: Done.freeSelf)
+}.plot;
+)
+
+{ LinLin.kr(Phasor.kr(Impulse.kr(2), 2/ControlRate.ir), 0, 1, -pi, pi); }.plot(duration: 1);
+
+(
+{ var trig, rate, x, sr;
+    trig = Impulse.ar(rate);
+    sr = SampleRate.ir;
+    x = Phasor.ar(trig, rate / sr);
+}.plot(duration: 1);
+)
+
+(
+{
+    EnvGen.kr(
+        Env(
+            levels: [0, 1], 
+            times: [1],
+            curve: \lin,
+            releaseNode: 0,
+            loopNode: 1,
+        ),
+        gate: Impulse.kr(1),
+        levelScale: 2pi,
+        levelBias: -pi,
+        timeScale: 1,
+        doneAction: 0
+    );
+}.plot(duration: 1);
+)
+
+
+
+// Envelope in Pbind
+(
+Pbind(
+    \note,  Pseg( Pseq([1, 5],inf), Pseq([4, 1],inf), \sin),
+    \dur, 0.1
+).play;
+)
+
+(
+r = Routine({
+    var delta;
+    loop {
+        [60, 62, 64, 65, 67, 69, 71, 72].do({ |midi|
+midi.postln;
+        "Will wait ".post; midi.postln;
+        1.yield;
+        })
+    }
+});
+)
+
+
+r.next;
+
+TempoClock.default.sched(0, r);
+
+r.stop;
+
+(
+t = Task({
+    loop {
+        [60, 62, 64, 65, 67, 69, 71, 72].do({ |midi|
+midi.postln;
+            0.125.wait;
+        });
+    }
+}).play;
+)
+
+r = Routine { "hi".yield; "bye".yield };
+r.next.postln;    // "hi" posted
+
+q = r.p.asStream; // or just: r.p.iter
+q.next.postln;    // "hi" again
+
+r.next.postln;    // "bye" because r kept its own state, separate from q
+
+(
+r = Routine { arg inval;
+    loop {
+        // thisThread refers to the routine.
+        postf("beats: % seconds: % time: % \n",
+            thisThread.beats, thisThread.seconds, Main.elapsedTime
+        );
+        1.0.yield;
+
+    }
+}.play;
+)
+
+r.stop;
+r.beats;
+r.seconds;
+r.clock;
+
+r = Routine {
+
+}
+
+r.next;
+
+(
+r = Routine {
+        199.yield;
+        189.yield;
+        Routine { 100.do { |i| i.yield } }.idle(6);
+        199.yield;
+        189.yield;
+};
+
+fork {
+    loop {
+        r.value.postln;
+        1.wait;
+    }
+}
+);
+
+(
+
+{
+
+	
+
+	4.do {
+        "hej".postln;
+		1.0.wait;	
+	};
+
+	
+
+}.fork; 	
+
+)
+
+(
+b = Bus.control(s, 1);
+
+x = SynthDef(\snaredisp4, { | dur=20, out=0, pos=0, disp=0, pulse=2000, att=0.00001, n_attack=0.01, n_level=0.1, n_rel=0.01, osc1_f=100, osc2_f=130, release=0.01, tri_f=300 |
+    var snd, env;
+    env = Env.new(levels: [0, 1, 1, 0], times: [0.01, dur, 0.01]);
+    snd = IDispersedSnare.ar(pos, disp, pulse, att, n_attack, n_level, n_rel, osc1_f, osc2_f, release, tri_f) * EnvGen.kr(env, doneAction: Done.freeSelf);
+    Out.ar(out, snd);
+}).play(s);
+)
+
+(
+x.map(\pos, b);
+y = { Out.kr(b, SinOsc.kr(0.1, 0, 10, 10))};
+y.play(addAction: \addToHead);
+s.meter;
+)

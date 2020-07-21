@@ -10,7 +10,7 @@ import("stdfaust.lib");
 
 //---------------`takes a filtered sound and disperses it` --------------------------
 //
-// Take the output of a filterbankj and alter the routing of the channels. Takes the impulse as its first input
+// Take the output of a filterbank and alter the routing of the channels. Takes the impulse as its first input
 //
 // Parameter 'bands' is set at compile time.
 //

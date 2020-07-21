@@ -1,4 +1,4 @@
-// -*- compile-command: "cd .. && make jack src=i_impulse.dsp && cd -"; -*-&& cd -"; -*-
+// -*- compile-command: "cd .. && make jack src=o_bass_snare.dsp && cd -"; -*-&& cd -"; -*-
 
 declare version " 0.1 ";
 declare author " Henrik Frisk " ;
@@ -10,16 +10,16 @@ import("stdfaust.lib");
 import("math.lib") ; // for PI definition
 import("music.lib") ; // for osci definition
 
-//---------------`General impulse` --------------------------
+//---------------`Bass snare drum` --------------------------
 //
-// Generating a stream of impulses at frequency 'tempo'
-// to be fed into the likes of 'snare.dsp'
+// Generating an impulse and feeding it to a bass_drum synth.
+// o_bass_snare.dsp does not pass on the impules as generic_snarefs does.
 //
-// 18 Juli 2019	Henrik Frisk	mail@henrikfrisk.com
+// 03 Maj 2020	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------
 
 impgrp(x) = vgroup("impulse", x);
 imp = ba.pulse(impgrp(hslider("tempo", 5000, 500, 10000, 1)));
-				       
-process = imp;
+
+process = component("bass_snare.dsp");
 

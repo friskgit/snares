@@ -19,8 +19,6 @@ import("music.lib") ; // for osci definition
 //---------------------------------------------------
 
 impgrp(x) = vgroup("impulse", x);
-imp = ba.pulse(impgrp(hslider("tempo", 5000, 500, 10000, 1)));
-//imp = os.impulse;
+imp = ba.pulse(impgrp(hslider("pulse", 5000, 500, 10000, 1)));
 
-process = imp : component("generic_snarefs.dsp") : component("disperse.dsp") ;
-
+process = imp : component("generic_snarefs.dsp") : component("disperse.dsp")[channels = 29;];

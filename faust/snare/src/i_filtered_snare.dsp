@@ -13,7 +13,7 @@ import("music.lib") ; // for osci definition
 //---------------`Snare drum split up in X channels` --------------------------
 //
 // Taking an impulse as input and feeding it to a generic_snarefs and on to a disperser.
-// disperse.dsp doe not pass on the impules as generic_snarefs does.
+// disperse.dsp does not pass on the impules as generic_snarefs does.
 //
 // 18 Juli 2019	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------

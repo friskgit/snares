@@ -12,7 +12,8 @@ import("music.lib") ; // for osci definition
 
 //---------------`General impulse` --------------------------
 //
-// Generating an impulse to be fed into the likes of 'snare.dsp'
+// Generating a single impulse to be fed into the likes of 'snare.dsp'.
+// Use this in order to have a trigger programmatically available.
 //
 // 18 Juli 2019	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------

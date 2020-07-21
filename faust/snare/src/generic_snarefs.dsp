@@ -1,4 +1,4 @@
-// -*- compile-command: "cd .. && make jack src=src/generic_snarefs.dsp && cd -"; -*-&& cd -"; -*-
+// -*- compile-command: "cd .. && make app src=src/generic_snarefs.dsp && cd -"; -*-&& cd -"; -*-
 
 declare version " 0.1 ";
 declare author " Henrik Frisk " ;
@@ -16,6 +16,16 @@ import("music.lib") ; // for osci definition
 // It takes a single input as the impulse for the synthesis and
 // outputs a pair of signals where the first is the trigger and
 // the second is the signal.
+//
+// Paramters:
+// - osc1f: oscilator 1 frequency
+// - osc2f: oscilator 2 frequency
+// - tri1: tringle osc frequency
+// - attack: envelope attack time
+// - rel: envelope release time
+// - noise attack: noise envelope attack time
+// - noise rel: noise envelope release time
+// - noise lvl: noise level
 //
 // 30 Juni 2018	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------

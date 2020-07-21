@@ -1,0 +1,59 @@
+* file names
+  - o_ prefix means there is no impulse generated
+  - i_ prefix means that there is an impulse included
+    
+* components
+** generic_snarefs 
+   A snare synth with no impulse. Takes the impulse as first input.
+
+** snarefs.dsp
+   Like the above but self contained.
+
+** disperse.dsp 
+   This is the code to disperse the signal to multiple speakers
+
+** filter_bank.dsp
+   A filterbank to split the input over bands=16 number of channels
+
+** bass_snare.dsp
+   A bass drum synth, played with impulse input.
+
+* synths
+** i_dispersed_snare
+   Uses generic_snarefs and creates an impulse that plays it. Output is dispersed.
+
+** i_filtered_snare.dsp
+   A generic_snare fed into a filter bank with [bands=x].
+
+** i_filtered_snare_dispersed.dsp
+   A generic_snare fed into a filter bank with [bands=x] and furhter through adispersion.
+
+** o_bass_snare.dsp
+   A bass drum synth, complete with impulse input.
+   
+   See [[file:~/Music/pieces/snares/faust/snare/doc/o_bass_snare.html][o_bass_snare.html]]
+
+** o_dispersed_snare
+   Same as [[*i_dispersed_snare][i_dispersed_snare]] but without impulse generation.
+
+** o_impulse.dsp
+   Generate a single button to trigger an impulse
+
+** o_impulse.dsp
+   Generate a stream of impulses
+
+* extra files
+** nosnare.dsp
+   Interesting snare drum without snare. Includes impulse.
+
+** poly_snare.dsp
+   Each hit is output to a channel <= channels as controlled by the lfo in rndctrl.
+
+** plain_snare
+   A simple snare synth with disperse and trigger built in.
+
+** snares
+   Self contained multiplayer with disperser. Use compilations above instead.
+
+** snare_fb.dsp
+   Same as above but with a filterbankj attached to it. Use compilations above instead.

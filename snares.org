@@ -1,12 +1,19 @@
 * Snare snippets
 ** audio init
+   Query interfaces
+   #+begin_src sclang :results none
+     ServerOptions.devices;
+s.boot;
+   #+end_src
+
+   Set JackRouter to be the interface
    #+begin_src sclang :results none
      (
      ServerOptions.devices;
      s = Server.local;
      Server.local = Server.default;
      o = Server.local.options; // Get the local server's options
-     o.device = "JackRouter";
+     o.device = "Blackhole monitor";
      o.numOutputBusChannels = 64;
      o.numWireBufs = 128;
      o.memSize = 65536;
@@ -14,18 +21,57 @@
      s.boot;
      )
    #+end_src
+
+   Set Edirol to be the soundcard
    #+begin_src sclang :results none
      (
      ServerOptions.devices;
      s = Server.local;
      Server.local = Server.default;
      o = Server.local.options; // Get the local server's options
-     //o.device = "Built-in Output";
-     o.device = "JackRouter";
+     o.device = "UA-25EX 48kHz";
+     o.numOutputBusChannels = 64;
+     o.numWireBufs = 128;
+     o.memSize = 65536;
      s.makeWindow;
      s.boot;
      )
    #+end_src
+
+   Set MadiFace
+   #+begin_src sclang :results none
+     (
+     ServerOptions.devices;
+     s = Server.local;
+     Server.local = Server.default;
+     o = Server.local.options; // Get the local server's options
+     o.sampleRate = 48000;
+     o.device = "MADIface XT (23757085)";
+     o.numOutputBusChannels = 64;
+     o.numWireBufs = 128;
+     o.memSize = 65536;
+     s.makeWindow;
+     s.boot;
+     )
+   #+end_src
+
+   Set UA-25EX
+   #+begin_src sclang :results none
+     (
+     ServerOptions.devices;
+     s = Server.local;
+     Server.local = Server.default;
+     o = Server.local.options; // Get the local server's options
+     o.sampleRate = 48000;
+     o.device = "Built-in";
+     o.numOutputBusChannels = 64;
+     o.numWireBufs = 128;
+     o.memSize = 65536;
+     s.makeWindow;
+     s.boot;
+     )
+   #+end_src
+
    #+begin_src sclang :results none
      s.quit;
    #+end_src
@@ -36,12 +82,11 @@
     #+end_src
 
 *** startup
+    Load library async for these.
     plain two channel interface, start asynchronous
     #+begin_src shell :async
       startjack -r 48000 -c 2
     #+end_src
-
-    #+RESULTS:
 
     Edirol
     #+begin_src shell :async
@@ -62,9 +107,6 @@
      echo "Starting up jconvolver"
      jconvolver_static_0.9.2.2 KMH_LILLA_SALEN.conf &
    #+end_src
-
-   #+RESULTS:
-   : Starting up jconvolver
 
    disconnect supercollider from main out$
    #+begin_src shell
@@ -97,26 +139,8 @@
       done
     #+end_src
 
-    #+RESULTS:
-    | Connecting | scsynth:out2  | to | system:playback_2 |
-    | Connecting | scsynth:out3  | to | system:playback_1 |
-    | Connecting | scsynth:out4  | to | system:playback_2 |
-    | Connecting | scsynth:out5  | to | system:playback_1 |
-    | Connecting | scsynth:out6  | to | system:playback_2 |
-    | Connecting | scsynth:out7  | to | system:playback_1 |
-    | Connecting | scsynth:out8  | to | system:playback_2 |
-    | Connecting | scsynth:out9  | to | system:playback_1 |
-    | Connecting | scsynth:out10 | to | system:playback_2 |
-    | Connecting | scsynth:out11 | to | system:playback_1 |
-    | Connecting | scsynth:out12 | to | system:playback_2 |
-    | Connecting | scsynth:out13 | to | system:playback_1 |
-    | Connecting | scsynth:out14 | to | system:playback_2 |
-    | Connecting | scsynth:out15 | to | system:playback_1 |
-    | Connecting | scsynth:out16 | to | system:playback_2 |
-
     specific version of the above.
    #+begin_src shell :results replace
-     jdis -a
      for i in 1 3 5 7 9 11 13 15; do 
 	 echo $i
 	 jcon scsynth out$i sys playback_1 1; 
@@ -135,47 +159,6 @@
      done
    #+end_src
 
-   #+RESULTS:
-   | 1          |               |    |                  |
-   | Connecting | scsynth:out1  | to | jconvolver:in_1  |
-   | Connecting | scsynth:out10 | to | jconvolver:in_10 |
-   | Connecting | scsynth:out11 | to | jconvolver:in_11 |
-   | Connecting | scsynth:out12 | to | jconvolver:in_12 |
-   | Connecting | scsynth:out13 | to | jconvolver:in_13 |
-   | Connecting | scsynth:out14 | to | jconvolver:in_14 |
-   | Connecting | scsynth:out15 | to | jconvolver:in_15 |
-   | Connecting | scsynth:out16 | to | jconvolver:in_16 |
-   | 2          |               |    |                  |
-   | Connecting | scsynth:out2  | to | jconvolver:in_2  |
-   | 3          |               |    |                  |
-   | Connecting | scsynth:out3  | to | jconvolver:in_3  |
-   | 4          |               |    |                  |
-   | Connecting | scsynth:out4  | to | jconvolver:in_4  |
-   | 5          |               |    |                  |
-   | Connecting | scsynth:out5  | to | jconvolver:in_5  |
-   | 6          |               |    |                  |
-   | Connecting | scsynth:out6  | to | jconvolver:in_6  |
-   | 7          |               |    |                  |
-   | Connecting | scsynth:out7  | to | jconvolver:in_7  |
-   | 8          |               |    |                  |
-   | Connecting | scsynth:out8  | to | jconvolver:in_8  |
-   | 9          |               |    |                  |
-   | Connecting | scsynth:out9  | to | jconvolver:in_9  |
-   | 10         |               |    |                  |
-   | Connecting | scsynth:out10 | to | jconvolver:in_10 |
-   | 11         |               |    |                  |
-   | Connecting | scsynth:out11 | to | jconvolver:in_11 |
-   | 12         |               |    |                  |
-   | Connecting | scsynth:out12 | to | jconvolver:in_12 |
-   | 13         |               |    |                  |
-   | Connecting | scsynth:out13 | to | jconvolver:in_13 |
-   | 14         |               |    |                  |
-   | Connecting | scsynth:out14 | to | jconvolver:in_14 |
-   | 15         |               |    |                  |
-   | Connecting | scsynth:out15 | to | jconvolver:in_15 |
-   | 16         |               |    |                  |
-   | Connecting | scsynth:out16 | to | jconvolver:in_16 |
-
    Disconnect scsynth from jconvolver 
    #+begin_src shell :results replace
      for i in {1..16}; do
@@ -184,41 +167,6 @@
      done
      jdis -d scsynth out1 jcon in_1
    #+end_src
-
-   #+RESULTS:
-   | 1             |      |               |      |                  |
-   | Disconnecting | port | scsynth:out16 | from | jconvolver:in_16 |
-   | 2             |      |               |      |                  |
-   | Disconnecting | port | scsynth:out2  | from | jconvolver:in_2  |
-   | 3             |      |               |      |                  |
-   | Disconnecting | port | scsynth:out3  | from | jconvolver:in_3  |
-   | 4             |      |               |      |                  |
-   | Disconnecting | port | scsynth:out4  | from | jconvolver:in_4  |
-   | 5             |      |               |      |                  |
-   | Disconnecting | port | scsynth:out5  | from | jconvolver:in_5  |
-   | 6             |      |               |      |                  |
-   | Disconnecting | port | scsynth:out6  | from | jconvolver:in_6  |
-   | 7             |      |               |      |                  |
-   | Disconnecting | port | scsynth:out7  | from | jconvolver:in_7  |
-   | 8             |      |               |      |                  |
-   | Disconnecting | port | scsynth:out8  | from | jconvolver:in_8  |
-   | 9             |      |               |      |                  |
-   | Disconnecting | port | scsynth:out9  | from | jconvolver:in_9  |
-   | 10            |      |               |      |                  |
-   | Disconnecting | port | scsynth:out10 | from | jconvolver:in_10 |
-   | 11            |      |               |      |                  |
-   | Disconnecting | port | scsynth:out11 | from | jconvolver:in_11 |
-   | 12            |      |               |      |                  |
-   | Disconnecting | port | scsynth:out12 | from | jconvolver:in_12 |
-   | 13            |      |               |      |                  |
-   | Disconnecting | port | scsynth:out13 | from | jconvolver:in_13 |
-   | 14            |      |               |      |                  |
-   | Disconnecting | port | scsynth:out14 | from | jconvolver:in_14 |
-   | 15            |      |               |      |                  |
-   | Disconnecting | port | scsynth:out15 | from | jconvolver:in_15 |
-   | 16            |      |               |      |                  |
-   | Disconnecting | port | from          |      |                  |
-   | Disconnecting | port | scsynth:out1  | from | jconvolver:in_1  |
 
    Disconnect scsynth from jconvolver 
    #+begin_src shell :results replace
@@ -238,40 +186,6 @@
 	 jdis -d scsynth out$i sys playback_2;
      done
    #+end_src
-
-   #+RESULTS:
-   |             1 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out16 | from | system:playback_1 |
-   |             3 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out3  | from | system:playback_1 |
-   |             5 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out5  | from | system:playback_1 |
-   |             7 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out7  | from | system:playback_1 |
-   |             9 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out9  | from | system:playback_1 |
-   |            11 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out11 | from | system:playback_1 |
-   |            13 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out13 | from | system:playback_1 |
-   |            15 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out15 | from | system:playback_1 |
-   |             2 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out2  | from |                   |
-   |             4 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out4  | from |                   |
-   |             6 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out6  | from |                   |
-   |             8 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out8  | from |                   |
-   |            10 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out10 | from |                   |
-   |            12 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out12 | from |                   |
-   |            14 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out14 | from |                   |
-   |            16 |      |               |      |                   |
-   | Disconnecting | port | scsynth:out16 | from |                   |
 
 *** disconnect stereo
     #+begin_src shell :results replace
@@ -315,31 +229,6 @@
       done
     #+end_src
 
-    #+RESULTS:
-    | Connecting | scsynth:out1  | to | system:playback_1  |
-    | Connecting | scsynth:out10 | to | system:playback_10 |
-    | Connecting | scsynth:out11 | to | system:playback_11 |
-    | Connecting | scsynth:out12 | to | system:playback_12 |
-    | Connecting | scsynth:out13 | to | system:playback_13 |
-    | Connecting | scsynth:out14 | to | system:playback_14 |
-    | Connecting | scsynth:out15 | to | system:playback_15 |
-    | Connecting | scsynth:out16 | to | system:playback_16 |
-    | Connecting | scsynth:out2  | to | system:playback_2  |
-    | Connecting | scsynth:out3  | to | system:playback_3  |
-    | Connecting | scsynth:out4  | to | system:playback_4  |
-    | Connecting | scsynth:out5  | to | system:playback_5  |
-    | Connecting | scsynth:out6  | to | system:playback_6  |
-    | Connecting | scsynth:out7  | to | system:playback_7  |
-    | Connecting | scsynth:out8  | to | system:playback_8  |
-    | Connecting | scsynth:out9  | to | system:playback_9  |
-    | Connecting | scsynth:out10 | to | system:playback_10 |
-    | Connecting | scsynth:out11 | to | system:playback_11 |
-    | Connecting | scsynth:out12 | to | system:playback_12 |
-    | Connecting | scsynth:out13 | to | system:playback_13 |
-    | Connecting | scsynth:out14 | to | system:playback_14 |
-    | Connecting | scsynth:out15 | to | system:playback_15 |
-    | Connecting | scsynth:out16 | to | system:playback_16 |
-
 ** recorder
    #+property: header-args:shell :var dir="/Users/henrik_frisk/Music/pieces/snares/audio/"
 
@@ -377,32 +266,32 @@
 ** test tone
    #+begin_src sclang :results none
      {Out.ar(0, SinOsc.ar(440, 0, 0.1))}.play;
-     //     s.meter;
+     s.meter;
    #+end_src
 
    GUI
    #+begin_src sclang :results none
-  (
-            SynthDef(\pluck, { |out, freq=55|
-                Out.ar(out,
-                    Pluck.ar(WhiteNoise.ar(0.06),
-                        EnvGen.kr(Env.perc(0,4), 1.0, doneAction: Done.freeSelf),
-                        freq.reciprocal,
-                        freq.reciprocal,
-                        10,
-                        coef:0.1)
-                );
-            }).add;
+     (
+     SynthDef(\pluck, { |out, freq=55|
+	 Out.ar(out,
+	     Pluck.ar(WhiteNoise.ar(0.06),
+		 EnvGen.kr(Env.perc(0,4), 1.0, doneAction: Done.freeSelf),
+		 freq.reciprocal,
+		 freq.reciprocal,
+		 10,
+		 coef:0.1)
+	 );
+     }).add;
 
-            w = Window.new("Hold arrow keys to trigger sound",
-                Rect(300, Window.screenBounds.height - 300, 400, 100)).front;
-            a = Slider(w, Rect(50, 20, 300, 40)).value_(0.5).step_(0.05).focus
-            .action_({
-                // trigger a synth with varying frequencies
-                Synth(\pluck, [\freq, 55 + (1100 * a.value)]);
-                w.view.background_(Gradient(Color.rand,Color.rand));
-            })
-    )
+     w = Window.new("Hold arrow keys to trigger sound",
+	 Rect(300, Window.screenBounds.height - 300, 400, 100)).front;
+     a = Slider(w, Rect(50, 20, 300, 40)).value_(0.5).step_(0.05).focus
+     .action_({
+	 // trigger a synth with varying frequencies
+	 Synth(\pluck, [\freq, 55 + (1100 * a.value)]);
+	 w.view.background_(Gradient(Color.rand,Color.rand));
+     })
+     )
    #+end_src
 ** snare synths
 *** snare 1
@@ -411,21 +300,117 @@
      #+name: original_snare
      #+begin_src sclang :results none
        (
-       SynthDef(\snare, { | gain=4, freq=200, vol=2, q=1, out=0 |
+       ~snare_simple = SynthDef(\snare, { | gain=4, freq=200, vol=2, q=1, out=0 |
 	   var snd;
 	   var env = Env([0, 1, 0], [0.0001, 0.5]);
 	   snd = Snare.ar(0.00001, freq, gain, 1, q, 0.01, vol) * EnvGen.kr(env, doneAction: Done.freeSelf);
+	   Out.ar(out, snd * 4);
+       }).add;
+       )
+     #+end_src
+
+     #+begin_src sclang :results none
+       (
+       ~snare_fb = SynthDef(\snarefb, { | gain=4, freq=200, vol=2, q=1, out=0 |
+	   var snd;
+	   var env = Env([0, 1, 0], [0.0001, 0.5]);
+	   snd = SnaresFb.ar(gain: gain, vol: vol) * EnvGen.kr(env, doneAction: Done.freeSelf);
 	   Out.ar(out, snd);
        }).add;
        )
      #+end_src
+
+     #+begin_src sclang :results none
+       (
+       ~snare_disp = SynthDef(\snaredisp, { | freq=200, q=1, out=0, pos=0, disp=1, impf=0, attack=0.0001, noiselvl=0.1, noiserel=0.1, osc1f=330, osc2f=180, trianglef=111, mainlvl=0.5, length=1 |
+	   var snd;
+	   var env = Env([0, 1, 0], [0.0001, length]);
+	   var imp = Impulse.ar(impf, 0.0, 0.5, 0);
+	   snd = ODispersedSnare.ar(imp, pos, disperse: disp, attack: attack, noise_lvl: noiselvl, noise_rel: noiserel, osc_1_freq: osc1f, osc_2_freq: osc2f, triangle_freq: trianglef);// * EnvGen.kr(env, doneAction: Done.freeSelf);
+	   Out.ar(out, snd * mainlvl);
+       }).add;
+       )
+     #+end_src
+
+    #+begin_src sclang :results none
+      (
+      ~snare_disp = SynthDef(\snaredisp2, { | out=0, length=2 |
+	  var snd;
+	  var env = Env([0, 1, 0], [0.0001, length]);
+	  var imp = Impulse.ar(10, 0.0, 0.5, 0);
+	  snd = ODispersedSnare.ar(imp);
+	  Out.ar(out, snd);
+      }).add;
+      )
+     #+end_src
+
+     #+begin_src sclang :results none
+       ~snare_simple.free;
+       ~snare_fb.free;
+       ~snare_disp.free;
+     #+end_src
+
 **** player
      Play one hit on the snare above.
      #+name: reg_snare_load
      #+begin_src sclang :results none
-       ~reg_snare = Synth.new("snare", [\freq, 100, \out, 1] );
+       ~reg_snare = Synth.new("snare", [\freq, 100, \out, 1, \gain, 20, \vol, 5] );
      #+end_src
 
+     #+begin_src sclang :results none
+       ~fb_snare = Synth.new("snarefb", [\out, 1, \gain, 2, \vol, 2] );
+     #+end_src
+
+     Snygga effekter genom att panorera dessa två ljud med Radius och Elevation.
+     #+begin_src sclang :results none
+       ~disp_snare1 = Synth.new("snaredisp", [\out, 31, \impf, 3000, \pos, 0, \disp, 0, \noiserel, 0, \noiselvl, 0.0001, \length, 20] );
+       ~disp_snare1 = Synth.new("snaredisp", [\out, 31, \impf, 2000, \pos, 0, \disp, 0, \noiserel, 0, \noiselvl, 0.0001, \length, 25] );
+//       s.meter;
+     #+end_src
+
+     #+begin_src sclang :results none
+       Pbind(\instrument, \snaredisp,
+	   \out, 6,
+	   \impf, 10,
+	   \dur, 0.5,
+	   \pos, 6,
+	   \disp, 
+       ).play
+     #+end_src
+
+     #+begin_src sclang :results none
+       ~dist_snare = Synth.new("snaredisp", [\out, 0, \impf, 0, \pos, 0, \disp, 1, \noiserel, 0, \noiselvl, 0.01] );
+     #+end_src
+
+     Closer and closer.
+     #+begin_src sclang :results none
+       ~range = [(1..10)].do({ arg item, i; [item/20]; });
+       Pbind(\instrument, \snaredisp,
+	   \out, Pseq((31..31), 16), // This is for feeding the signal to the ambisonics engine
+	   \noiserel, Pseq([0.0, 0.001, 0.002, 0.003, 0.005, 0.007, 0.01, 0.02, 0.03, 0.04, 0.045, 0.050, 0.055, 0.06, 0.065, 0.07], 16),
+	   \nopiselvl, 0.0,
+	   \osc1f, Pseq((150..2000), 16),
+	   \osc2f, 180,
+	   \mainlvl, Pseq([0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16], 16),
+	   \dur, 1
+       ).play;
+//s.meter;
+     #+end_src
+     
+     For testing
+     #+begin_src sclang :results none
+a = Array.fill(16, {arg i; i * 0.001; });
+b = Array.fill(32, { arg i; i / 32 + 0.05 }).reverse;
+       Pbind(\instrument, \snaredisp,
+	   \out, 0,
+	   \noiserel, Pseq(a, 32),
+	   \nopiselvl, 0.0,
+	   \osc1f, Pseq((150..2000), 32),
+	   \osc2f, Pseq((400..170), 32),
+	   \mainlvl, 0.5,
+	   \dur, Pseq(b, 32)
+       ).play
+     #+end_src
 **** pbind: fast irregular, no snare.
      Very nice sounding pattern
      #+begin_src sclang :results none
@@ -433,12 +418,13 @@
 	   \freq, Prand([100,110,140, 180, 260, 320, 640, 80, 200], 64),
 	   \dur, Prand([0.1, 0.2], inf),
 	   \q, Prand([0.001, 5, 2], inf),
-	   \out, Prand([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], inf)
+	   \out, Prand((0..15), inf) //([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], inf)
        ).play;
      #+end_src
      
+
      #+begin_src sclang :results none
-       Pbind(\instrument, \snare,
+       Pbind(\instrument, \snarefb,
 	   \freq, Prand([100,110,140, 180, 260, 320, 640, 80, 200], 64),
 	   \dur, Prand([0.1, 0.2, 0.4], inf),
 	   \q, Prand([0.001, 5, 2], inf),
@@ -446,6 +432,7 @@
        ).play;
      #+end_src
 
+     Ptpar running two Pbinds
      #+begin_src sclang :results none
        a = Pbind(\instrument, \snare,
 	 \freq, Prand([100,110,140, 180, 260, 320, 640, 80, 200], 64),
@@ -458,6 +445,104 @@
        );
 Ptpar([0.0, a, 1, b, 2, a]).play;
      #+end_src
+
+*** snare dispersed
+**** synth
+     define the synth
+    #+begin_src sclang :results none
+      (
+      ~disp_snare = SynthDef(\snaredisp4, { | dur=20, out=0, pos=0, disp=0, pulse=2000, att=0.00001, n_attack=0.01, n_level=0.2, n_rel=0.1, osc1_f=100, osc2_f=130, release=0.01, tri_f=300 |
+	  var snd, env;
+	  env = Env.new(levels: [0, 1, 1, 0], times: [0.01, dur, 0.01]);
+	  snd = IDispersedSnare.ar(pos, disp, pulse, att, n_attack, n_level, n_rel, osc1_f, osc2_f, release, tri_f) * EnvGen.kr(env, doneAction: Done.freeSelf);
+	  Out.ar(out, snd);
+      }).play(s);
+      )
+     #+end_src
+     
+     define the busses
+    #+begin_src sclang :results none
+      ~busses = Array.new(4);
+      ~duration = 20;
+
+      b = Bus.control(s, 1);
+      ~disp_snare.map(\pos, b);
+      c = Bus.control(s, 1);
+c.set(4000);
+      ~disp_snare.map(\pulse, c);
+      d = Bus.control(s, 1);
+d.set(0.1);
+      ~disp_snare.map(\n_rel, d);
+      e = Bus.control(s, 1);
+e.set(0.2);
+      ~disp_snare.map(\n_level, e);
+
+//      {Out.kr(b, Line.kr(0, 29, ~duration, doneAction: Done.freeSelf))}.play(addAction: \addToHead);
+      {Out.kr(c, Line.kr(4000, 200, ~duration, doneAction: Done.freeSelf))}.play(addAction: \addToHead);
+      {Out.kr(c, Line.kr(0.1, 0.005, ~duration, doneAction: Done.freeSelf))}.play(addAction: \addToHead);
+      {Out.kr(c, Line.kr(0.2, 0.001, ~duration, doneAction: Done.freeSelf))}.play(addAction: \addToHead);
+    #+end_src
+
+**** player
+     #+begin_src sclang :results none
+       ~reg_snare = Synth.new("snaredisp4", [\dur, 30, \out, 0, \pos, 2, \disp, 0, \freq, 100, \gain, 20, \vol, 5] );
+~reg_snare.free;
+     #+end_src
+
+**** control signals
+     Various tasks that alter the parameters of the synth
+     #+begin_src sclang :results none
+       (
+       ~pos_task = Task({
+	   loop {
+	       (0..28).do({ |position|
+		   position.postln;
+		   ~reg_snare.set(\pos, position);
+		   0.5.wait;
+	       });
+	   }
+       }).play;
+       )
+     #+end_src
+
+     #+begin_src sclang :results none
+       ~disp_task = Task({
+	   loop {
+	       (0..100).do({ |disperse|
+		   var disp;
+		   disp = disperse/100;
+		   ~reg_snare.set(\disp, disp);
+		   0.1.wait;
+	       });
+	   }
+       }).play;
+     #+end_src
+
+     #+begin_src sclang :results none
+      ~pulse_task = Task({
+	   loop {
+	       (5000..500).do({ |pulse_time|
+		   var pulse;
+		   pulse = pulse_time;
+		   ~reg_snare.set(\pulse, pulse);
+		   0.01.wait;
+	       });
+	   }
+       }).play;
+     #+end_src
+
+     Control the speed via a slider.
+    #+begin_src sclang :results none
+      (
+      w = Window.new.front;
+      b = NumberBox(w, Rect(20, 20, 150, 20));
+      a = Slider(w, Rect(20, 60, 150, 20)).action_({
+	  b.value_(a.value);
+	  ~reg_snare.set(\pos, (a.value * 10));
+      });
+      a.action.value;
+      )     
+    #+end_src
 
 *** snare 2
     Simple instance of a snare synth with more noise
@@ -916,61 +1001,39 @@ Ptpar([0.0, a, 1, b, 2, a]).play;
 
     #+begin_src sclang :results none
       p = Pbind(\instrument, \isnare_filter_mod_8,
-      \dur, Pseq([0.034482758620689655, 0.06896551724137931, 0.10344827586206896, 0.13793103448275862, 0.1724137931034483, 0.20689655172413793, 0.2413793103448276, 0.27586206896551724, 0.3103448275862069, 0.3448275862068966, 0.3793103448275862, 0.41379310344827586, 0.4482758620689655, 0.4827586206896552, 0.5172413793103449, 0.5517241379310345, 0.5862068965517241, 0.6206896551724138, 0.6551724137931034, 0.6896551724137931, 0.7241379310344828, 0.7586206896551724, 0.7931034482758621, 0.8275862068965517, 0.8620689655172413, 0.896551724137931, 0.9310344827586207, 0.9655172413793104, 1.0, ], inf),
-      \freq, 1,
-      \freq_mod, 0,
-      \del, 100,
-      \del_mod, 0,
-      \b1, Pshuf([-0.0, -15.607225763301887, -30.614674592996998, -44.445618646684295, -56.568542500724995, -66.51756898990108, -73.91036260561232, -78.4628224350594, -80.0, -78.4628224286572, -73.91036259305397, -66.51756897166919, -56.5685424775202, -44.44561861939833, -30.61467456267846, -15.607225731115896, ], inf),
-      \b2, Pshuf([-15.607225763301887, -30.614674592996998, -44.445618646684295, -56.568542500724995, -66.51756898990108, -73.91036260561232, -78.4628224350594, -80.0, -78.4628224286572, -73.91036259305397, -66.51756897166919, -56.5685424775202, -44.44561861939833, -30.61467456267846, -15.607225731115896, -0.0, ], inf),
-      \b3, Pshuf([-30.614674592996998, -44.445618646684295, -56.568542500724995, -66.51756898990108, -73.91036260561232, -78.4628224350594, -80.0, -78.4628224286572, -73.91036259305397, -66.51756897166919, -56.5685424775202, -44.44561861939833, -30.61467456267846, -15.607225731115896, -0.0, -15.607225763301887, ], inf),
-      \b4, Pshuf([-44.445618646684295, -56.568542500724995, -66.51756898990108, -73.91036260561232, -78.4628224350594, -80.0, -78.4628224286572, -73.91036259305397, -66.51756897166919, -56.5685424775202, -44.44561861939833, -30.61467456267846, -15.607225731115896, -0.0, -15.607225763301887, -30.614674592996998, ], inf),
-      \b5, Pshuf([-56.568542500724995, -66.51756898990108, -73.91036260561232, -78.4628224350594, -80.0, -78.4628224286572, -73.91036259305397, -66.51756897166919, -56.5685424775202, -44.44561861939833, -30.61467456267846, -15.607225731115896, -0.0, -15.607225763301887, -30.614674592996998, -44.445618646684295, ], inf),
-      \b6, Pshuf([-66.51756898990108, -73.91036260561232, -78.4628224350594, -80.0, -78.4628224286572, -73.91036259305397, -66.51756897166919, -56.5685424775202, -44.44561861939833, -30.61467456267846, -15.607225731115896, -0.0, -15.607225763301887, -30.614674592996998, -44.445618646684295, -56.568542500724995, ], inf),
-      \b7, Pshuf([-73.91036260561232, -78.4628224350594, -80.0, -78.4628224286572, -73.91036259305397, -66.51756897166919, -56.5685424775202, -44.44561861939833, -30.61467456267846, -15.607225731115896, -0.0, -15.607225763301887, -30.614674592996998, -44.445618646684295, -56.568542500724995, -66.51756898990108, ], inf),
-      \b8, Pshuf([-78.4628224350594, -80.0, -78.4628224286572, -73.91036259305397, -66.51756897166919, -56.5685424775202, -44.44561861939833, -30.61467456267846, -15.607225731115896, -0.0, -15.607225763301887, -30.614674592996998, -44.445618646684295, -56.568542500724995, -66.51756898990108, -73.91036260561232, ], inf),
+	  \dur, 0.1,
+\out, 0,
+	  \freq, 1,
+	  \freq_mod, 0,
+	  \del_mod, 0,
+	  \b1, Pshuf([-0.0, -5.023241563000106, -10.02665868644665, -14.990505168792087, -19.89519097573123, -24.721359553116837, -29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, ], inf),
+	  \b2, Pshuf([-5.023241563000106, -10.02665868644665, -14.990505168792087, -19.89519097573123, -24.721359553116837, -29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, ], inf),
+	  \b3, Pshuf([-10.02665868644665, -14.990505168792087, -19.89519097573123, -24.721359553116837, -29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, -5.023241563000106, ], inf),
+	  \b4, Pshuf([-14.990505168792087, -19.89519097573123, -24.721359553116837, -29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, -5.023241563000106, -10.02665868644665, ], inf),
+	  \b5, Pshuf([-19.89519097573123, -24.721359553116837, -29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, -5.023241563000106, -10.02665868644665, -14.990505168792087, ], inf),
+	  \b6, Pshuf([-24.721359553116837, -29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, -5.023241563000106, -10.02665868644665, -14.990505168792087, -19.89519097573123, ], inf),
+	  \b7, Pshuf([-29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, -5.023241563000106, -10.02665868644665, -14.990505168792087, -19.89519097573123, -24.721359553116837, ], inf),
+	  \b8, Pshuf([-34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, -5.023241563000106, -10.02665868644665, -14.990505168792087, -19.89519097573123, -24.721359553116837, -29.44996421843568, ], inf),
       ).play;
 
-      b = Pbind(\instrument, \bsnare
-      \dur, Pseq([0.034482758620689655, 0.06896551724137931, 0.10344827586206896, 0.13793103448275862, 0.1724137931034483, 0.20689655172413793, 0.2413793103448276, 0.27586206896551724, 0.3103448275862069, 0.3448275862068966, 0.3793103448275862, 0.41379310344827586, 0.4482758620689655, 0.4827586206896552, 0.5172413793103449, 0.5517241379310345, 0.5862068965517241, 0.6206896551724138, 0.6551724137931034, 0.6896551724137931, 0.7241379310344828, 0.7586206896551724, 0.7931034482758621, 0.8275862068965517, 0.8620689655172413, 0.896551724137931, 0.9310344827586207, 0.9655172413793104, 1.0, ], inf),
-	   \freq, Pwhite(1, 4, inf),
-	   \mod_freq, Prand([0, 1, 3, 5, 0], inf);
-      ).play;
-
-    #+end_src
-    #+begin_src sclang :results none
-		  p = Pbind(\instrument, \isnare_filter_mod_8,
-		      \dur, 0.1,
-		      \freq, 1,
-		      \freq_mod, 0,
-		      \del_mod, 0,
-		      \b1, Pshuf([-0.0, -5.023241563000106, -10.02665868644665, -14.990505168792087, -19.89519097573123, -24.721359553116837, -29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, ], inf),
-		      \b2, Pshuf([-5.023241563000106, -10.02665868644665, -14.990505168792087, -19.89519097573123, -24.721359553116837, -29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, ], inf),
-		      \b3, Pshuf([-10.02665868644665, -14.990505168792087, -19.89519097573123, -24.721359553116837, -29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, -5.023241563000106, ], inf),
-		      \b4, Pshuf([-14.990505168792087, -19.89519097573123, -24.721359553116837, -29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, -5.023241563000106, -10.02665868644665, ], inf),
-		      \b5, Pshuf([-19.89519097573123, -24.721359553116837, -29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, -5.023241563000106, -10.02665868644665, -14.990505168792087, ], inf),
-		      \b6, Pshuf([-24.721359553116837, -29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, -5.023241563000106, -10.02665868644665, -14.990505168792087, -19.89519097573123, ], inf),
-		      \b7, Pshuf([-29.44996421843568, -34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, -5.023241563000106, -10.02665868644665, -14.990505168792087, -19.89519097573123, -24.721359553116837, ], inf),
-		      \b8, Pshuf([-34.062343329362875, -38.5402939327384, -42.86614360330715, -47.02282018870768, -50.99391918545801, -54.763768480036426, -58.31749019955368, -61.6410594279202, -64.72135955578251, -67.54623404578808, -70.10453440888432, -72.38616420231169, -74.38211887565073, -76.08452130766864, -77.48665289371817, -78.58298006100074, -79.36917610705021, -79.8421382752508, -80.0, -79.84213827319023, -79.3691761029372, -78.58298005485153, -77.48665288555702, -76.08452129752777, -74.38211886357016, -72.3861641883391, -70.10453439307483, -67.5462340282041, -64.72135953649345, -61.64105940700216, -58.317490177089226, -54.763768456114185, -50.9939191601724, -47.02282016215851, -42.86614357559923, -38.54029390398104, -34.06234329966957, -29.44996418792362, -24.721359521906425, -19.895190943945654, -14.990505136556822, -10.026658653888878, -5.023241530248318, -0.0, -5.023241563000106, -10.02665868644665, -14.990505168792087, -19.89519097573123, -24.721359553116837, -29.44996421843568, ], inf),
-		  ).play;
-
-		  b = Pbind(\instrument, \isnare_filter_mod_8,
-		      \dur, 1,
-		      \freq, 10,
-		      \freq_mod, 0,
-		      \del_mod, 0,
-		      \b1, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
-		      \b2, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
-		      \b3, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
-		      \b4, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
-		      \b5, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
-		      \b6, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
-		      \b7, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
-		      \b8, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
-		  );
+      b = Pbind(\instrument, \isnare_filter_mod_8,
+	  \dur, 1,
+\out, 8, 
+	  \freq, 10,
+	  \freq_mod, 0,
+	  \del_mod, 0,
+	  \b1, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
+	  \b2, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
+	  \b3, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
+	  \b4, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
+	  \b5, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
+	  \b6, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
+	  \b7, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
+	  \b8, Pseq([-0.0, -2.7586206896551726, -5.517241379310345, -8.275862068965518, -11.03448275862069, -13.793103448275863, -16.551724137931036, -19.310344827586206, -22.06896551724138, -24.82758620689655, -27.586206896551726, -30.344827586206897, -33.10344827586207, -35.86206896551724, -38.62068965517241, -41.37931034482759, -44.13793103448276, -46.89655172413793, -49.6551724137931, -52.41379310344827, -55.17241379310345, -57.93103448275862, -60.689655172413794, -63.44827586206897, -66.20689655172414, -68.9655172413793, -71.72413793103448, -74.48275862068965, -77.24137931034483, -80.0, ], inf),
+      );
 
       Ptpar([0, p, 0.66666, b]).play
-//      b.play;
+      //      b.play;
     #+end_src
 
     SynthDef for a modulating snare drum synth. Parameters are:
@@ -1015,8 +1078,8 @@ Ptpar([0.0, a, 1, b, 2, a]).play;
     #+end_src
 
     #+begin_src sclang :results none
-      ~sisnare_flt = Synth.new("isnare_filter_mod", [\freq, 14, \dur, 14, \osc1, 200, \osc2, 330, \tri, 340] );
-      ~sisnare_flt = Synth.new("isnare_filter_mod", [\freq, 10, \freq_mod, 0, \dur, 12, \osc1, 120, \osc2, 235, \tri, 140, \del_mod, 0.5] );
+      ~sisnare_flt = Synth.new("isnare_filter_mod", [\out, 0, \freq, 0.1, \freq_mod, 20, \mod_freq_stretch, 2, \dur, 10, \osc1, 200, \osc2, 330, \tri, 340, \noise, 1, \del_mod, 0 ] );
+      ~sisnare_flt = Synth.new("isnare_filter_mod", [\out, 16, \freq, 10, \freq_mod, 2, \dur, 12, \osc1, 120, \osc2, 235, \tri, 140, \del_mod, 0.5] );
       s.meter;
     #+end_src
 
@@ -1056,10 +1119,11 @@ Ptpar([0.0, a, 1, b, 2, a]).play;
     Example of spatialization with filtering, no delay.
     #+begin_src sclang :results none
       Pbind(
+	  \out, 0,
 	  \instrument, \isnare_filter_mod,
 	  \del_mod, 0,
 	  \freq_mod, Prand([-0.2, 0, 1], inf),
-	  \dur, 2,
+	  \dur, 10,
 	  \freq, Pgauss(10, 8, inf),
 	  \b1, Pgauss(-20, 20, inf),
 	  \b2, Pgauss(-20, 20, inf),
@@ -1083,32 +1147,33 @@ Ptpar([0.0, a, 1, b, 2, a]).play;
     #+begin_src sclang :results none
       Pbind(
 	  \instrument, \isnare_filter_mod,
+	  \out, 0,
 	  \del_mod, 0,
 	  \freq_mod, Prand([0, 0], inf),
 	  \dur, 0.1,
 	  \freq, 10,
-	\b1, Pseq([-0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, ], inf),
-	\b2, Pseq([-4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, ], inf),
-	\b3, Pseq([-8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, ], inf),
-	\b4, Pseq([-12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, ], inf),
-	\b5, Pseq([-16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, ], inf),
-	\b6, Pseq([-21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, ], inf),
-	\b7, Pseq([-25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, ], inf),
-	\b8, Pseq([-29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, ], inf),
-	\b9, Pseq([-33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, ], inf),
-	\b10, Pseq([-37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, ], inf),
-	\b11, Pseq([-42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, ], inf),
-	\b12, Pseq([-46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, ], inf),
-	\b13, Pseq([-50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, ], inf),
-	\b14, Pseq([-54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, ], inf),
-	\b15, Pseq([-58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, ], inf),
-	\b16, Pseq([-63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, ], inf),
+	      \b1, Pseq([-0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, ], inf),
+	      \b2, Pseq([-4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, ], inf),
+	      \b3, Pseq([-8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, ], inf),
+	      \b4, Pseq([-12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, ], inf),
+	      \b5, Pseq([-16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, ], inf),
+	      \b6, Pseq([-21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, ], inf),
+	      \b7, Pseq([-25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, ], inf),
+	      \b8, Pseq([-29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, ], inf),
+	      \b9, Pseq([-33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, ], inf),
+	      \b10, Pseq([-37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, ], inf),
+	      \b11, Pseq([-42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, ], inf),
+	      \b12, Pseq([-46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, ], inf),
+	      \b13, Pseq([-50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, ], inf),
+	      \b14, Pseq([-54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, ], inf),
+	      \b15, Pseq([-58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, ], inf),
+	      \b16, Pseq([-63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, ], inf),
       ).play;
     #+end_src
 
     #+begin_src sclang :results none
 	    a = Pbind(\instrument, \isnare_filter_mod,
-	    \dur, 0.1,
+	    \dur, 0.001,
 	    \freq, 5,
 	    \freq_mod, 0.09,
 	    \del_mod, 0.1,
@@ -1131,7 +1196,7 @@ Ptpar([0.0, a, 1, b, 2, a]).play;
 	    );
 
 	    b = Pbind(\instrument, \isnare_filter_mod,
-	    \dur, 0.05,
+	    \dur, 0.005,
 	    \freq, 1,
 	    \freq_mod, 2,
 	    \del_mod, 5,
@@ -1154,15 +1219,8 @@ Ptpar([0.0, a, 1, b, 2, a]).play;
 	    );
 Ptpar([0, a, 0.5, b]).play;
     #+end_src
-    Controlling the filters
-    #+begin_src sclang :results none
-      (
-      f = { |settings=0|
-	  settings[1].postln;
-      }
-      )
-    #+end_src
 
+    Controlling the filters
     #+begin_src sclang :results none :noweb eval
       ~init_durs.value
       (     
@@ -1183,18 +1241,25 @@ Ptpar([0, a, 0.5, b]).play;
     #+begin_src sclang :results none
       ~player1.stop;
     #+end_src
-*** bass snare
+*** bass snare 1
 **** synthdef
      #+name: bsnare
      #+begin_src sclang :results none
        (
-       ~bass_snare = SynthDef(\bsnare, { | freq=1, mod_freq=1 |
+       ~bass_snare = SynthDef(\bsnare, {
+	   var impfreq = \impfreq.kr(1), osc1 = \osc1.kr(50), osc2 = \osc2.kr(70), trifreq = \trifreq.kr(10),
+	   fltq = \fltq.kr(1), fltfreq = \fltfrq.kr(100), fltgain = \fltgain.kr(1), modfreq = \modfreq.kr(0),
+	   attack = \attack.kr(0.0000001), rel = \release.kr(0.1), noise_attack = \nattack.kr(1e-08),
+	   noise_sustain = \nsustain.kr(0.016), noise_rel = \nrel.kr(0.1), noise_vol = \nvol.kr(0.073);
 	   var snd;
-	   snd = BassSnare.ar(Impulse.ar(freq),
-	       osc_1_freq: 50,
-	       osc_2_freq: 55,
-	       triangle_freq: 45,
-	       modulation_freq: mod_freq,
+	   snd = BassSnare.ar(Impulse.ar(impfreq),
+	       osc_1_freq: osc1,
+	       osc_2_freq: osc2, 
+	       triangle_freq: trifreq,
+	       flt_frq: fltfreq,
+	       flt_q: fltq,
+	       flt_gain: fltgain,
+	       modulation_freq: modfreq,
 	       noise_sustain: 0.2,
 	       noise_vol: 0.05,
 	       noise_rel: 0.01,
@@ -1205,16 +1270,40 @@ Ptpar([0, a, 0.5, b]).play;
      #+end_src
 
      #+begin_src sclang :results none
-       ~bsnare = Synth.new("bsnare", [\freq, 2, \mod_freq, 5]);
+       ~bsnare = Synth.new("bsnare", [\impfreq, 1, \mod_freq, 0]);
      #+end_src
+
+     #+begin_src sclang :results none
+       SynthDef(\odisp_snare, {
+	   var impfreq = \impfreq.kr(1), position = \pos.kr(0), disperse = \disperse.kr(1), attack = \attack.kr(1e-08),
+	   noise_attack = \nattack.kr(1e-08), noise_lvl = \nlevel.kr(0.1), noise_rel = \nrel.kr(0.1),
+	   osc1 = \osc1freq.kr(330), osc2 = \osc2freq.kr(180), rel = \rel.kr(0.1),
+	   trifreq = \trifreq.kr(111);
+	   var snd;
+	   var modulator = SinOsc.kr([1!16],[0.1!16]);
+	   snd = ODispersedSnare.ar(Impulse.ar(impfreq),
+	       osc_1_freq: osc1, osc_2_freq: osc2,
+	       triangle_freq: trifreq);
+	   Out.ar(position, snd);
+       }).add;
+     #+end_src
+
+     #+begin_src sclang :results none
+       ~snare = Synth.new("odisp_snare", [\impfreq, 10, \disperse, 0]);
+     #+end_src
+
 **** pbind for bsnare
      #+begin_src sclang :results none
        (
        ~bsnare_player = Pbind(
 	   \instrument, \bsnare,
 	   \dur, 0.5,
-	   \freq, Pwhite(1, 4, inf),
-	   \mod_freq, Prand([0, 1, 3, 5, 0], inf);
+	   \impfreq, Pwhite(1, 4, inf),
+	   \mod_freq, 0,
+	   \fltfrq, Pwhite(100, 200, inf),
+	   \fltq, Pseq((1..60) / 60, inf),
+	   \fltgain, Pseq(1 / (1..10), 20),
+	   \fltfreq, Pseq((100..200), 20)
        ).play;
        )
      #+end_src
@@ -1249,10 +1338,13 @@ Ptpar([0, a, 0.5, b]).play;
        )
      #+end_src
 
+     Start it up
      #+begin_src sclang :results none
        ~ifiltsnare = Synth.new("isnaredisp", [\pulse_period, 10000, \random, 0, \offset, 0]);
+s.meter;
      #+end_src
 
+     Control the speed via a slider.
     #+begin_src sclang :results none
       (
       w = Window.new.front;
@@ -1271,176 +1363,445 @@ Ptpar([0, a, 0.5, b]).play;
      #+name: original_snare
      #+begin_src sclang :results none
        (
-       SynthDef(\snare, { | gain=4, freq=200, vol=2, q=1, out=0 |
+       ~snare_one = SynthDef(\snare, { | gain=1, freq=2000, vol=4, q=1, out=0 |
 	   var snd;
 	   var env = Env([0, 1, 0], [0.0001, 0.5]);
 	   snd = Snare.ar(0.00001, freq, gain, 1, q, 0.01, vol) * EnvGen.kr(env, doneAction: Done.freeSelf);
+	   snd = snd * 10;
 	   Out.ar(out, snd);
        }).add;
        )
      #+end_src
+
+     #+begin_src sclang :results none
+       ~snare_one.free;
+     #+end_src
+
 **** player
      Play one hit on the snare above.
      #+name: reg_snare_load
      #+begin_src sclang :results none
-       ~reg_snare = Synth.new("snare", [\freq, 100, \out, 1] );
+       ~reg_snare = Synth.new("snare", [\freq, 400, \out, 0, \q, 6] );
      #+end_src
      
      Pbind for ambisonics
+     #+name: player
      #+begin_src sclang :results none
        Pbind(\instrument, \snare,
 	   \freq, 100,
-	   \out, 17,
+	   \out, 1,
 	   \dur, Prand([0.1, 0.2], inf)
        ).play;
-//       s.meter;
+       s.meter;
      #+end_src
      
+     #+call: play()
+
      Double player
+     #+name: play
      #+begin_src sclang :results none
        a = Pbind(\instrument, \snare,
 	   \freq, 100,
-	   \out, 17,
-	   \dur, 0.1
-	   //	   \dur, Pseries(start: 0.1, step: 0.01, length: 50).trace(prefix: "pseries: "),
-	   //	   \dur, Pgeom(start:1, grow: 0.00001, length: 10)
-	   //	   \dur, Pseq((1..0.1), 10)
+	   \out, 31,
+	   \dur, 0.3,
+	   \freq, Pseries(start: 100, step: 10, length: 100),
+	   	   \dur, Pgeom(start:1, grow: 0.00001, length: 10),
+	   	   \dur, Pseq((1..0.1), 10)
        );
        b = Pbind(\instrument, \snare,
 	   \freq, 100,
-	   \out, 19,
+	   \out, 33,
 	   \dur, 0.2
-	   //	   \dur, Pseries(start: 0.1, step: 0.02, length: 50).trace(prefix: "pseries: "),
-	   //	   \dur, Pgeom(start:1, grow: 0.00001, length: 10)
-	   //	   \dur, Pseq((1..0.1), 10)
        );
        a.play;
        b.play;
-//        s.meter;
+      s.meter;
      #+end_src
+
+     #+call: connect()
 
 **** ambisonics
-
-     Control the panning
-     #+begin_src sclang :results none
-       (
-       a = Bus.control(s, 1).set(3.14);
-       a.set(5);
-       )
-     #+end_src
-     Set the environment variables, then, create the decoder
-     #+begin_src sclang :results none
-       (
-       ~order = 3;
-       ~hoaNumChannels = (~order+1).pow(2);
-       ~decoderNumChannels = 8;
-       s.scope(~hoaNumChannels);
-
-       // Create the input bus
-       ~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
-//       ~hoaSignal.source = {HOAEncoder.ar(~order, In.ar(17, 1), MouseX.kr(pi, -pi), MouseY.kr(-pi * 0.5, pi * 0.5 ))};
-       ~hoaSignal.source = {HOAEncoder.ar(~order, In.ar(17, 1), In.kr(a.index, 1), 3,14)};
-       ~hoaSignal.fadeTime = 1;
-
-       ~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
-       ~decoder.source = {
-	   var in; in = \in.ar(0!~hoaNumChannels);
-	   in.add(0);
-	   KMH108AE3h3pNormal6.ar(*in);
-       };
-       ~decoder.fadeTime = 1;
-       )
-     #+end_src
-
-     Two encoders in parallel feeding to the same decoder (see [[*Connect][Connect]] below)
-     #+begin_src sclang :results none
-       (
-       s.meter;
-       ~order = 3;
-       ~hoaNumChannels = (~order+1).pow(2);
-       ~decoderNumChannels = 8;
-       //s.scope(~hoaNumChannels);
-
-       // Create the input bus
-       ~hoaSignalA = NodeProxy.new(s, \audio, ~hoaNumChannels);
-       ~hoaSignalA.source = {HOAEncoder.ar(~order, In.ar(17, 1), 3.14, 3.14)};
-       ~hoaSignalA.fadeTime = 1;
-
-       ~hoaSignalB = NodeProxy.new(s, \audio, ~hoaNumChannels);
-       ~hoaSignalB.source = {HOAEncoder.ar(~order, In.ar(19, 1), MouseX.kr(pi, -pi), MouseY.kr(-pi * 0.5, pi * 0.5 ))};
-       ~hoaSignalB.fadeTime = 1;
-       )
-     #+end_src
-
-     Load the decoder
-     #+begin_src sclang :results none
-       ~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
-       ~decoder.source = {
-	   var in; in = \in.ar(0!~hoaNumChannels);
-	   in.add(0);
-	   KMH108AE3h3pNormal6.ar(*in);
-       };
-       ~decoder.fadeTime = 1;
-     #+end_src
-
-     *Doesn't work*
-     Create a mapping object and give it the ten output channels from the decoder.
-     Channel 9 and 10 are empty intentionally.
-    #+begin_src sclang :results none
-      (
-      ~mapping = NodeProxy.new(s, \audio, ~decoderNumChannels);
-      ~mapping.source = {
-	      var in; in = \in.ar(0!~decoderNumChannels);
-	  KMH108ChannelMap.ar(*in);
-	  //    KMH108ChannelMap.ar(in[0], in[1], in[2], in[3], in[4], in[5], in[6], in[7], in[8], in[9])
-	  //     KMH108ChannelMap.ar(*in);
-      };
-      )
-     #+end_src
-
-***** Connect
-      Signal, encoded and decoded, but not mapped.
+     
+***** 1D114 3rd order
+      Set the environment variables, then, create the encoder and the decoder.
+      Two encoders in parallel feeding to the same decoder (see [[*Connect][Connect]] below)
+      #+name: encode
       #+begin_src sclang :results none
 	(
-         s.scope(16);
-	~decoder.play([0, 1, 0, 1, 0, 1, 0, 1], ~decoderNumChannels, vol: 1.0);
-	~hoaSignalA <>> ~decoder;
-	~hoaSignalB <>> ~decoder;
+	// Settings
+	~order = 3;
+	~hoaNumChannels = (~order+1).pow(2);
+	~decoderNumChannels = 16;
+	s.scope(~hoaNumChannels);
+
+	// Create the input bus and the encoder
+	~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
+
+	// hoaSignal.source och hoaSignal.add verkar fungera lika bra.
+	~hoaSignal.put(0, {HOAEncoder.ar(~order, In.ar(17, 1), \azpana.kr(3.14), \elpana.kr(3.14))});
+	~hoaSignal.put(1, ({HOAEncoder.ar(~order, In.ar(19, 1), \azpanb.kr(3.14), \elpanb.kr(3.14))}));
+	~hoaSignal.fadeTime = 1;
+
+	// Decoder
+	~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
+	~decoder.source = {
+	    var in; in = \in.ar(0!~hoaNumChannels);
+	    in.add(0);
+	    KMH114AEC3h3pFull6.ar(*in);
+	};
+	~decoder.fadeTime = 1;
 	)
       #+end_src
 
-      Signal, encoded and decoded, but not mapped.
+      Print the possible control keys for this NodeProxy
+      #+begin_src sclang :results none
+	~hoaSignal.controlKeys;
+      #+end_src
+      
+      Clear the instances
+      #+begin_src sclang :results none
+	~hoaSignal.clear;
+	~azimuthA.clear;
+	~decoder.clear;
+      #+end_src
+***** 1D108 3rd order
+      Start the player
+      #+call: play()
+      Start the encoder
+      #+call: encode()
+      Connect the encoder with the decoder
+      #+call: connect()
+
+
+      Set the environment variables, then, create the encoder and the decoder.
+      Two encoders in parallel feeding to the same decoder (see [[*Connect][Connect]] below)
+      See also the demo in [[file:~/org/babel/sc_snippets.org::*Example%20with%20control][Example with control]]
+      #+name: encode
+      #+begin_src sclang :results none :noweb yes
+	(
+	 // Settings
+	 ~order = 3;
+	 ~hoaNumChannels = (~order+1).pow(2);
+	 ~decoderNumChannels = 8;
+	 //s.scope(~hoaNumChannels);
+
+	 // Create the input bus and the encoder
+	 ~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
+	 //~hoaSignal.play;
+
+	 // hoaSignal.source och hoaSignal.add verkar fungera lika bra.
+	 ~hoaSignal[0] = { HOAEncoder.ar(~order, In.ar(17, 1), \azpana.kr(-3.14), \elpana.kr(0), \gaina.kr(0), plane_spherical:1) };
+	 ~hoaSignal[1] = { HOAEncoder.ar(~order, In.ar(19, 1), \azpanb.kr(-3.14), \elpanb.kr(0),  plane_spherical:1) };
+	 ~hoaSignal.fadeTime = 0.1;
+
+	 // Panning automation
+	 // Create a new panner NodeProxy
+	 ~azimuthA = NodeProxy.control(s, 1);
+	 ~azimuthB = NodeProxy.control(s, 1);
+
+	 // Set its source to a control signal 
+	 ~azimuthA.source = { MouseX.kr(-pi, pi); };
+//	 ~azimuthA.source = { SinOsc.kr(0.1, 0, 0.7pi, 0); };
+	 ~azimuthB.source = { SinOsc.kr(0.2, 0, 0.5pi, 0); };
+
+	 // Call .set on the object you want to control given the parameter and the control proxy as arguments
+
+	 ~hoaSignal.set(\azpana, ~azimuthA);
+//	 ~hoaSignal.set(\azpanb, ~azimuthB);
+//	 ~azimuthA.play;
+//	 ~azimuthB.play;
+
+	 // Decoder
+	 ~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
+	 ~decoder.source = {
+	     var in; in = \in.ar(0!~hoaNumChannels);
+	     in.add(0);
+	     KMH108AE3h3pNormal6.ar(*in);
+	 };
+	 ~decoder.fadeTime = 1;
+	 )
+      #+end_src
+      
+      Clear the instances
+      #+begin_src sclang :results none
+	~hoaSignal.clear;
+	~azimuthA.clear;
+	~decoder.clear;
+      #+end_src
+
+      Control the panning position A
+      #+begin_src sclang :results none
+	~hoaSignal.set(\azpana, 3.14);
+	~hoaSignal.set(\elpana, 3.14);
+	~hoaSignal.set(\azpanb, 3.14);
+	~hoaSignal.set(\elpanb, 3.14);
+      #+end_src
+
+      Control the panning position B
+      #+begin_src sclang :results none
+	~hoaSignal.set(\azpana, 0);
+	~hoaSignal.set(\elpana, 0);
+	~hoaSignal.set(\azpanb, 0);
+	~hoaSignal.set(\elpanb, 0);
+      #+end_src
+
+     Control the panning position B
+      #+begin_src sclang :results none
+	~hoaSignal.set(\azpana, -3.14);
+	~hoaSignal.set(\elpana, -3.14);
+	~hoaSignal.set(\azpanb, -3.14);
+	~hoaSignal.set(\elpanb, -3.14);
+      #+end_src
+
+     Control the panning position B
+      #+begin_src sclang :results none
+	~hoaSignal.set(\azpana, 1.25);
+	~hoaSignal.set(\elpana, 1.25);
+	~hoaSignal.set(\azpanb, 1.25);
+	~hoaSignal.set(\elpanb, 1.25);
+      #+end_src
+
+***** Lilla salen 3rd order
+      Start the player
+      #+call: play()
+      Start the encoder
+      #+call: l_encode()
+      Connect the encoder with the decoder
+      #+call: connect()
+
+      Set the environment variables, then, create the encoder and the decoder.
+      Two encoders in parallel feeding to the same decoder (see [[*Connect][Connect]] below)
+      See also the demo in [[file:~/org/babel/sc_snippets.org::*Example%20with%20control][Example with control]]
+      #+name: l_encode
+      #+begin_src sclang :results none :noweb yes
+	(
+	// Settings
+	var trig;
+	~order = 3;
+	~hoaNumChannels = (~order+1).pow(2);
+	~decoderNumChannels = 29;
+	//s.scope(~hoaNumChannels);
+
+	// Create the input bus and the encoder
+	~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
+	//~hoaSignal.play;
+
+	// hoaSignal.source och hoaSignal.add verkar fungera lika bra.
+	~hoaSignal[0] = { HOAEncoder.ar(~order, In.ar(31, 1), \azpana.kr(-3.14), \elpana.kr(0), \gaina.kr(0), \plane.kr(1), \rad.kr(2)) };
+	~hoaSignal[1] = { HOAEncoder.ar(~order, In.ar(33, 1), \azpanb.kr(-3.14), \elpanb.kr(0),  plane_spherical:1) };
+	~hoaSignal.fadeTime = 0.1;
+
+	// Panning automation
+	// Create a new panner NodeProxy
+	~azimuthA = NodeProxy.control(s, 1);
+	~azimuthB = NodeProxy.control(s, 1);
+	~elevationA = NodeProxy.control(s, 1);
+	~elevationB = NodeProxy.control(s, 1);
+	~radiusA = NodeProxy.control(s, 1);
+
+	// Set its source to a control signal 
+	//~azimuthA.source = { MouseX.kr(pi, -pi); };
+	//~azimuthB.source = { MouseX.kr(pi, -pi); };
+	~elevationA.source = { MouseY.kr(-pi, pi); };
+	~elevationB.source = { MouseY.kr(-pi, pi); };
+//	trig = Impulse.kr(0.01);
+	~azimuthA.source = { LinLin.kr(Phasor.kr(Impulse.kr(0.5), 0.5/ControlRate.ir), 0, 1, -pi, pi); };
+	~azimuthB.source = { LinLin.kr(Phasor.kr(Impulse.kr(0.5), 0.5/ControlRate.ir), 0, 1, -pi, pi); };
+	//~radiusA.source = { MouseX.kr(360, 1); };
+
+	// Call .set on the object you want to control given the parameter and the control proxy as arguments
+	~hoaSignal.set(\azpana, ~azimuthA);
+	~hoaSignal.set(\azpanb, ~azimuthB);
+	~hoaSignal.set(\elpana, ~elevationA);
+	~hoaSignal.set(\elpanb, ~elevationB);
+	~hoaSignal.set(\rad, ~radiusA);
+
+	// Decoder
+	~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
+	~decoder.source = {
+	    var in; in = \in.ar(0!~hoaNumChannels);
+	    in.add(-10);
+	    KMHLSDome3h3pNormal6.ar(*in);
+	};
+	~decoder.fadeTime = 1;
+	)
+      #+end_src
+      
+      Clear the instances
+      #+begin_src sclang :results none
+	~hoaSignal.clear;
+	~azimuthA.clear;
+	~decoder.clear;
+      #+end_src
+***** panning
+      Panning instrument
+      #+name: snare_panner
+      #+begin_src sclang :results none
+	~hoaSignal.set(\azpana, In.kr();
+      #+end_src
+
+***** Connect
+      Signal, encoded and decoded, but not mapped. Use this.
+      #+name: connect
       #+begin_src sclang :results none
 	(
-         s.scope(16);
-	~decoder.play([0, 1, 0, 1, 0, 1, 0, 1], ~decoderNumChannels, vol: 1.0);
+	~decoder.play(0, ~decoderNumChannels, vol: 16.0);
 	~hoaSignal <>> ~decoder;
 	)
       #+end_src
 
-      Signal, encoded, and mapped.
-      #+begin_src sclang :results none
-	(
-	s.scope(10);
-	~mapping.play(0, ~decoderNumChannnels);
-	~hoaSignal <>> ~decoder <>> ~mapping;
-	)
-      #+end_src
-
+***** Disconnect
       #+begin_src sclang :results none
 	~decoder.clear;
+	~hoaSignal.clear;
 	~hoaSignalA.clear;
 	~hoaSignalB.clear;
-	~mapping.clear;
       #+end_src
-** test tone
-   #+begin_src sclang :results none
-     p = { Out.ar(12, SinOsc.ar(440, 0, 0.1)) }.play
-   #+end_src
-   #+begin_src sclang :results none
-     (instrument: \snares, freq: 400).play;
-   #+end_src
 
+*** snare 7: convolution
+
+**** synthdef
+     #+begin_src sclang :results none
+       (
+       SynthDef(\isnare, { | outBus=0, cBus1=1, gain=0.5, freq=200, osc1=330, osc2=180, tri=111, noise=0.1, position=0, disperse=0, pulse=200, dur=1, distance=0 |
+	   var snd, rev;
+	   var env = Env([0, 1, 0], [0.0001, 0.5]);
+	   snd = IDispersedSnare.ar(position, disperse, pulse) * EnvGen.kr(env, timeScale: dur, doneAction: Done.freeSelf);
+	   rev = FreeVerb.ar(snd * gain, mix: distance, room: 1, damp: 0.5);
+	   Out.ar(outBus, snd);
+       }).add;
+       )
+     #+end_src
+
+     Named controls
+     #+begin_src sclang :results none
+	      (
+	      SynthDef(\isnarenc, {
+		  var snd;
+		  var env = Env([0, 1, 0], [0.0001, 0.5]);
+		  snd = ODispersedSnare.ar(Impulse.ar(\pulse.ar(440)), \position.kr(0), \disperse.kr(0)) * EnvGen.kr(env, timeScale: \dur.kr(1), doneAction: Done.freeSelf);
+       //	   rev = FreeVerb.ar(snd * gain, mix: distance, room: 1, damp: 0.5);
+		  Out.ar(\outBus.ir, snd);
+	      }).add;
+	      )
+     #+end_src
+
+**** player
+     #+begin_src sclang :results none
+       (
+       a = Array.fill(16, { arg i; (i + 1) / 16 });
+       Pbind (\instrument, \isnarenc,
+	   //	   \position, Pseq((0..29), inf),
+	   \position, 0,
+	   \outBus, 0,
+	   \disperse, 0.0,
+	   \pulse, 10000,
+	   \osc1, Pseq([330,320,310,300,290,250,220,250,280,300,320], inf),
+	   \gain, Pseq(a, inf),
+	   \distance, Pseq(a.reverse, inf),
+	   \dur, 2
+       ).play;
+       )
+//       s.meter;
+     #+end_src
+
+     #+begin_src sclang :results none
+       (
+       a = Array.fill(16, { arg i; (i + 1) / 16 });
+       Pbind (\instrument, \isnare,
+	   \position, Pseq((0..29), inf),
+	   \disperse, 0.0,
+	   \impf, 80000, //Pfunc({30.rand2}),
+	   \osc1, Pseq([330,320,310,300,290,250,220,250,280,300,320], inf),
+	   \gain, Pseq(a, 16),
+	   \distance, Pseq(a.reverse, 16),
+	   \dur, 1
+       ).play;
+       )
+
+       (
+       Pbind (\instrument, \isnare,
+	   \position, 1,
+	   \distance, Pseq([0, 0.1, 0.2, 0.3, 0.4, 0.5], 10),
+	   \disperse, 0,
+	   \impf, 10000,
+	   \dur, 1,
+	   \delta, 0
+       ).play;
+       )
+     #+end_src
+
+**** convolution
+       preparation; essentially, allocate an impulse response buffer, then
+        follow a special buffer preparation step to set up the data the plugin needs.
+        Different options are provided commented out for loading impulse responses from soundfiles.
+ 
+
+     #+begin_src sclang :results none
+
+      (
+       ​
+	// also 4096 works on my machine; 1024 too often and amortisation too pushed, 8192 more high load FFT
+       ~fftsize = 2048;
+       ​
+       s.waitForBoot {
+       ​
+	   {
+	       var ir, irbuffer, bufsize;
+       ​
+	       // // MONO ONLY
+	       // pre-existing impulse response sound files
+	       // (could also use any general soundfile too for cross-synthesis effects)
+	       // irbuffer = Buffer.read(s, "/Volumes/data/audio/ir/ir2.wav");
+       ​
+	       // synthesise the honourable 'Dan Stowell' impulse response
+       ​
+	       ir = [1] ++ 0.dup(100) ++ (
+		   (1, 0.99998 .. 0)
+		   .collect {|f|
+		       f = f.squared.squared;
+		       f = if(f.coin) { 0 }{ f.squared };
+		       f = if(0.5.coin) { 0 - f } { f }
+		   } * 0.1
+	       );
+	       ir = ir.normalizeSum;
+       ​
+	       irbuffer = Buffer.loadCollection(s, ir);
+       ​
+	       s.sync;
+       ​
+	       bufsize = PartConv.calcBufSize(~fftsize, irbuffer);
+       ​
+	       // ~numpartitions= PartConv.calcNumPartitions(~fftsize, irbuffer);
+       ​
+	       ~irspectrum = Buffer.alloc(s, bufsize, 1);
+	       ~irspectrum.preparePartConv(irbuffer, ~fftsize);
+       ​
+	       s.sync;
+       ​
+	       irbuffer.free; // don't need time domain data anymore, just needed spectral version
+	   }.fork;
+       ​
+       }
+       )
+       ​
+       ~target = Buffer.read(s, Platform.resourceDir +/+ "sounds/a11wlk01.wav");
+
+       (
+       {
+	   var input = PlayBuf.ar(1, ~target, loop:1);
+	   var rev = PartConv.ar(input, ~fftsize, ~irspectrum.bufnum, 0.5);
+	   var mix = (input * 0) + (rev * 1);
+	   Out.ar(0, mix);
+       }.play
+       )
+
+       (
+       {
+	   PlayBuf.ar(1, ~target, loop:1);
+       }.play
+       )
+     #+end_src
 ** pbind for accelerando
    This is the pbind for the acc defined here: [[*accelerando, fixed tempo][accelerando, fixed tempo]]
    The Synthdef is here: [[*synthdef][snare]]
@@ -1459,6 +1820,7 @@ Ptpar([0, a, 0.5, b]).play;
      Pdefn(\duration, 1);
      )
    #+end_src
+** polyrhythm
 ** accelerando, fixed tempo
    #+begin_src sclang :results none
      (
@@ -1743,3 +2105,4 @@ Ptpar([0, a, 0.5, b]).play;
       r.stop;
     #+end_src
 
+    

@@ -13,13 +13,10 @@ import("music.lib") ; // for osci definition
 //---------------`Snare drum dispersing over X channels` --------------------------
 //
 // Generating an impulse and feeding it to a generic_snarefs and on to a disperser.
-// disperse.dsp doe not pass on the impules as generic_snarefs does.
+// disperse.dsp does not pass on the impules as generic_snarefs does. 
 //
 // 18 Juli 2019	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------
-
-impgrp(x) = vgroup("impulse", x);
-imp = impgrp(button("play")) : ba.impulsify;
 				       
-process = imp : component("generic_snarefs.dsp") : component("disperse.dsp") ;
+process = component("generic_snarefs.dsp") : component("disperse.dsp") ;
 
