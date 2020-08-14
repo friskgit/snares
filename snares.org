@@ -7,13 +7,10 @@ s.boot;
    #+end_src
 
    Set JackRouter to be the interface
+   #+name: boot_jack
    #+begin_src sclang :results none
      (
-     ServerOptions.devices;
-     s = Server.local;
-     Server.local = Server.default;
      o = Server.local.options; // Get the local server's options
-     o.device = "Blackhole monitor";
      o.numOutputBusChannels = 64;
      o.numWireBufs = 128;
      o.memSize = 65536;
@@ -1252,7 +1249,7 @@ Ptpar([0, a, 0.5, b]).play;
 	   attack = \attack.kr(0.0000001), rel = \release.kr(0.1), noise_attack = \nattack.kr(1e-08),
 	   noise_sustain = \nsustain.kr(0.016), noise_rel = \nrel.kr(0.1), noise_vol = \nvol.kr(0.073);
 	   var snd;
-	   snd = BassSnare.ar(Impulse.ar(impfreq),
+	   snd = OBassSnare.ar(Impulse.ar(impfreq),
 	       osc_1_freq: osc1,
 	       osc_2_freq: osc2, 
 	       triangle_freq: trifreq,
@@ -1360,14 +1357,19 @@ s.meter;
 *** snare 6: ambisonics
 **** synthdef
      Simple instance of a snare synth
+
+     #+begin_src sclang :results none :noweb yes
+       <<boot_jack>>
+     #+end_src
+
      #+name: original_snare
      #+begin_src sclang :results none
        (
        ~snare_one = SynthDef(\snare, { | gain=1, freq=2000, vol=4, q=1, out=0 |
 	   var snd;
 	   var env = Env([0, 1, 0], [0.0001, 0.5]);
-	   snd = Snare.ar(0.00001, freq, gain, 1, q, 0.01, vol) * EnvGen.kr(env, doneAction: Done.freeSelf);
-	   snd = snd * 10;
+	   snd = IGenericSnarefs.ar(freq) * EnvGen.kr(env, doneAction: Done.freeSelf);
+	   snd = snd * 0.5;
 	   Out.ar(out, snd);
        }).add;
        )
@@ -1381,15 +1383,15 @@ s.meter;
      Play one hit on the snare above.
      #+name: reg_snare_load
      #+begin_src sclang :results none
-       ~reg_snare = Synth.new("snare", [\freq, 400, \out, 0, \q, 6] );
+       ~reg_snare = Synth.new("snare", [\freq, 2000, \out, 0, \q, 6] );
      #+end_src
      
      Pbind for ambisonics
      #+name: player
      #+begin_src sclang :results none
        Pbind(\instrument, \snare,
-	   \freq, 100,
-	   \out, 1,
+	   \freq, 5000,
+	   \out, 0,
 	   \dur, Prand([0.1, 0.2], inf)
        ).play;
        s.meter;
@@ -1401,13 +1403,11 @@ s.meter;
      #+name: play
      #+begin_src sclang :results none
        a = Pbind(\instrument, \snare,
-	   \freq, 100,
+	   \freq, 900,
 	   \out, 31,
 	   \dur, 0.3,
-	   \freq, Pseries(start: 100, step: 10, length: 100),
-	   	   \dur, Pgeom(start:1, grow: 0.00001, length: 10),
-	   	   \dur, Pseq((1..0.1), 10)
-       );
+	   \freq, 30
+       ); 
        b = Pbind(\instrument, \snare,
 	   \freq, 100,
 	   \out, 33,
@@ -1569,62 +1569,65 @@ s.meter;
       Connect the encoder with the decoder
       #+call: connect()
 
+      #+begin_src sclang :results none
+
+      #+end_src
       Set the environment variables, then, create the encoder and the decoder.
       Two encoders in parallel feeding to the same decoder (see [[*Connect][Connect]] below)
       See also the demo in [[file:~/org/babel/sc_snippets.org::*Example%20with%20control][Example with control]]
       #+name: l_encode
       #+begin_src sclang :results none :noweb yes
-	(
-	// Settings
-	var trig;
-	~order = 3;
-	~hoaNumChannels = (~order+1).pow(2);
-	~decoderNumChannels = 29;
-	//s.scope(~hoaNumChannels);
+		(
+		// Settings
+		var trig;
+		~order = 3;
+		~hoaNumChannels = (~order+1).pow(2);
+		~decoderNumChannels = 29;
+		//s.scope(~hoaNumChannels);
 
-	// Create the input bus and the encoder
-	~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
-	//~hoaSignal.play;
+		// Create the input bus and the encoder
+		~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
+		//~hoaSignal.play;
 
-	// hoaSignal.source och hoaSignal.add verkar fungera lika bra.
-	~hoaSignal[0] = { HOAEncoder.ar(~order, In.ar(31, 1), \azpana.kr(-3.14), \elpana.kr(0), \gaina.kr(0), \plane.kr(1), \rad.kr(2)) };
-	~hoaSignal[1] = { HOAEncoder.ar(~order, In.ar(33, 1), \azpanb.kr(-3.14), \elpanb.kr(0),  plane_spherical:1) };
-	~hoaSignal.fadeTime = 0.1;
+		// hoaSignal.source och hoaSignal.add verkar fungera lika bra.
+		~hoaSignal[0] = { HOAEncoder13.ar(In.ar(31, 1), \gaina.kr(0), \rad.kr(2), \azpana.kr(-3.14), \elpana.kr(0)) };
+		~hoaSignal[1] = { HOAEncoder13.ar(In.ar(33, 1), \gaina.kr(0), \rad.kr(2), \azpanb.kr(-3.14), \elpanb.kr(0)) };
+		~hoaSignal.fadeTime = 0.1;
 
-	// Panning automation
-	// Create a new panner NodeProxy
-	~azimuthA = NodeProxy.control(s, 1);
-	~azimuthB = NodeProxy.control(s, 1);
-	~elevationA = NodeProxy.control(s, 1);
-	~elevationB = NodeProxy.control(s, 1);
-	~radiusA = NodeProxy.control(s, 1);
+		// Panning automation
+		// Create a new panner NodeProxy
+		~azimuthA = NodeProxy.control(s, 1);
+		~azimuthB = NodeProxy.control(s, 1);
+		~elevationA = NodeProxy.control(s, 1);
+		~elevationB = NodeProxy.control(s, 1);
+		~radiusA = NodeProxy.control(s, 1);
 
-	// Set its source to a control signal 
-	//~azimuthA.source = { MouseX.kr(pi, -pi); };
-	//~azimuthB.source = { MouseX.kr(pi, -pi); };
-	~elevationA.source = { MouseY.kr(-pi, pi); };
-	~elevationB.source = { MouseY.kr(-pi, pi); };
-//	trig = Impulse.kr(0.01);
-	~azimuthA.source = { LinLin.kr(Phasor.kr(Impulse.kr(0.5), 0.5/ControlRate.ir), 0, 1, -pi, pi); };
-	~azimuthB.source = { LinLin.kr(Phasor.kr(Impulse.kr(0.5), 0.5/ControlRate.ir), 0, 1, -pi, pi); };
-	//~radiusA.source = { MouseX.kr(360, 1); };
+		// Set its source to a control signal 
+		//~azimuthA.source = { MouseX.kr(pi, -pi); };
+		//~azimuthB.source = { MouseX.kr(pi, -pi); };
+		~elevationA.source = { MouseY.kr(-90, 90); };
+		~elevationB.source = { MouseY.kr(-90, 90); };
+	//	trig = Impulse.kr(0.01);
+		~azimuthA.source = { LinLin.kr(Phasor.kr(Impulse.kr(0.5), 0.5/ControlRate.ir), 0, 1, -180, 190); };
+		~azimuthB.source = { LinLin.kr(Phasor.kr(Impulse.kr(0.5), 0.5/ControlRate.ir), 0, 1, -180, 180); };
+		//~radiusA.source = { MouseX.kr(360, 1); };
 
-	// Call .set on the object you want to control given the parameter and the control proxy as arguments
-	~hoaSignal.set(\azpana, ~azimuthA);
-	~hoaSignal.set(\azpanb, ~azimuthB);
-	~hoaSignal.set(\elpana, ~elevationA);
-	~hoaSignal.set(\elpanb, ~elevationB);
-	~hoaSignal.set(\rad, ~radiusA);
+		// Call .set on the object you want to control given the parameter and the control proxy as arguments
+		~hoaSignal.set(\azpana, ~azimuthA);
+		~hoaSignal.set(\azpanb, ~azimuthB);
+		~hoaSignal.set(\elpana, ~elevationA);
+		~hoaSignal.set(\elpanb, ~elevationB);
+		~hoaSignal.set(\rad, ~radiusA);
 
-	// Decoder
-	~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
-	~decoder.source = {
-	    var in; in = \in.ar(0!~hoaNumChannels);
-	    in.add(-10);
-	    KMHLSDome3h3pNormal6.ar(*in);
-	};
-	~decoder.fadeTime = 1;
-	)
+		// Decoder
+		~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
+		~decoder.source = {
+		    var in; in = \in.ar(0!~hoaNumChannels);
+		    in.add(-10);
+		    KMHLSDome3h3pNormal6.ar(*in);
+		};
+		~decoder.fadeTime = 1;
+		)
       #+end_src
       
       Clear the instances

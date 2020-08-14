@@ -13,7 +13,6 @@ import("music.lib") ; // for osci definition
 //---------------`Single snare drum` --------------------------
 //
 // Taking an impulse as input and feeding it to a generic_snarefs.
-// disperse.dsp does not pass on the impules as generic_snarefs does.
 //
 // Paramters
 // - tempo: tempo of impulse
@@ -27,5 +26,5 @@ imp = ba.pulse(impgrp(hslider("tempo", 5000, 5, 10000, 1)));
 //imp = os.imptrain(impgrp(hslider("tempo", 1, 0.01, 10000, 1)));
 //imp = os.impulse;g
 
-process = imp : component("generic_snarefs.dsp");
+process = imp : component("generic_snarefs.dsp") : !,_ :> _;
 

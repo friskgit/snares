@@ -1,4 +1,4 @@
-// -*- compile-command: "cd .. && make app src=src/generic_snarefs.dsp && cd -"; -*-&& cd -"; -*-
+// -*- compile-command: "cd .. && make sc src=src/generic_snarefs.dsp && cd -"; -*-&& cd -"; -*-
 
 declare version " 0.1 ";
 declare author " Henrik Frisk " ;
