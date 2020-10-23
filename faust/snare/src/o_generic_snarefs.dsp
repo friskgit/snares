@@ -1,4 +1,4 @@
-// -*- compile-command: "cd .. && make jack src=i_generic_snarefs.dsp && cd -"; -*-&& cd -"; -*-
+// -*- compile-command: "cd .. && make jack src=o_generic_snarefs.dsp && cd -"; -*-&& cd -"; -*-
 
 declare version " 0.1 ";
 declare author " Henrik Frisk " ;
@@ -12,7 +12,7 @@ import("music.lib") ; // for osci definition
 
 //---------------`Single snare drum` --------------------------
 //
-// Generating an impulse and feeding it to a generic_snarefs.
+// Taking an impulse as input and feeding it to a generic_snarefs.
 //
 // Paramters
 // - tempo: tempo of impulse
@@ -26,5 +26,5 @@ imp = ba.pulse(impgrp(hslider("tempo", 5000, 5, 10000, 1)));
 //imp = os.imptrain(impgrp(hslider("tempo", 1, 0.01, 10000, 1)));
 //imp = os.impulse;g
 
-process = imp : component("generic_snarefs.dsp") : !,_ :> _;
+process = component("generic_snarefs.dsp") : !,_ :> _;
 

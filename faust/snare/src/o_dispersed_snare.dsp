@@ -18,5 +18,5 @@ import("music.lib") ; // for osci definition
 // 18 Juli 2019	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------
 				       
-process = component("generic_snarefs.dsp") : component("disperse.dsp") ;
+process = component("generic_snarefs.dsp") : component("disperse.dsp")[channels = 29;] ;
 

@@ -1,4 +1,4 @@
- // -*- compile-command: "cd .. && make jack src=src/disperse_filtered_sound.dsp && cd -"; -*-
+// -*- compile-command: "cd .. && make jack src=src/disperse_filtered_sound.dsp && cd -"; -*-
 
 declare version " 0.1 ";
 declare author " Henrik Frisk " ;

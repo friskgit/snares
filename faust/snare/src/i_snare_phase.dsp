@@ -1,4 +1,4 @@
-// -*- compile-command: "cd .. && make app src=i_snare_phase.dsp && cd -"; -*-&& cd -"; -*-
+// -*- compile-command: "cd .. && make jack src=i_snare_phase.dsp && cd -"; -*-&& cd -"; -*-
 
 declare version " 0.1 ";
 declare author " Henrik Frisk " ;
@@ -21,14 +21,16 @@ import("music.lib") ; // for osci definition
 // 18 Juli 2019	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------
 
-p = hslider("pulse", 48000, 30, 60000, 1);
-imp = ba.pulse(p);
+//p = hslider("pulse", 192000, 30, 192000, 1);
+p = hslider("pulse", 1, 1, 1000, 0.01);
+//imp = ba.pulse(p);
+imp = os.imptrain(p);
 delA = p : *(0.25);
 delB = p : *(0.5);
 delC = p : *(0.75);
-imp_delA = imp : de.sdelay(48000, 256, delA);
-imp_delB = imp : de.sdelay(48000, 256, delB);
-imp_delC = imp : de.sdelay(48000, 256, delC);
+imp_delA = imp : de.sdelay(192000, 256, delA);
+imp_delB = imp : de.sdelay(192000, 256, delB);
+imp_delC = imp : de.sdelay(192000, 256, delC);
 //imp = os.impulse;
 
 process = ((imp : component("generic_snarefs.dsp")),

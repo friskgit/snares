@@ -34,6 +34,7 @@ synthgrp(x) = vgroup("snare", x);
 osc1f = synthgrp(hslider("osc 1 freq", 330, 50, 2000, 0.1));
 osc2f = synthgrp(hslider("osc 2 freq", 180, 50, 2000, 0.1));
 tri1f = synthgrp(hslider("triangle freq", 111, 50, 2000, 0.1));
+fltsw = synthgrp(hslider("filter sweep", 1, 0, 2, 0.001));
 osc1 = os.osc(osc1f) *(0.1);
 osc2 = os.osc(osc2f) *(0.1);
 tri1 = os.triangle(tri1f) *(0.1);
@@ -67,7 +68,7 @@ nse(x) = n(x) :> _ * noiseenv(x) ;
 // Frequence shift
 mSR = fconstant(int fSamplingFreq , <math.h>);
 f2smp(freq) = (mSR, freq : / ) ;
-phasor(smp) =   1 : +~_ : _,smp : fmod : _,smp : / ;
+phasor(smp) =   fltsw : +~_ : _,smp : fmod : _,smp : / ;
 				       
 unit(v1) = (_ <: *(v1) , _'' : - ) : + ~ (_', v1 : *);
 filters = _ <: _,_' :( unit(0.161758): unit(.733029) : unit (.94535) : unit(.990598) ), (unit(.479401) : unit(.876218) : unit (.976599) : unit(.9975) ) ;
