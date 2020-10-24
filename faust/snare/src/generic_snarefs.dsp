@@ -31,6 +31,8 @@ import("music.lib") ; // for osci definition
 //---------------------------------------------------
 synthgrp(x) = vgroup("snare", x);
 
+accent = 1;
+amp = synthgrp(hslider("amp", 0.5, 0, 2, 0.001));
 osc1f = synthgrp(hslider("osc 1 freq", 330, 50, 2000, 0.1));
 osc2f = synthgrp(hslider("osc 2 freq", 180, 50, 2000, 0.1));
 tri1f = synthgrp(hslider("triangle freq", 111, 50, 2000, 0.1));
@@ -76,6 +78,7 @@ cmpl_osc(freq) = f2smp(freq) : phasor : _, 6.2831853 : *<: sin,cos;
 
 cmpl_mul(in1,in2,in3,in4) = in1*(in3), in2*(in4) ;
 
+volume(s) = s : *(amp) : *(accent);
 trimod = tri1, tri1 : (filters, cmpl_osc) : cmpl_mul <: +,- ;
 oscs(x) = osc1, osc2 : par(i, 2, _* env(x));
-process(x) = trimod : par(i, 2, _ * env(x)), oscs(x) :> _+nse(x) ,_+nse(x) :> _ : x,_ ;
+process(x) = trimod : par(i, 2, _ * env(x)), oscs(x) :> _+nse(x) ,_+nse(x) :> _ : x,volume(_) ;

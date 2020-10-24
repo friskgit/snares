@@ -21,19 +21,23 @@ import("music.lib") ; // for osci definition
 // 18 Juli 2019	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------
 
-//p = hslider("pulse", 192000, 30, 192000, 1);
-p = hslider("pulse", 1, 1, 1000, 0.01);
-//imp = ba.pulse(p);
-imp = os.imptrain(p);
-delA = p : *(0.25);
-delB = p : *(0.5);
-delC = p : *(0.75);
-imp_delA = imp : de.sdelay(192000, 256, delA);
-imp_delB = imp : de.sdelay(192000, 256, delB);
-imp_delC = imp : de.sdelay(192000, 256, delC);
+p = hslider("pulse", 192000, 10, 192000, 1);
+per = p * 1;
+//p = hslider("pulse", 1, 1, 1000, 0.01);
+imp = ba.pulse(per);
+// imp = os.imptrain(p);
+delA = per : *(0.25);
+delB = per : *(0.5);
+delC = per : *(0.75);
+imp_delA = imp : de.sdelay(192000, 64, delA);
+imp_delB = imp : de.sdelay(192000, 64, delB);
+imp_delC = imp : de.sdelay(192000, 64, delC);
 //imp = os.impulse;
+// divisor = 0.25;
+// snares(d) = imp : de.sdelay(192000, 64, (per : *(divisor * d))) : component("generic_snarefs.dsp");
+// process = par(i, 4, snares(i+1));
 
-process = ((imp : component("generic_snarefs.dsp")),
+process = ((imp : component("generic_snarefs.dsp")[accent = 2;]),
 	   (imp_delA : component("generic_snarefs.dsp")),
 	   (imp_delB : component("generic_snarefs.dsp")),
 	   (imp_delC : component("generic_snarefs.dsp"))) :> _;
