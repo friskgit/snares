@@ -135,6 +135,15 @@
 		dur: 1
 	]);
 	~simplePlayer.play;
+	~newSimplePlayer = Pbind(*[
+		instrument: \snare,
+		freq: 1200,
+		out: ~signalBus,
+		gain: 1,
+		vol: 1,
+		dur: 0.9
+	]);
+	~newSimplePlayer.play;
       #+end_src
 
       #+name: stop
@@ -150,12 +159,13 @@
       #+call: boot_jack()
       Load SynthDef
       #+call: original_snare()
-      Start the player
-      #+call: play()
       Start the encoder
       #+call: scl_encode()
+      Start the player
+      #+call: play()
       Load the panning GUIle
-      #+call: gui_pan()
+      #+call: load_window()
+      #+call: sliders()
       Connect the encoder with the decoder
       #+call: scl_connect()
       Free stuff
@@ -167,7 +177,6 @@
 	(
 	// Settings
 	var trig;
-	<<gui_pan>>
 
 	~signalBus = 33;
 	~order = 3;
@@ -181,20 +190,29 @@
 	//~hoaSignal.play;
 
 	// hoaSignal.source och hoaSignal.add verkar fungera lika bra.
-	~hoaSignal[0] = { HOAEncoder.ar(~order, In.ar(~signalBus), \azpana.kr(-3.14), \elpana.kr(0), \gaina.kr(0), \planespherical.kr(1), \rad.kr(2), \speakerrad.ir(1.07)) };
+	~hoaSignal[0] = {
+		HOAEncoder.ar(~order,
+			In.ar(~signalBus),
+			\azpana.kr(-3.14),
+			\elpana.kr(0),
+			\gaina.kr(0),
+			\planespherical.kr(1),
+			\rada.kr(2),
+			\speakerrad.ir(1.07))
+	};
+	~hoaSignal[1] = {
+		HOAEncoder.ar(~order,
+			In.ar(~signalBus),
+			\azpanb.kr(-3.14),
+			\elpanb.kr(0),
+			\gainb.kr(0),
+			\planespherical.kr(1),
+			\radb.kr(2),
+			\speakerrad.ir(1.07)) };
 	~hoaSignal.fadeTime = 0.1;
 
 	/* Create windows for panning */
 	~windows = Environment(know: true);
-
-	~windows.hoaI = ~makeWindow.value("HOAEncoder 1", pi, \azpana, \elpana, \rad);
-	~windows.hoaII = ~makeWindow.value("HOAEncoder 2", pi, \azpanb, \elpanb, \radb);
-
-	// Panning automation
-	// Create a new panner NodeProxy
-	~azimuthA = NodeProxy.control(s, 1);
-	~elevationA = NodeProxy.control(s, 1);
-	~radiusA = NodeProxy.control(s, 1);
 
 	// With phasor
 	// trig = Impulse.kr(0.001);
@@ -207,7 +225,8 @@
 		//////////////////
 		/* If decoded */
 		{
-			if(~order == 1, {	
+			if(~order == 1, {
+				"First order".postln;	
 				~decoder.source = {
 					var in; in = \in.ar(0!~hoaNumChannels);
 					in.add(-10);
@@ -222,8 +241,8 @@
 					KMHLSDome3h3pNormal6.ar(*in);
 				};
 			});
-
-			if(~order == 5, {	
+			if(~order == 5, {
+				"Fifth order".postln;
 				~decoder.source = {
 					var in; in = \in.ar(0!~hoaNumChannels);
 					in.add(-10);
@@ -262,78 +281,55 @@
 	)
       #+end_src
 
-      GUI for the panning control
-      #+name: gui_pan_test
-      #+begin_src sclang :results none
-	~makeWindow = { arg name = "Default", multi = pi, xParam = \azpana, yParam = \elpana;
-	var win, caption, xNum, yNum, xSlid, ySlid;
-		(
-			win = Window.new.front;
-			caption = StaticText(w, Rect(20, 20, 200, 20));
-			xNum = NumberBox(w, Rect(20, 50, 150, 20));
-			yNum = NumberBox(w, Rect(20, 70, 150, 20));
-			xSlid = Slider(w, Rect(40, 90, 150, 20));
-			ySlid = Slider(w, Rect(20, 90, 20, 150));
-
-			caption.string = name;
-			// Setting horizontal panning via interface:
-			xSlid.action_({
-				xNum.value_((xSlid.value * 2 * multi) - multi);
-				~hoaSignal.set(xParam, (xSlid.value * 2 * multi) - multi);
-			});
-
-			// Setting vertical panning via interface:
-			ySlid.action_({
-				yNum.value_((ySlid.value * multi) - (multi/2));
-				~hoaSignal.set(yParam, (ySlid.value * multi) - (multi/2));
-			});
-		)
-	};
-	/*
-		To create an instance of this:
-		n = ~make_window.value("HOAEncoder 1", 180, \alpanb, \elpanb);
-	,*/
+      Generic window to be filled with content
+      #+name: load_window
+      #+begin_src sclang :results none :noweb yes
+	<<gui_object>>
+	~guiWindow = Window.new.front;
       #+end_src
 
-      GUI 3D
-      #+name: gui_pan_3d
-      #+begin_src sclang :results none
-	~makeWindow = { arg name = "Default", multi = pi, xParam = \azpana, yParam = \elpana, zParam = \rad;
+      The gui object
+      #+name: gui_object
+      #+begin_src sclang :results none :noweb yes :tangle test.sc
+	~addGuiElements = { arg window, name = "default", offset = 0, multi = pi, xParam = \azpana, yParam = \elpana, zParam = \rada;
+		var text, dNum, eNum, fNum, aSlid, bSlid, cSlid, csX, csY, csZ;
 		(
-//		var name = "Default", multi = pi, xParam = \azpana, yParam = \elpana, zParam = \rad;
-			w = Window.new.front;
-			t = StaticText(w, Rect(20, 20, 200, 20));
-			d = NumberBox(w, Rect(20, 50, 50, 20));
-			e = NumberBox(w, Rect(80, 50, 50, 20));
-			f = NumberBox(w, Rect(140, 50, 50, 20));
-			a = Slider(w, Rect(40, 90, 150, 20));
-			b = Slider(w, Rect(20, 90, 20, 150));
-			c = Slider(w, Rect(40, 220, 150, 20));
-
-			t.string = name;
-			// Setting horizontal panning via interface:
-			a.action_({
-				d.value_((a.value * 2 * multi) - multi);
-				~hoaSignal.set(xParam, (a.value * 2 * multi) - multi);
-			});
-
-			// Setting vertical panning via interface:
-			b.action_({
-				e.value_((b.value * multi) - (multi/2));
-				~hoaSignal.set(yParam, (b.value * multi) - (multi/2));
+			text = StaticText(window, Rect(20+offset, 20, 200, 20));
+			dNum = NumberBox(window, Rect(20+offset, 50, 50, 20));
+			eNum = NumberBox(window, Rect(80+offset, 50, 50, 20));
+			fNum = NumberBox(window, Rect(140+offset, 50, 50, 20));
+			aSlid = Slider(window, Rect(40+offset, 90, 150, 20));
+			bSlid = Slider(window, Rect(20+offset, 90, 20, 150));
+			cSlid = Slider(window, Rect(40+offset, 220, 150, 20));
+			text.string = name;
+			csX = ControlSpec(-pi, pi, \linear, 0.001, 0);
+			csY = ControlSpec(-pi/2, pi/2, \linear, 0.001, 0);
+			csZ = ControlSpec(0.01, 20, \linear, 0.01, 1);
+			aSlid.action_({
+				dNum.value_(csX.map(aSlid.value));
+				~hoaSignal.set(xParam, (csX.map(aSlid.value)));
 			});
 			// Setting vertical panning via interface:
-			c.action_({
-				f.value_((c.value * 5) + 0.1);
-				~hoaSignal.set(zParam, ((c.value * 10) + 0.1));
+			bSlid.action_({
+				eNum.value_(csY.map(bSlid.value));
+				~hoaSignal.set(yParam, (csY.map(bSlid.value)));
+			});
+			// Setting vertical panning via interface:
+			cSlid.action_({
+				fNum.value_(csZ.map(cSlid.value));
+				~hoaSignal.set(zParam, (csZ.map(cSlid.value)));
 			});
 		)
 	};
       #+end_src
-
+      
+      Add window elements
+      #+name: sliders
       #+begin_src sclang :results none
-	n = ~makeWindow.value("HOAEncoder 1", pi, \alpanb, \elpanb, \rad);	
-      #+end_src
+	~windOne = ~addGuiElements.value(~guiWindow, "HOAEncoder 1", 0);
+	~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 200, pi, \azpanb, \elpanb, \radb);
+	#+end_src
+      
       Binaural rendering, see files here:
       [[file:~/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50][file:~/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50]]
       #+begin_src sclang :results none
@@ -362,9 +358,6 @@
       #+name: free_instances
       #+begin_src sclang :results none
 	~hoaSignal.clear;
-	~azimuthA.clear;
-	~elevationA.clear;
-	~radiusA.clear;
 	~decoder.clear;
       #+end_src
 
@@ -377,13 +370,6 @@ w = Window.new("GUI Introduction").layout_(
 ).front;
       #+end_src
 
-      #+begin_src sclang :results none
-~makeWindow = { var w;
-    w = Window.new("Evader",Rect(500.rand + 100, 500.rand + 100, 200,50)).front;
-    Button.new(w,Rect(10,10,180,30)).states_([["Evade"]]).action_(~makeWindow);
-};
-~makeWindow.value;
-      #+end_src
 *** efficient binaural example
     Settings
     #+begin_src sclang :results none
