@@ -1,0 +1,428 @@
+* Spatialisation in SC
+** VBAP
+   #+begin_src sclang :results none
+     // Server.default = s = Server.internal;
+     // 2D
+     a = VBAPSpeakerArray.new(2, [0, 45, 90, 135, 180, -135, -90, -45]); // 8 channel ring
+
+     a.speakers[1].dump;
+
+     b = a.loadToBuffer;
+
+   #+end_src
+
+   #+begin_src sclang :results none
+     (
+     x = { |azi = 0, ele = 0, spr = 0|
+     VBAP.ar(8, PinkNoise.ar(0.2), b.bufnum, azi, ele, spr);
+     }.scope;
+     )
+   #+end_src
+
+   #+begin_src sclang :results none
+
+   #+end_src
+** Ambisonics
+*** boot
+    #+name: boot_jack
+    #+begin_src sclang :results none
+      (
+      o = Server.local.options; // Get the local server's options
+      o.numOutputBusChannels = 64;
+      o.numWireBufs = 128;
+      o.memSize = 65536;
+      //     s.makeWindow;
+      s.makeGui(p);
+      s.boot;
+      )
+    #+end_src
+*** meter
+    #+name: sc_meter
+    #+begin_src sclang :results none
+      s.meter;
+    #+end_src
+   
+*** jconvolver
+    Remember to load the library ob-async prior to testing these:
+
+    M-x load-library ob-async
+    #+begin_src emacs-lisp :results silent
+      (load-library "ob-async")
+    #+end_src
+    
+    To start jconvolver:
+    #+name: jconvolver
+    #+begin_src shell :dir /home/henrikfr/Music/spatialization/klangkupolen/gerhard/convolution_config/kmh_lilla_salen_29 :async :results silent
+      echo "Starting up jconvolver"
+      jconvolver KMH_LILLA_SALEN.conf &
+    #+end_src
+
+    Connect to SC to Jack over Jconvolver
+    #+begin_src shell :results silent
+      jcon Collider:out 1 volver:in 1 29
+      jcon jconvolver 1 playback 1 2
+    #+end_src
+
+    Connect output to system
+    #+begin_src shell :results silent
+      jcon jconvolver 1 playback 1 2
+    #+end_src
+
+    Disconnect everything
+    #+begin_src shell :results silent
+      jdis -d Super 1 jconvolver 1 29
+    #+end_src
+
+    Disconnect supercollider from main out$
+    #+begin_src shell
+      for i in {1..4}; do
+	  jdis -d SuperCollider $i system playback_$i
+      done
+    #+end_src
+
+*** messaging
+    [[https://doc.sccode.org/Guides/Debugging-tips.html][See here for documentation.]]
+    
+    SendTrig is originally intended to send a trigger message back to the client, so the client can take further action on the server. However, it can be used to send any numeric value back to the client, which can then be printed out.
+
+    To print out the values, you need to create an OSCFunc as follows:
+    #+name: osc_print
+    #+begin_src sclang :results none
+      o = OSCFunc({ |msg| msg.postln }, '/msg', s.addr);
+    #+end_src
+
+    Then the message can be triggered as follows:
+    #+begin_src sclang :results none
+      SendTrig.kr(Impulse.kr(4), 0, freq);
+      #+end_src
+*** synth
+    Make a simple snare for testing
+    #+name: original_snare
+    #+begin_src sclang :results none
+      (
+      ~snareSimple = SynthDef(\snare, {
+	  var snd;
+	  var env = Env([0, 1, 0], [0.0001, \length.ir(0.5)]);
+	  var imp = Impulse.ar(\impf.ir(1), 0.0, 0.5, 0);
+	  var frq1=\freq.kr(300), frq2=frq1-100;
+	  snd = OGenericSnarefs.ar(imp, 0.00001, 0.001, \noiselvl.kr(0.1), \nrel.ir(0.1), frq1, frq2, \rel.ir(0.1), \trifrq.kr(111)) * EnvGen.kr(env, doneAction: Done.freeSelf);
+	  Out.ar(\out.ir(0), snd*\gain.ir(1));
+      }).add;
+      )
+    #+end_src
+
+    Play one hit on the snare above.
+      #+name: reg_snare_load
+      #+begin_src sclang :results none
+	~regSnare = Synth.new("snare", [\freq, 800, \out, 33, \gain, 1, \vol, 5] );
+      #+end_src
+
+      #+begin_src sclang :noweb yes
+	<<reg_snare_load>>
+      #+end_src      
+
+      Regular hits
+      #+name: play
+      #+begin_src sclang :results none :noweb yes
+	<<reg_snare_load>>
+	<<sc_meter>>
+	~simplePlayer = Pbind(*[
+		instrument: \snare,
+		freq: 800,
+		out: ~signalBus,
+		gain: 1,
+		vol: 1,
+		dur: 1
+	]);
+	~simplePlayer.play;
+      #+end_src
+
+      #+name: stop
+      #+begin_src sclang :results none
+	~simplePlayer.stop;
+      #+end_src
+
+      
+*** ambi with control
+    Working example with azimuth and elevation panning.
+    
+      Start server
+      #+call: boot_jack()
+      Load SynthDef
+      #+call: original_snare()
+      Start the player
+      #+call: play()
+      Start the encoder
+      #+call: scl_encode()
+      Load the panning GUIle
+      #+call: gui_pan()
+      Connect the encoder with the decoder
+      #+call: scl_connect()
+      Free stuff
+      #+call: free_instances()
+
+      Set the environment variables, then, create the encoder and the decoder.
+      #+name: scl_encode
+      #+begin_src sclang :results none :noweb yes
+	(
+	// Settings
+	var trig;
+	<<gui_pan>>
+
+	~signalBus = 33;
+	~order = 3;
+	~binaural = 1;
+	~hoaNumChannels = (~order+1).pow(2);
+	~decoderNumChannels = 29;
+	//s.scope(~hoaNumChannels);
+
+	// Create the input bus and the encoder
+	~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
+	//~hoaSignal.play;
+
+	// hoaSignal.source och hoaSignal.add verkar fungera lika bra.
+	~hoaSignal[0] = { HOAEncoder.ar(~order, In.ar(~signalBus), \azpana.kr(-3.14), \elpana.kr(0), \gaina.kr(0), \planespherical.kr(1), \rad.kr(2), \speakerrad.ir(1.07)) };
+	~hoaSignal.fadeTime = 0.1;
+
+	/* Create windows for panning */
+	~windows = Environment(know: true);
+
+	~windows.hoaI = ~makeWindow.value("HOAEncoder 1", pi, \azpana, \elpana, \rad);
+	~windows.hoaII = ~makeWindow.value("HOAEncoder 2", pi, \azpanb, \elpanb, \radb);
+
+	// Panning automation
+	// Create a new panner NodeProxy
+	~azimuthA = NodeProxy.control(s, 1);
+	~elevationA = NodeProxy.control(s, 1);
+	~radiusA = NodeProxy.control(s, 1);
+
+	// With phasor
+	// trig = Impulse.kr(0.001);
+	//~azimuthA.source = { LinLin.kr(Phasor.kr(Impulse.kr(0.5), 0.5/ControlRate.ir), 0, 1, 0, 360); };
+
+	// Load the decoder:
+	~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
+	~decoder.fadeTime = 1;
+	if(~binaural == 0,
+		//////////////////
+		/* If decoded */
+		{
+			if(~order == 1, {	
+				~decoder.source = {
+					var in; in = \in.ar(0!~hoaNumChannels);
+					in.add(-10);
+					KMHLSDome1h1pNormal6.ar(*in);
+				};
+			});
+			if(~order == 3, {
+				"Third order".postln;
+				~decoder.source = {
+					var in; in = \in.ar(0!~hoaNumChannels);
+					in.add(-10);
+					KMHLSDome3h3pNormal6.ar(*in);
+				};
+			});
+
+			if(~order == 5, {	
+				~decoder.source = {
+					var in; in = \in.ar(0!~hoaNumChannels);
+					in.add(-10);
+					KMHLSDome5h5pNormal6.ar(*in);
+				};
+			});
+			//////////////////
+			/* If binaural */
+		}, {
+			"Binaural version".postln;
+			HOADecLebedev26.loadHrirFilters (
+				s,
+				"/home/henrikfr/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50"
+			);
+			if(~order == 1, {
+				~decoder.source = {
+					var in; in = \in.ar(0!~hoaNumChannels);
+					HOADecLebedev06.ar(~order.asInteger, in, hrir_Filters:1)
+				};
+			});
+			/* 3 and 5 are actually the same */
+			if(~order == 3, {
+				~decoder.source = {
+					var in; in = \in.ar(0!~hoaNumChannels);
+					HOADecLebedev26.ar(~order.asInteger, in, hrir_Filters:1)
+				};
+			});
+			/* 3 and 5 are actually the same */
+			if(~order == 5, {
+				~decoder.source = {
+					var in; in = in.ar(0!~hoaNumChannels);
+					HOADecLebedev26.ar(~order.asInteger, in, hrir_Filters:1)
+				};
+			});
+		});
+	)
+      #+end_src
+
+      GUI for the panning control
+      #+name: gui_pan_test
+      #+begin_src sclang :results none
+	~makeWindow = { arg name = "Default", multi = pi, xParam = \azpana, yParam = \elpana;
+	var win, caption, xNum, yNum, xSlid, ySlid;
+		(
+			win = Window.new.front;
+			caption = StaticText(w, Rect(20, 20, 200, 20));
+			xNum = NumberBox(w, Rect(20, 50, 150, 20));
+			yNum = NumberBox(w, Rect(20, 70, 150, 20));
+			xSlid = Slider(w, Rect(40, 90, 150, 20));
+			ySlid = Slider(w, Rect(20, 90, 20, 150));
+
+			caption.string = name;
+			// Setting horizontal panning via interface:
+			xSlid.action_({
+				xNum.value_((xSlid.value * 2 * multi) - multi);
+				~hoaSignal.set(xParam, (xSlid.value * 2 * multi) - multi);
+			});
+
+			// Setting vertical panning via interface:
+			ySlid.action_({
+				yNum.value_((ySlid.value * multi) - (multi/2));
+				~hoaSignal.set(yParam, (ySlid.value * multi) - (multi/2));
+			});
+		)
+	};
+	/*
+		To create an instance of this:
+		n = ~make_window.value("HOAEncoder 1", 180, \alpanb, \elpanb);
+	,*/
+      #+end_src
+
+      GUI 3D
+      #+name: gui_pan_3d
+      #+begin_src sclang :results none
+	~makeWindow = { arg name = "Default", multi = pi, xParam = \azpana, yParam = \elpana, zParam = \rad;
+		(
+//		var name = "Default", multi = pi, xParam = \azpana, yParam = \elpana, zParam = \rad;
+			w = Window.new.front;
+			t = StaticText(w, Rect(20, 20, 200, 20));
+			d = NumberBox(w, Rect(20, 50, 50, 20));
+			e = NumberBox(w, Rect(80, 50, 50, 20));
+			f = NumberBox(w, Rect(140, 50, 50, 20));
+			a = Slider(w, Rect(40, 90, 150, 20));
+			b = Slider(w, Rect(20, 90, 20, 150));
+			c = Slider(w, Rect(40, 220, 150, 20));
+
+			t.string = name;
+			// Setting horizontal panning via interface:
+			a.action_({
+				d.value_((a.value * 2 * multi) - multi);
+				~hoaSignal.set(xParam, (a.value * 2 * multi) - multi);
+			});
+
+			// Setting vertical panning via interface:
+			b.action_({
+				e.value_((b.value * multi) - (multi/2));
+				~hoaSignal.set(yParam, (b.value * multi) - (multi/2));
+			});
+			// Setting vertical panning via interface:
+			c.action_({
+				f.value_((c.value * 5) + 0.1);
+				~hoaSignal.set(zParam, ((c.value * 10) + 0.1));
+			});
+		)
+	};
+      #+end_src
+
+      #+begin_src sclang :results none
+	n = ~makeWindow.value("HOAEncoder 1", pi, \alpanb, \elpanb, \rad);	
+      #+end_src
+      Binaural rendering, see files here:
+      [[file:~/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50][file:~/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50]]
+      #+begin_src sclang :results none
+	(
+	// s.scope(~hoaNumChannels); 
+
+	HOADecLebedev26.loadHrirFilters(
+	    s,
+		"/home/henrikfr/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50"
+	);
+
+	~decoderSynth = {
+	    Out.ar(0, HOADecLebedev26.ar(~order.asInteger, In.ar(30, ~hoaNumChannels.asInteger), hrir_Filters:1))
+	}.play;
+	)
+     #+end_src
+      
+      Signal, encoded and decoded, but not mapped. Use this.
+      #+name: scl_connect
+      #+begin_src sclang :results none
+	~decoder.play(0, ~decoderNumChannels, vol: 1.0);
+	~hoaSignal <>> ~decoder;
+      #+end_src
+      
+      Clear the instances
+      #+name: free_instances
+      #+begin_src sclang :results none
+	~hoaSignal.clear;
+	~azimuthA.clear;
+	~elevationA.clear;
+	~radiusA.clear;
+	~decoder.clear;
+      #+end_src
+
+      #+begin_src sclang :results none
+w = Window.new("GUI Introduction").layout_(
+    VLayout(
+        HLayout( Button(), TextField(), Button() ),
+        TextView()
+    )
+).front;
+      #+end_src
+
+      #+begin_src sclang :results none
+~makeWindow = { var w;
+    w = Window.new("Evader",Rect(500.rand + 100, 500.rand + 100, 200,50)).front;
+    Button.new(w,Rect(10,10,180,30)).states_([["Evade"]]).action_(~makeWindow);
+};
+~makeWindow.value;
+      #+end_src
+*** efficient binaural example
+    Settings
+    #+begin_src sclang :results none
+      (
+      s.scope(40);
+      Buffer.freeAll;
+      HOABinaural.loadbinauralIRs(s);
+      HOABinaural.loadHeadphoneCorrections(s);
+      HOABinaural.binauralIRs;
+      HOABinaural.headPhoneIRs;
+
+      HOABinaural.listHeadphones;
+
+      ~headphoneModel = nil;
+
+      // set to nil if you want no correction
+      //~headphoneModel = nil;
+      )
+    #+end_src
+
+      Initilaize the binaural decoder and feed it with 3 noise sources
+      #+begin_src sclang :results none
+	(
+	{OffsetOut.ar(0, HOABinaural.ar(5, In.ar(2, 36), headphoneCorrection:~headphoneModel) * 1 )}.play;
+
+	{ Out.ar(2, HOAEncoder.ar(5, PinkNoise.ar(0.1),
+		SinOsc.ar(0.1, 0, pi * 0.999 ),
+		SinOsc.ar(0.2, 0, pi * 0.999 * 0.4 )
+	) -
+		HOAEncoder.ar(5, WhiteNoise.ar(0.05),
+			SinOsc.ar(0.11, 0, pi * 0.999 ),
+			SinOsc.ar(0.22, 0, pi * 0.999 * 0.4 )
+		) -
+		HOAEncoder.ar(5, BrownNoise.ar(0.2),
+			SinOsc.ar(0.12, 0, pi * 0.999 ),
+			SinOsc.ar(0.23, 0, pi * 0.999 * 0.4 )
+		)
+	) }.play;
+	s.meter;
+	)
+
+	#+end_src

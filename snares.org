@@ -107,18 +107,19 @@
 *** jconvolver
     Remember to load the library ob-async prior to testing these:
 
-    load-library ob-async
+    M-x load-library ob-async
 
     On osx the directory should be: "~/Library/mcfx/convolver_presets/kmh_lilla_salen_29/"
-    start jconvolver 
+
+    To start jconvolver:
+    #+name: jconvolver
     #+begin_src shell :dir /home/henrikfr/Music/spatialization/klangkupolen/gerhard/convolution_config/kmh_lilla_salen_29 :async
       echo "Starting up jconvolver"
       jconvolver KMH_LILLA_SALEN.conf &
     #+end_src
 
     #+RESULTS:
-    | Starting up jconvolver |          |
-    | Zombified by Jack      | exiting. |
+    : c3894ff23bc243720f7120a771d3542d
 
     disconnect supercollider from main out$
     #+begin_src shell
@@ -132,6 +133,8 @@
       jcon scsyn out jcon in 16
       jcon jcon out system play 2
     #+end_src
+
+    #+RESULTS:
 
     connect only jconvolver to jack
     #+begin_src shell 
@@ -378,7 +381,7 @@
 
      #+name: generic_snare
      #+begin_src sclang :results none
-       ~snare_simple = Synth.new("snare", [\impf, 100, \freq, 300, \nrel, 0.05, \length, 10, \out, 0] );
+       ~snare_simple = Synth.new("snare", [\impf, 20, \freq, 300, \nrel, 0.05, \length, 10, \out, 0] );
        s.meter;
      #+end_src
 
@@ -401,7 +404,7 @@
      #+begin_src sclang :results none
        ~disp_snare1 = Synth.new("snaredisp", [\out, 1, \impf, 3000, \pos, 0, \disp, 0, \noiserel, 0, \noiselvl, 0.0001, \length, 20] );
        ~disp_snare1 = Synth.new("snaredisp", [\out, 0, \impf, 2000, \pos, 0, \disp, 0, \noiserel, 0, \noiselvl, 0.0001, \length, 25] );
-//       s.meter;
+       s.meter;
      #+end_src
 
      #+begin_src sclang :results none
@@ -439,7 +442,7 @@ b = Array.fill(32, { arg i; i / 32 + 0.05 }).reverse;
        Pbind(\instrument, \snaredisp,
 	   \out, 0,
 	   \noiserel, Pseq(a, 32),
-	   \nopiselvl, 0.0,
+	   \ nopiselvl, 0.0,
 	   \osc1f, Pseq((150..2000), 32),
 	   \osc2f, Pseq((400..170), 32),
 	   \mainlvl, 0.5,
@@ -1494,22 +1497,27 @@ s.meter;
      Double player
      #+name: play
      #+begin_src sclang :results none
-       a = Pbind(\instrument, \snare,
-	   \freq, 60,
-	   \out, 0,
-	   \dur, 1,
+       ~a_player = Pbind(\instrument, \snare,
+	   \freq, 3000,
+	   \out, 31,
+	   \dur, 0.1,
 	   \freq, 300
        ); 
-       b = Pbind(\instrument, \snare,
-	   \freq, 100,
-	   \out, 1,
-	   \dur, 1
+       ~b_player = Pbind(\instrument, \snare,
+	   \freq, 1000,
+	   \out, 33,
+	   \dur, 0.2k1
        );
-       a.play;
-       b.play;
-      s.meter;
+       ~a_player.play;
+       ~b_player.play;
+//      s.meter;
      #+end_src
 
+     #+begin_src sclang :results none
+       ~a_player.stop;
+       ~b_player.stop;
+     #+end_src
+     
      #+call: connect()
 
 **** ambisonics
@@ -1722,7 +1730,7 @@ s.meter;
 	~decoder.source = {
 	    var in; in = \in.ar(0!~hoaNumChannels);
 	    in.add(-10);
-	    KMHLSDome3h3pNormal6.ar(*in, gain: -20);
+	    KMHLSDome3h3pNormal6.ar(*in);
 	};
 	~decoder.fadeTime = 1;
 	)
@@ -2289,5 +2297,8 @@ s.meter;
     #+begin_src sclang :results none
       r.stop;
     #+end_src
+
+    
+
 
     
