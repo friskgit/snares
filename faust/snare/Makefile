@@ -17,7 +17,7 @@
 #
 # * jack
 # * app
-# * runapp (will run the application)
+# * runjack (will run the application)
 # * max  (made a test with faust2msp for max 8 compatibility 30/10 2019)
 # * sc (supercollider)
 # * pd
@@ -230,6 +230,9 @@ endif
 	@mv $(basename $<)_supernova.$(SUPERNOVA_EXT) $(scdir)
 	@mv $(basename $<).cpp $(cppdir)
 
+runjack : 
+	./bin/$(basename $(src))
+
 .PHONY : maxpackage maxdirs tester maxbin maxjsui maxreadme maxhelp maxzip
 
 maxzip : 
@@ -320,6 +323,6 @@ clean_all :
 clean :
 	@rm -rf $(bindir)/*
 
-.PHONY: all test clean doc runapp viewsvg oct octview sc max binclean mdoc scinstall pdinstall vstinstall install ambixinstall
+.PHONY: all test clean doc runjack viewsvg oct octview sc max binclean mdoc scinstall pdinstall vstinstall install ambixinstall
 
 .SUFFIXES: .app .dsp .html .md

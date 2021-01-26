@@ -24,59 +24,8 @@
    #+begin_src sclang :results none
      // in post window
      s.queryAllNodes(queryControls: false)
-
      // in a gui window
-     s.plotTree(interval: 0.5);
-   #+end_src
-
-   Set Edirol to be the soundcard
-   #+begin_src sclang :results none
-     (
-     ServerOptions.devices;
-     s = Server.local;
-     Server.local = Server.default;
-     o = Server.local.options; // Get the local server's options
-     o.device = "UA-25EX 48kHz";
-     o.numOutputBusChannels = 64;
-     o.numWireBufs = 128;
-     o.memSize = 65536;
-     s.makeWindow;
-     s.boot;
-     )
-   #+end_src
-
-   Set MadiFace
-   #+begin_src sclang :results none
-     (
-     ServerOptions.devices;
-     s = Server.local;
-     Server.local = Server.default;
-     o = Server.local.options; // Get the local server's options
-     o.sampleRate = 48000;
-     o.device = "MADIface XT (23757085)";
-     o.numOutputBusChannels = 64;
-     o.numWireBufs = 128;
-     o.memSize = 65536;
-     s.makeWindow;
-     s.boot;
-     )
-   #+end_src
-
-   Set UA-25EX
-   #+begin_src sclang :results none
-     (
-     ServerOptions.devices;
-     s = Server.local;
-     Server.local = Server.default;
-     o = Server.local.options; // Get the local server's options
-     o.sampleRate = 48000;
-     o.device = "Built-in";
-     o.numOutputBusChannels = 64;
-     o.numWireBufs = 128;
-     o.memSize = 65536;
-     s.makeWindow;
-     s.boot;
-     )
+//     s.plotTree(interval: 0.5);
    #+end_src
 
    #+begin_src sclang :results none
@@ -243,7 +192,7 @@
 	  jcon scsynth out$i sys playback_$i
       done
     #+end_src
-
+    
 ** recorder
    #+property: header-args:shell :var dir="/Users/henrik_frisk/Music/pieces/snares/audio/"
 
@@ -262,6 +211,7 @@
    #+begin_src sclang :results none
      s.pauseRecording;
    #+end_src
+   
    #+name: stop_record
    #+begin_src sclang :results none
      s.stopRecording;
