@@ -34,6 +34,13 @@
       jconvolver KMH_LILLA_SALEN.conf &
     #+end_src
 
+    #+begin_src shell
+      echo "Hej"
+    #+end_src
+
+    #+RESULTS:
+    : Hej
+
     Connect to SC to Jack over Jconvolver
     #+begin_src shell :results silent
       jcon Collider:out 1 volver:in 1 29

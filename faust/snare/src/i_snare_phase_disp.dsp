@@ -21,7 +21,7 @@ import("music.lib") ; // for osci definition
 // 18 Juli 2019	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------
 
-p = hslider("pulse", 1, 1, 20000, 0.1);
+p = hslider("pulse[scale:exp]", 1, 1, 20000, 0.1);
 //per = hslider("pulse", 192000, 10, 192000, 1) : *(4);
 per = ma.SR / p : int : *(4);
 //p = hslider("pulse", 1, 1, 1000, 0.01);
@@ -39,7 +39,7 @@ imp_delC = imp : de.sdelay(192000, 64, delC);
 // snares(d) = imp : de.sdelay(192000, 64, (per : *(divisor * d))) : component("generic_snarefs.dsp");
 // process = par(i, 4, snares(i+1));
 
-process = impsp, ((imp : component("generic_snarefs.dsp")[accent = 2;]),
+process = impsp, ((imp : component("generic_snarefs.dsp")),
 	   (imp_delA : component("generic_snarefs.dsp")),
 	   (imp_delB : component("generic_snarefs.dsp")),
 	   (imp_delC : component("generic_snarefs.dsp")) :> _ ) : component("disperse.dsp")[channels = 29;];

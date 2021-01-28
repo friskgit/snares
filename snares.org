@@ -62,10 +62,13 @@
 
     To start jconvolver:
     #+name: jconvolver
-    #+begin_src shell :dir /home/henrikfr/Music/spatialization/klangkupolen/gerhard/convolution_config/kmh_lilla_salen_29 :async
+    #+begin_src shell :dir /home/henrikfr/Music/spatialization/klangkupolen/gerhard/convolution_config/kmh_lilla_salen_29
       echo "Starting up jconvolver"
       jconvolver KMH_LILLA_SALEN.conf &
     #+end_src
+
+    #+RESULTS: jconvolver
+    : Starting up jconvolver
 
     #+RESULTS:
     : c3894ff23bc243720f7120a771d3542d
@@ -1743,7 +1746,7 @@ s.meter;
 	      }).add;
 	      )
      #+end_src
-
+     
 **** player
      #+begin_src sclang :results none
        (
@@ -1861,6 +1864,51 @@ s.meter;
 
      #+end_src
      
+*** snare 8: polyrhythmic
+**** synthdef
+     #+begin_src sclang :results none
+       (
+       SynthDef(\isnarePoly, {
+	       var snd;
+	       snd = ISnarePhaseDisp.ar(0.0, 0.0, \pulse.kr(5),
+		       \amp.kr(0.2),
+		       \attack.kr(0.0001),
+		       \fsweep.kr(0),
+		       \nattack.kr(0.0001),
+		       \nlevel.kr(0.0),
+		       \nrel.kr(0.01),
+		       \osc1.kr(300),
+		       \osc2.kr(140),
+		       \rel.kr(0.01),
+		       \tri.kr(130));
+	       Out.ar(\outBus.ir, snd);
+       }).add;
+       )
+     #+end_src
+**** player
+     #+begin_src sclang :results none
+       (
+       a = Synth.new(\isnarePoly, [\pulse, 1]);
+       //a.set(\pulse, 10);
+       )
+     #+end_src
+     #+begin_src sclang :results none
+       (
+       f = {
+	       Task ({
+		       loop {
+			       100.do({ |val|
+				       a.set(\pulse, 5 * val);
+				       val.postln;
+				       0.1.wait;
+			       });
+		       }
+	       });
+       };
+       u = f.value.play;
+       )
+
+     #+end_src
 ** pbind for accelerando
    This is the pbind for the acc defined here: [[*accelerando, fixed tempo][accelerando, fixed tempo]]
    The Synthdef is here: [[*synthdef][snare]]
