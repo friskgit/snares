@@ -1,3 +1,8 @@
+#+OPTION: toc:nil
+#+SELECT_TAGS: export
+#+EXCLUDE_TAGS: noexport
+#+TAGS: export(e) noexport(n)
+
 * Spatialisation in SC
 ** Setup
 *** boot
@@ -225,51 +230,80 @@
      s.prepareForRecord("~/Music/single2.wav", numChannels: 29);
      s.record;
    #+end_src
-** VBAP
-*** Simple example
-    #+begin_src sclang :results none
-      Server.default = s = Server.internal;
-      // 2D
-      // 8 channel ring
-      z = VBAPSpeakerArray.new(2, [0, 45, 90, 135, 180, -135, -90, -45]); 
-      a.speakers[1].dump;
-      b = a.loadToBuffer;
-    #+end_src
-
-*** Lilla salen
+** VBAP                                                              :export:
+*** Lilla salen                                                      :export:
     The angles for lilla salen:
-
+    #+tblname: angles_ls
+    | ndx |    azimuth |     angle | distance |    radius |
+    |-----+------------+-----------+----------+----------- |
+    |   1 | -34.689614 | 12.910417 |     4.61 | 4.5789148 |
+    |   2 | -13.383763 | 12.910417 |     4.61 | 4.5577825 |
+    |   3 |  10.440725 | 12.910417 |     4.61 | 4.5635592 |
+    |   4 |  32.117788 | 12.910417 |     4.61 | 4.5386017 |
+    |   5 |  55.741675 | 12.910417 |     4.61 | 4.4464181 |
+    |   6 |  78.207673 | 12.910417 |     4.61 | 4.4723909 |
+    |   7 |  101.49442 | 12.910417 |     4.61 | 4.4461719 |
+    |   8 |  124.85167 | 12.910417 |     4.61 | 4.5148007 |
+    |   9 |  147.91193 | 12.910417 |     4.61 | 4.5536496 |
+    |  10 |  169.17789 | 12.910417 |     4.61 |  4.606935 |
+    |  11 | -167.82013 | 12.910417 |     4.61 | 4.7018379 |
+    |  12 | -145.63454 | 12.910417 |     4.61 | 4.6822723 |
+    |  13 |   -123.784 | 12.910417 |     4.61 | 4.7368687 |
+    |  14 | -102.64182 | 12.910417 |     4.61 | 4.6743181 |
+    |  15 | -79.887731 | 12.910417 |     4.61 | 4.7101696 |
+    |  16 | -57.926139 | 12.910417 |     4.61 | 4.6119481 |
+    |  17 | -22.349553 | 34.696822 |    4.882 | 4.0761992 |
+    |  18 |  22.843958 | 34.696822 |    4.882 | 3.7761827 |
+    |  19 |  69.013292 | 34.696822 |    4.882 | 4.0485676 |
+    |  20 |  115.56544 | 34.696822 |    4.882 | 4.1015729 |
+    |  21 |  158.89992 | 34.696822 |    4.882 | 3.9444645 |
+    |  22 | -158.89763 | 34.696822 |    4.882 | 3.8051807 |
+    |  23 | -114.65354 | 34.696822 |    4.882 | 3.6199724 |
+    |  24 | -68.170128 | 34.696822 |    4.882 | 3.7380476 |
+    |  25 |        -45 | 69.185799 |    5.317 | 1.7225121 |
+    |  26 |         45 | 69.185799 |    5.317 | 1.7225121 |
+    |  27 |        135 | 69.185799 |    5.317 | 1.7225121 |
+    |  28 |       -135 | 69.185799 |    5.317 | 1.7225121 |
+    |  29 |          0 |        90 |    5.576 |         0 |
     First ring:
-    -29.527912, -7.3468173, 13.114117, 37.61095, 57.425943, 77.592581, 101.33475, 122.88658, 150.42812, 171.99527, -166.29899, -146.27587, -121.54205, -100.49606, -77.634157, -52.538058,
+    #+tblname: lower_ring
+    | -34.689614 | -13.383763 | 10.440725 | 32.117788 | 55.741675 | 78.207673 | 101.49442 | 124.85167 | 147.91193 | 169.17789 | -167.82013 | -145.63454 | -123.784 | -102.64182 | -79.887731 | -57.926139 | 
 
     Second ring:
-    -22.349553, 30.735488, 69.013292, 115.56544, 158.89992, -154.80665, -121.42252, -65.382121,
+    #+tblname: middle_ring
+    | -22.349553 | 22.843958 | 69.013292 | 115.56544 | 158.89992 | -158.89763 | -114.65354 | -68.170128 |
 
-    Third ring:
-    -45, 45, 135, -135, 0
+     Third ring (and top speaker):
+    #+tblename: top_ring
+    | -45 | 45 | 135 | -135 | 0 |
 
-**** 2D example
-     2D example for lilla salen
+**** 2D example                                                      :export:
+     2D example för lilla salen, endast nedre ringen, 16 högtalare.
+
+     The argument to ~VBAPSpeakerarray~ in this case is ~2~ for 2D and an array of angles.
      #+begin_src sclang :results none
-       a = VBAPSpeakerArray.new(2, [-29.527912, -7.3468173, 13.114117, 37.61095, 57.425943, 77.592581, 101.33475, 122.88658, 150.42812, 171.99527, -166.29899, -146.27587, -121.54205, -100.49606, -77.634157, -52.538058]);
-
-       a.speakers[1].dump;
-       b = a.loadToBuffer;
+       // Creata a 2D speaker array with 16 channels (lower ring in lilla salen)
+       ~spkrArray = VBAPSpeakerArray.new(2, [-34.689614, -13.383763,  10.440725,  32.117788,  55.741675,  78.207673,  101.49442,  124.85167,  147.91193,  169.17789, -167.82013, -145.63454, -123.784, -102.64182, -79.887731, -57.926139]);
+       // Dump the speaker array to stdout
+       ~spkrArray.speakers[1].dump;
+       // Load a new buffer with the spear array
+       ~spkrBuffer = spkrArray.loadToBuffer;
      #+end_src
 
-     Pan a signal
+     Pan a signal with the 2D array and scope it:
      #+begin_src sclang :results none
        (
        ~panVBAP = { |azi = 0, ele = 0, spr = 0|
-	       VBAP.ar(16, In.ar(33,1), b.bufnum, azi, ele, spr);
+	       VBAP.ar(16, In.ar(33,1), ~spkrBuffer.bufnum, azi, ele, spr);
        }.scope;
        )
      #+end_src
 
+     Change the panning angle:
      #+begin_src sclang :results none
        ~panVBAP.set(\azi, 90);
      #+end_src     
-**** 2D GUI
+**** 2D GUI                                                        :noexport:
      #+begin_src sclang :results none
        (
        var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid;
@@ -297,58 +331,62 @@
        sSlid.action.value;
        )
      #+end_src
-**** 3D example
+**** 3D example                                                      :export:
+     The argument to ~VBAPSpeakerarray~ in this case is ~3~ for 3D and an array of arrays of angle/elevation pairs:.
      #+begin_src sclang :results none
-       a = VBAPSpeakerArray.new(3, [[ -34.689614 , 12.910417 ], [ -13.383763 , 12.910417 ], [ 10.440725 , 12.910417 ], [ 32.117788 , 12.910417 ], [ 55.741675 , 12.910417 ], [ 78.207673 , 12.910417 ], [ 101.49442 , 12.910417 ], [ 124.85167 , 12.910417 ], [ 147.91193 , 12.910417 ], [ 169.17789 , 12.910417 ], [ -167.82013 , 12.910417 ],
-	       [ -145.63454 , 12.910417 ], [ -123.784 , 12.910417 ], [ -102.64182 , 12.910417 ], [ -79.887731 , 12.910417 ], [ -57.926139 , 12.910417 ],
-	       [ -22.349553 , 34.696822 ], [ 22.843958 , 34.696822 ], [ 69.013292 , 34.696822 ], [ 115.56544 , 34.696822 ], [ 158.89992 , 34.696822 ], [ -158.89763 , 34.696822 ], [ -114.65354 , 34.696822 ], [ -68.170128 , 34.696822 ],
+       ~spkrArray = VBAPSpeakerArray.new(3, [[ -34.689614 , 12.910417 ], [ -13.383763 , 12.910417 ], [ 10.440725 , 12.910417 ], [ 32.117788 , 12.910417 ],
+	       [ 55.741675 , 12.910417 ], [ 78.207673 , 12.910417 ], [ 101.49442 , 12.910417 ], [ 124.85167 , 12.910417 ],
+	       [ 147.91193 , 12.910417 ], [ 169.17789 , 12.910417 ], [ -167.82013 , 12.910417 ], [ -145.63454 , 12.910417 ],
+	       [ -123.784 , 12.910417 ], [ -102.64182 , 12.910417 ], [ -79.887731 , 12.910417 ], [ -57.926139 , 12.910417 ],
+	       [ -22.349553 , 34.696822 ], [ 22.843958 , 34.696822 ], [ 69.013292 , 34.696822 ], [ 115.56544 , 34.696822 ],
+	       [ 158.89992 , 34.696822 ], [ -158.89763 , 34.696822 ], [ -114.65354 , 34.696822 ], [ -68.170128 , 34.696822 ],
 	       [ -45 , 69.185799 ], [ 45 , 69.185799 ], [ 135 , 69.185799 ], [ -135 , 69.185799 ], [ 0 , 90 ]]);
-       a.speakers[1].dump;
-       b = Buffer.loadCollection(s, a.getSetsAndMatrices);
+       ~spkrArray.speakers[1].dump;
+       ~spkrBuffer = Buffer.loadCollection(s, ~spkrArray.getSetsAndMatrices);
      #+end_src
 
-     Circle panning up and down
+     Circle panning up and down in an unusable pattern. The spread argument is for dispersing the signal. 0 spread is maximum focus.:
      #+begin_src sclang :results none
        (
        x = { |azi = 0, ele = 0, spr = 0|
 	       var source;
 	       source = In.ar(33);
-	       if(114){	       VBAP.ar(16, source, c.bufnum, LFSaw.kr(0.5, 0).range(-180, 180) * -1, SinOsc.kr(3, 0).range(0, 14.97), spr);},
+	       if(114){VBAP.ar(16, source, c.bufnum, LFSaw.kr(0.5, 0).range(-180, 180) * -1, SinOsc.kr(3, 0).range(0, 14.97), spr);},
 	{
 	       VBAP.ar(29, source, b.bufnum, LFSaw.kr(0.5, 0).range(-180, 180) * -1, SinOsc.kr(3, 0).range(0, 14.97), spr);};
 
        }.play;
        )
      #+end_src
+***** Panning examples                                             :noexport:
+      Multi panning
+      #+begin_src sclang :results none
+	(
+	~panVBAP3Dspread1 = { arg s1 = 0, f1 = 2;
+		VBAP.ar(29, In.ar(33), b.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
+	}.play;
 
-     Multi panning
-     #+begin_src sclang :results none
-       (
-       ~panVBAP3Dspread1 = { arg s1 = 0, f1 = 2;
-	       VBAP.ar(29, In.ar(33), b.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
-       }.play;
+	~panVBAP3Dspread2 = {  arg s1 = 0, f1 = 5;
+		VBAP.ar(29, In.ar(34), b.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
+	}.play;
 
-       ~panVBAP3Dspread2 = {  arg s1 = 0, f1 = 5;
-	       VBAP.ar(29, In.ar(34), b.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
-       }.play;
-
-       ~panVBAP3Dspread3 = {  arg s1 = 0, f1 = 10;
-	       VBAP.ar(29, In.ar(35), b.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
-       }.play;
-       )
-     #+end_src
+	~panVBAP3Dspread3 = {  arg s1 = 0, f1 = 10;
+		VBAP.ar(29, In.ar(35), b.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
+	}.play;
+	)
+      #+end_src
      
-     General, manual panning object
-     #+begin_src sclang :results none
-       ~panVBAP3D = { arg azi=0, ele=0, spr=0, in=33;
-	       VBAP.ar(29, In.ar(in), b.bufnum, azi, ele, spr);
-       }.play;
-     #+end_src
+      General, manual panning object
+      #+begin_src sclang :results none
+	~panVBAP3D = { arg azi=0, ele=0, spr=0, in=33;
+		VBAP.ar(29, In.ar(in), b.bufnum, azi, ele, spr);
+	}.play;
+      #+end_src
 
-     #+begin_src sclang :noweb yes
-	<<play>>
-     #+end_src      
-**** 3D GUI aes 
+      #+begin_src sclang :noweb yes
+	 <<play>>
+      #+end_src      
+**** 3D GUI aes                                                    :noexport:
      #+begin_src sclang :results none
        (
        var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid;
@@ -376,7 +414,7 @@
        sSlid.action.value;
        )
      #+end_src
-**** 3D GUI 3 x spread 
+**** 3D GUI 3 x spread                                             :noexport:
      #+begin_src sclang :results none
        (
        var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid, aaNumb, eeNumb, ssNumb, aaSlid, eeSlid, ssSlid;

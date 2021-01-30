@@ -38,6 +38,7 @@ imp_delC = imp : de.sdelay(192000, 64, delC);
 // divisor = 0.25;
 // snares(d) = imp : de.sdelay(192000, 64, (per : *(divisor * d))) : component("generic_snarefs.dsp");
 // process = par(i, 4, snares(i+1));
+// n = (p / 20000) - 1 : ma.fabs : ma.log1p;
 
 process = impsp, ((imp : component("generic_snarefs.dsp")),
 	   (imp_delA : component("generic_snarefs.dsp")),
