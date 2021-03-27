@@ -2,6 +2,7 @@
 #+SELECT_TAGS: export
 #+EXCLUDE_TAGS: noexport
 #+TAGS: export(e) noexport(n)
+#+STARTUP: overview
 
 * Spatialisation in SC
 ** Setup
@@ -232,6 +233,7 @@
    #+end_src
 ** VBAP                                                              :export:
 *** Lilla salen                                                      :export:
+**** data
     The angles for lilla salen:
     #+tblname: angles_ls
     | ndx |    azimuth |     angle | distance |    radius |
@@ -281,30 +283,33 @@
      2D example för lilla salen, endast nedre ringen, 16 högtalare.
 
      The argument to ~VBAPSpeakerarray~ in this case is ~2~ for 2D and an array of angles.
-     #+begin_src sclang :results none
+     #+begin_src sclang :results none :tangle vbap_example.sc
+       (
        // Creata a 2D speaker array with 16 channels (lower ring in lilla salen)
        ~spkrArray = VBAPSpeakerArray.new(2, [-34.689614, -13.383763,  10.440725,  32.117788,  55.741675,  78.207673,  101.49442,  124.85167,  147.91193,  169.17789, -167.82013, -145.63454, -123.784, -102.64182, -79.887731, -57.926139]);
        // Dump the speaker array to stdout
        ~spkrArray.speakers[1].dump;
        // Load a new buffer with the spear array
-       ~spkrBuffer = spkrArray.loadToBuffer;
+       ~spkrBuffer = ~spkrArray.loadToBuffer;
+       )
      #+end_src
 
      Pan a signal with the 2D array and scope it:
-     #+begin_src sclang :results none
+     #+begin_src sclang :results none :tangle vbap_example.sc
        (
        ~panVBAP = { |azi = 0, ele = 0, spr = 0|
 	       VBAP.ar(16, In.ar(33,1), ~spkrBuffer.bufnum, azi, ele, spr);
        }.scope;
-       )
+       ~panVBAP.set(\azi, 90);
+       )       
      #+end_src
 
      Change the panning angle:
      #+begin_src sclang :results none
-       ~panVBAP.set(\azi, 90);
+       ~panVBAP.set(\azi, 2400);
      #+end_src     
 **** 2D GUI                                                        :noexport:
-     #+begin_src sclang :results none
+     #+begin_src sclang :results none :tangle vbap_example.sc
        (
        var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid;
        ~guiWindowVBAP = Window.new.front;
@@ -348,12 +353,10 @@
      Circle panning up and down in an unusable pattern. The spread argument is for dispersing the signal. 0 spread is maximum focus.:
      #+begin_src sclang :results none
        (
-       x = { |azi = 0, ele = 0, spr = 0|
+       ~panVBAP3 = { |azi = 0, ele = 0, spr = 0|
 	       var source;
 	       source = In.ar(33);
-	       if(114){VBAP.ar(16, source, c.bufnum, LFSaw.kr(0.5, 0).range(-180, 180) * -1, SinOsc.kr(3, 0).range(0, 14.97), spr);},
-	{
-	       VBAP.ar(29, source, b.bufnum, LFSaw.kr(0.5, 0).range(-180, 180) * -1, SinOsc.kr(3, 0).range(0, 14.97), spr);};
+	       VBAP.ar(29, source, ~spkrBuffer.bufnum, LFSaw.kr(0.5, 0).range(-180, 180) * -1, SinOsc.kr(3, 0).range(0, 14.97), spr);
 
        }.play;
        )
@@ -363,15 +366,15 @@
       #+begin_src sclang :results none
 	(
 	~panVBAP3Dspread1 = { arg s1 = 0, f1 = 2;
-		VBAP.ar(29, In.ar(33), b.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
+		VBAP.ar(29, In.ar(33), ~spkrBuffer.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
 	}.play;
 
 	~panVBAP3Dspread2 = {  arg s1 = 0, f1 = 5;
-		VBAP.ar(29, In.ar(34), b.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
+		VBAP.ar(29, In.ar(34), ~spkrBuffer.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
 	}.play;
 
 	~panVBAP3Dspread3 = {  arg s1 = 0, f1 = 10;
-		VBAP.ar(29, In.ar(35), b.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
+		VBAP.ar(29, In.ar(35), ~spkrBuffer.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
 	}.play;
 	)
       #+end_src
@@ -379,90 +382,90 @@
       General, manual panning object
       #+begin_src sclang :results none
 	~panVBAP3D = { arg azi=0, ele=0, spr=0, in=33;
-		VBAP.ar(29, In.ar(in), b.bufnum, azi, ele, spr);
+		VBAP.ar(33, In.ar(in), ~spkrBuffer.bufnum, azi, ele, spr);
 	}.play;
       #+end_src
 
       #+begin_src sclang :noweb yes
 	 <<play>>
       #+end_src      
-**** 3D GUI aes                                                    :noexport:
-     #+begin_src sclang :results none
-       (
-       var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid;
-       ~guiWindowVBAP = Window.new.front;
+****** 3D GUI aes                                                  :noexport:
+       #+begin_src sclang :results none
+	 (
+	 var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid;
+	 ~guiWindowVBAP = Window.new.front;
 
-       aNumb = NumberBox(~guiWindowVBAP, Rect(20, 20, 70, 20));
-       aSlid = Slider(~guiWindowVBAP, Rect(20, 60, 20, 150)).action_({
-	       aNumb.value_(aSlid.value);
-	       ~panVBAP3D.set(\azi, aSlid.value * 360);
-       });
-       aSlid.action.value;
+	 aNumb = NumberBox(~guiWindowVBAP, Rect(20, 20, 70, 20));
+	 aSlid = Slider(~guiWindowVBAP, Rect(20, 60, 20, 150)).action_({
+		 aNumb.value_(aSlid.value);
+		 ~panVBAP3D.set(\azi, aSlid.value * 360);
+	 });
+	 aSlid.action.value;
 
-       eNumb = NumberBox(~guiWindowVBAP, Rect(90, 20, 70, 20));
-       eSlid = Slider(~guiWindowVBAP, Rect(90, 60, 20, 150)).action_({
-	       eNumb.value_(eSlid.value);
-	       ~panVBAP3D.set(\ele, eSlid.value * 180 - 90);
-       });
-       eSlid.action.value;
+	 eNumb = NumberBox(~guiWindowVBAP, Rect(90, 20, 70, 20));
+	 eSlid = Slider(~guiWindowVBAP, Rect(90, 60, 20, 150)).action_({
+		 eNumb.value_(eSlid.value);
+		 ~panVBAP3D.set(\ele, eSlid.value * 180 - 90);
+	 });
+	 eSlid.action.value;
 
-       sNumb = NumberBox(~guiWindowVBAP, Rect(160, 20, 70, 20));
-       sSlid = Slider(~guiWindowVBAP, Rect(160, 60, 20, 150)).action_({
-	       sNumb.value_(sSlid.value);
-	       ~panVBAP3D.set(\spr, sSlid.value * 180);
-       });
-       sSlid.action.value;
-       )
-     #+end_src
-**** 3D GUI 3 x spread                                             :noexport:
-     #+begin_src sclang :results none
-       (
-       var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid, aaNumb, eeNumb, ssNumb, aaSlid, eeSlid, ssSlid;
-       ~guiWindowVBAP = Window.new.front;
+	 sNumb = NumberBox(~guiWindowVBAP, Rect(160, 20, 70, 20));
+	 sSlid = Slider(~guiWindowVBAP, Rect(160, 60, 20, 150)).action_({
+		 sNumb.value_(sSlid.value);
+		 ~panVBAP3D.set(\spr, sSlid.value * 180);
+	 });
+	 sSlid.action.value;
+	 )
+       #+end_src
+****** 3D GUI 3 x spread                                           :noexport:
+       #+begin_src sclang :results none
+	 (
+	 var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid, aaNumb, eeNumb, ssNumb, aaSlid, eeSlid, ssSlid;
+	 ~guiWindowVBAP = Window.new.front;
 
-       aNumb = NumberBox(~guiWindowVBAP, Rect(20, 20, 70, 20));
-       aSlid = Slider(~guiWindowVBAP, Rect(20, 60, 20, 150)).action_({
-	       aNumb.value_(aSlid.value);
-	       ~panVBAP3Dspread1.set(\s1, aSlid.value * 180);
-       });
-       aSlid.action.value;
+	 aNumb = NumberBox(~guiWindowVBAP, Rect(20, 20, 70, 20));
+	 aSlid = Slider(~guiWindowVBAP, Rect(20, 60, 20, 150)).action_({
+		 aNumb.value_(aSlid.value);
+		 ~panVBAP3Dspread1.set(\s1, aSlid.value * 180);
+	 });
+	 aSlid.action.value;
 
-       eNumb = NumberBox(~guiWindowVBAP, Rect(90, 20, 70, 20));
-       eSlid = Slider(~guiWindowVBAP, Rect(90, 60, 20, 150)).action_({
-	       eNumb.value_(eSlid.value);
-	       ~panVBAP3Dspread2.set(\s1, eSlid.value * 180);
-       });
-       eSlid.action.value;
+	 eNumb = NumberBox(~guiWindowVBAP, Rect(90, 20, 70, 20));
+	 eSlid = Slider(~guiWindowVBAP, Rect(90, 60, 20, 150)).action_({
+		 eNumb.value_(eSlid.value);
+		 ~panVBAP3Dspread2.set(\s1, eSlid.value * 180);
+	 });
+	 eSlid.action.value;
 
-       sNumb = NumberBox(~guiWindowVBAP, Rect(160, 20, 70, 20));
-       sSlid = Slider(~guiWindowVBAP, Rect(160, 60, 20, 150)).action_({
-	       sNumb.value_(sSlid.value);
-	       ~panVBAP3Dspread3.set(\s1, sSlid.value * 180);
-       });
-       sSlid.action.value;
+	 sNumb = NumberBox(~guiWindowVBAP, Rect(160, 20, 70, 20));
+	 sSlid = Slider(~guiWindowVBAP, Rect(160, 60, 20, 150)).action_({
+		 sNumb.value_(sSlid.value);
+		 ~panVBAP3Dspread3.set(\s1, sSlid.value * 180);
+	 });
+	 sSlid.action.value;
 
-       aaNumb = NumberBox(~guiWindowVBAP, Rect(230, 20, 70, 20));
-       aaSlid = Slider(~guiWindowVBAP, Rect(230, 60, 20, 150)).action_({
-	       aaNumb.value_(aaSlid.value);
-	       ~panVBAP3Dspread1.set(\f1, aaSlid.value * 10);
-       });
-       aaSlid.action.value;
+	 aaNumb = NumberBox(~guiWindowVBAP, Rect(230, 20, 70, 20));
+	 aaSlid = Slider(~guiWindowVBAP, Rect(230, 60, 20, 150)).action_({
+		 aaNumb.value_(aaSlid.value);
+		 ~panVBAP3Dspread1.set(\f1, aaSlid.value * 10);
+	 });
+	 aaSlid.action.value;
 
-       eeNumb = NumberBox(~guiWindowVBAP, Rect(300, 20, 70, 20));
-       eeSlid = Slider(~guiWindowVBAP, Rect(300, 60, 20, 150)).action_({
-	       eeNumb.value_(eeSlid.value);
-	       ~panVBAP3Dspread2.set(\f1, eeSlid.value * 10);
-       });
-       eeSlid.action.value;
+	 eeNumb = NumberBox(~guiWindowVBAP, Rect(300, 20, 70, 20));
+	 eeSlid = Slider(~guiWindowVBAP, Rect(300, 60, 20, 150)).action_({
+		 eeNumb.value_(eeSlid.value);
+		 ~panVBAP3Dspread2.set(\f1, eeSlid.value * 10);
+	 });
+	 eeSlid.action.value;
 
-       ssNumb = NumberBox(~guiWindowVBAP, Rect(370, 20, 70, 20));
-       ssSlid = Slider(~guiWindowVBAP, Rect(370, 60, 20, 150)).action_({
-	       ssNumb.value_(ssSlid.value);
-	       ~panVBAP3Dspread3.set(\f1, ssSlid.value * 10);
-       });
-       ssSlid.action.value;
-       )
-     #+end_src
+	 ssNumb = NumberBox(~guiWindowVBAP, Rect(370, 20, 70, 20));
+	 ssSlid = Slider(~guiWindowVBAP, Rect(370, 60, 20, 150)).action_({
+		 ssNumb.value_(ssSlid.value);
+		 ~panVBAP3Dspread3.set(\f1, ssSlid.value * 10);
+	 });
+	 ssSlid.action.value;
+	 )
+       #+end_src
 
 ** Ambisonics
 *** ambi with control

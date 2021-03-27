@@ -19,7 +19,7 @@ import("music.lib") ; // for osci definition
 //---------------------------------------------------
 
 impgrp(x) = vgroup("impulse", x);
-imp = ba.pulse(impgrp(hslider("tempo", 5000, 500, 10000, 1)));
+imp = ba.pulse(impgrp(hslider("tempo", 5000, 20, 10000, 2))) : si.smooth(0.999);
 //imp = os.impulse;
 
 process = imp : component("generic_snarefs.dsp") : component("filter_bank.dsp")[bands = 16;] ;

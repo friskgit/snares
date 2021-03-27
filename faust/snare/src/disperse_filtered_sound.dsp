@@ -18,13 +18,13 @@ import("stdfaust.lib");
 //---------------------------------------------------
 
 bands = 8;
-channels = 16;
+channels = 2;
 
 t = 0;
 // Extract the impulse
 trigger(x) = t;
 
 // Control the output channel
-distribute = 
+// distribute = 
 
 process(x) = par(i, bands, ba.selectoutn(bands, i));
