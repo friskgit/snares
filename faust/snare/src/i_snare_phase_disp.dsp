@@ -21,14 +21,14 @@ import("music.lib") ; // for osci definition
 // 18 Juli 2019	Henrik Frisk	mail@henrikfrisk.com
 //---------------------------------------------------
 
-p = hslider("pulse[scale:exp]", 1, 1, 20000, 0.1) : si.smooth(0.5);
+p = hslider("pulse[scale:exp]", 1, 1, 2000, 0.1) : si.smooth(0.5);
 //per = hslider("pulse", 192000, 10, 192000, 1) : *(4);
 per = ma.SR / p : int : *(4);
 //p = hslider("pulse", 1, 1, 1000, 0.01);
 imp = ba.pulse(per);
 impsp = ba.pulse(per / 4);
 // imp = os.imptrain(p);
-delA = per : *(0.25);
+delA = per : *(0.25);s
 delB = per : *(0.5);
 delC = per : *(0.75);
 imp_delA = imp : de.sdelay(192000, 64, delA);

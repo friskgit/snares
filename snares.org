@@ -1,3 +1,5 @@
+#+STARTUP: indent overview hidestars
+
 * Snare snippets
 ** audio init
    Query interfaces
@@ -56,22 +58,19 @@
 *** jconvolver
     Remember to load the library ob-async prior to testing these:
 
-    M-x load-library ob-async
+    ~M-x load-library ob-async~
 
     On osx the directory should be: "~/Library/mcfx/convolver_presets/kmh_lilla_salen_29/"
 
     To start jconvolver:
     #+name: jconvolver
-    #+begin_src shell :dir /home/henrikfr/Music/spatialization/klangkupolen/gerhard/convolution_config/kmh_lilla_salen_29
+    #+begin_src shell :async :dir /home/henrikfr/Music/spatialization/klangkupolen/gerhard/convolution_config/kmh_lilla_salen_29
       echo "Starting up jconvolver"
       jconvolver KMH_LILLA_SALEN.conf &
     #+end_src
 
     #+RESULTS: jconvolver
-    : Starting up jconvolver
-
-    #+RESULTS:
-    : c3894ff23bc243720f7120a771d3542d
+    : 81168f108377c0471c3a01d4197f5c74
 
     disconnect supercollider from main out$
     #+begin_src shell
@@ -242,12 +241,12 @@
      (
      SynthDef(\pluck, { |out, freq=55|
 	 Out.ar(out,
-	     Pluck.ar(WhiteNoise.ar(0.06),
-		 EnvGen.kr(Env.perc(0,4), 1.0, doneAction: Done.freeSelf),
-		 freq.reciprocal,
-		 freq.reciprocal,
-		 10,
-		 coef:0.1)
+		     Pluck.ar(WhiteNoise.ar(0.06),
+			     EnvGen.kr(Env.perc(0,4), 1.0, doneAction: Done.freeSelf),
+			     freq.reciprocal,
+			     freq.reciprocal,
+			     10,
+			     coef:0.1)
 	 );
      }).add;
 
@@ -275,7 +274,7 @@
        (
        ~snare_simple = SynthDef(\snare, {
 	   var snd;
-	   var env = Env([0, 1, 0], [0.0001, \length.ir(0.5)]);
+	   var env = Env([0, 1, 0], [0.0001, \length.ir(0.5)], \sine);
 	   var imp = Impulse.ar(\impf.kr(1), 0.0, 0.5, 0);
 	   var frq1=\freq.kr(300), frq2=frq1-100;
 	   snd = OGenericSnarefs.ar(imp, 0.00001, 0.001, \noiselvl.kr(0.1), \nrel.ir(0.1), frq1, frq2, \rel.ir(0.1), \trifrq.kr(111)) * EnvGen.kr(env, doneAction: Done.freeSelf);
@@ -355,7 +354,7 @@
       #+end_src
 
       #+begin_src sclang :results none
-~test3.set(\freq, 600);
+	~test3.set(\freq, 600);
       #+end_src
       #+begin_src sclang :results none :noweb yes
 	{<<acc_snare>>}.defer(0);
@@ -391,12 +390,9 @@
       #+name: dacc_snare
       #+begin_src sclang :noweb yes
 	<<acc_snare>>
-	~reg_snare = Synth.new("snare_imp_mod", [\envCurve, 1, \curve, -4, \speedStart, 20, \speedEnd, 1, \freq, 400, \trifrq, 100, \length, 10, \out, 1, \gain, 1, \vol, 1] );
+	~reg_snare = Synth.new("snare_imp_mod", [\envCurve, 1, \curve, -4, \speedStart, 20, \speedEnd, 1, \freq, 400, \trifrq, 100, \length, 5, \out, 1, \gain, 1, \vol, 1] );
       #+end_src
 
-      #+begin_src sclang :results none
-
-      #+end_src
       A feedback snare
       #+begin_src sclang :results none
 	(
@@ -577,37 +573,119 @@ Ptpar([0.0, a, 1, b, 2, a]).play;
      #+name: i_snare_phase_1
      #+begin_src sclang :results none
        ~phased_snare = SynthDef(\snare_phase, {
-	   var snd, pulse = 192000 / \pulse.kr(192000);
-	   var frq1 = \freq.kr(300), frq2 = frq1 - 100;
-	   snd = ISnarePhase.ar(pulse, \attack.ir(0.00001), \nattack.kr(0.00001), \nlevel.kr(0.05), \nrel.kr(0.1), frq1, frq2, \rel.kr(0.1), \trifreq.kr(111));
-	   Out.ar(\out.kr(0), snd * \gain.kr(0.5));
+	       var snd, pulse = \pulse.kr(10);
+	       var frq1 = \freq.kr(300),
+	       frq2 = \freq2.kr(300);
+	       snd = ISnarePhase.ar(pulse, \amp.kr(0.5), \attack.ir(0.00001), \fsweep.kr(0), \nattack.kr(0.001), \nlevel.kr(0.2), \nrel.kr(0.1), frq1, frq2, \rel.kr(0.1), \trifreq.kr(111));
+	       Out.ar(\out.kr(0), snd * \gain.kr(0.5));
+       }).add
+     #+end_src
+
+     #+name: i_snare_phase_2
+          #+begin_src sclang :results none
+       ~phased_snare = SynthDef(\snare_phase_2, {
+               var snd, pulse = \pulse.kr(10);
+               var frq1 = \freq.kr(300),
+               frq2 = \freq2.kr(300),
+               env = Env.new(levels: [1, 0], times: [\length.ir(0.1)], curve: \sin);
+               snd = ISnarePhase.ar(pulse, \amp.kr(0.5), \attack.ir(0.00001), \fsweep.kr(0), \nattack.kr(0.001), \nlevel.kr(0.2), \nrel.kr(0.1), frq1, frq2, \rel.kr(0.1), \trifreq.kr(111)) * EnvGen.kr(env, timeScale: \length.ir(0.1), doneAction: Done.freeSelf);
+               Out.ar(\out.kr(0), snd * \gain.kr(0.5));
        }).add
      #+end_src
 
 **** player
+     Simple example
+     #+begin_src sclang :results none
+       Synth.new("snare_phase_2", [\pulse, 1, \nlevel, 0]);
+     #+end_src
+
+     Polyrhythmic function with two synths at different speeds. 
+     #+name: poly_rhythm
      #+begin_src sclang :results none
        ~poly_rhythm = { | nom, denom, f |
 	   var f1, f2;
+	   postf("freq is %\n", f);
 	   f1 = nom * f;
-//	       "f1 is ".post; f1.postln;
+	   "f1 is ".post; f1.postln;
 	   f2 = denom * f;
-//	       "f2 is ".post; f2.postln;
-	   ~phased1 = Synth.new("snare_phase", [\pulse, f1, \freq, 230, \nlevel, 0.2, \nrel, 0.2, \gain, 0.1, \out, 0] );
-//	   ~phased2 = Synth.new("snare_phase", [\pulse, f2, \freq, 200, \nlevel, 0.2, \nrel, 0.2, \gain, 0.1, \out, 1] );
+	   "f2 is ".post; f2.postln;
+	   ~phased1 = Synth.new("snare_phase", [\pulse, f1, \freq, 100, \nlevel, 0.5, \nrel, 0.2, \gain, 0.4, \out, 0] );
+	   ~phased2 = Synth.new("snare_phase", [\pulse, f2, \freq, 50, \nlevel, 0.5, \nrel, 0.2, \gain, 0.4, \out, 1] );
        };
-       ~poly_rhythm.value(3, 2, 2);
+       ~poly_rhythm.value(3, 5, 1);
+     #+end_src
+
+     Polyrhythmic function with two synths at different speeds. 
+     #+name: polyr
+     #+begin_src sclang :results none
+       ~polyr = { | nom, denom, f |
+	       var f1, f2, phase1, phase2, synths;
+	       postf("freq is %\n", f);
+	       f1 = nom * f;
+	       "f1 is ".post; f1.postln;
+	       f2 = denom * f;
+	       "f2 is ".post; f2.postln;
+	       synths = [ Synth.new("snare_phase", [\pulse, f1, \freq, 100, \nlevel, 0.5, \nrel, 0.2, \gain, 0.4, \out, 0] ), Synth.new("snare_phase", [\pulse, f2, \freq, 50, \nlevel, 0.5, \nrel, 0.2, \gain, 0.4, \out, 1] )];
+       };
+       k = ~polyr.value(1, 2, 3);
      #+end_src
 
      #+begin_src sclang :results none
+       //k[0].set(\pulse, 1, \nlevel, 0.0, \freq, 400, \freq2, 200, \trifreq, 300);
+       ~phased_set_values.value(1, 1, 3, k);
+       ~phased_set_values.value(2, 3, 4, l);
+     #+end_src
+     Polyrhythmic object with two synths at different speeds. 
+     #+name: poly_rhythm
+     #+begin_src sclang :results none
+       PolyRhythm = {
+	   var >f=1, f1, f2, >nom=1, >denom=1, phase_1, phase_2;
+	       f1 = nom * f;
+	       f2 = denom * f;
+	   phase_1 = Synth.new("snare_phase", [\pulse, f1, \freq, 100, \nlevel, 0.5, \nrel, 0.2, \gain, 0.4, \out, 0] );
+	   phase_2 = Synth.new("snare_phase", [\pulse, f2, \freq, 50, \nlevel, 0.5, \nrel, 0.2, \gain, 0.4, \out, 1] );
+       };
+       a = PolyRhythm.new;
+       a.f_(2);
+       a.nom_(2);
+       a.denom_(3);
+     #+end_src
+
+     Function setting the values relative to the pulse.
+     #+name: phased_set_values
+     #+begin_src sclang :results none
+       ~phased_set_values = { |frequency=10, nom, denom, synth|
+	       var freq = frequency, nlevel, f1, f2, t3, normalizedf, maxf = 2000;
+	       normalizedf = freq / maxf;
+	       c = ControlSpec(1, 2000, \lin, 0.0001);
+	       freq = c.unmap(freq);
+	       //d = [0.05, 0.00001, -40].asSpec;
+	       d = ControlSpec(0.01, 0.00001, -40, 0.00001);
+	       nlevel = d.map(freq);
+	       f1 = freq * 2 + 50;
+	       f2 = freq * 3 + 50;
+	       t3 = freq * 4 + 50;
+	       synth[0].set(\pulse, frequency*nom, \nlevel, nlevel, \freq, f1*nom, \freq2, f2*nom, \trifreq, 300);
+	       synth[1].set(\pulse, frequency*denom, \nlevel, nlevel, \freq, f1*denom, \freq2, f2*denom, \trifreq, 300);
+       };
+       k = ~polyr.value(1, 2, 3);
+       l = ~polyr.value(2, 2, 3);
+       ~phased_set_values.value(1, 1, 3, k);
+       ~phased_set_values.value(2, 3, 4, l);
+     #+end_src
+
+     Loop to do a accelerando. This also loads the other patches.
+     #+begin_src sclang :results none :noweb yes
+//       <<poly_rhythm>>
+//       <<phased_set_values>>
        (
        t = Task({
 	       loop {
-		       (1..100).do({ |pulse|
-			       var nlev;
-			       nlev = 1 / pulse / 2;
-			       ~phased1.set(\pulse, pulse);
-			       ~phased1.set(\nlevel, nlev);
-			       0.1.wait;
+		       (5..500).do({ |pulse|
+//			       ~phased_set_values.set(pulse*0.1, 3, 2);
+			       ~phased_set_values.value(pulse*0.1, 3, 4, k);
+			       ~phased_set_values.value(pulse*0.1, 5, 6, l);
+			       0.3.wait;
 		       });
 	       }
        }).play;
@@ -619,104 +697,126 @@ Ptpar([0.0, a, 1, b, 2, a]).play;
        (
        var mapped;
        w = Window.new.front;
-       c = ControlSpec(1, 50, \linear, 0.01); // min, max, mapping, step
+       c = ControlSpec(1, 1000, \linear, 0.01); // min, max, mapping, step
        b = NumberBox(w, Rect(20, 20, 150, 20));
+       d = NumberBox(w, Rect(20, 120, 150, 20));
+
        a = Slider(w, Rect(20, 60, 150, 20)).action_({
-	   mapped = c.map(a.value);
-	   b.value_(mapped);
-	   ~phased1.set(\pulse, 7 * mapped);
-	   ~phased2.set(\pulse, 5 * mapped);
+	       mapped = c.map(a.value);
+	       b.value_(mapped);
+	       ~phased1.set(\pulse, mapped);
        });
-       a.action.value
+
+       e = Slider(w, Rect(20, 160, 150, 20)).action_({
+	       mapped = c.map(e.value);
+	       d.value_(mapped);
+	       ~phased2.set(\pulse, mapped);
+       });
+       a.action.value;
+       e.action.value;
        )     
      #+end_src
 *** snare dispersed
+This is very nice with a few patterns to it at the bottom under control signals
 **** synth
-     define the synth
-    #+begin_src sclang :results none
-      (
-      ~disp_snare = SynthDef(\snaredisp4, { | dur=20, out=0, pos=0, disp=0, pulse=2000, att=0.00001, n_attack=0.01, n_level=0.2, n_rel=0.1, osc1_f=100, osc2_f=130, release=0.01, tri_f=300 |
-	  var snd, env;
-	  env = Env.new(levels: [0, 1, 1, 0], times: [0.01, dur, 0.01]);
-	  snd = IDispersedSnare.ar(pos, disp, pulse, att, n_attack, n_level, n_rel, osc1_f, osc2_f, release, tri_f) * EnvGen.kr(env, doneAction: Done.freeSelf);
-	  Out.ar(out, snd);
-      }).play(s);
-      )
-     #+end_src
+define the synth
+#+name: snare_disp_4
+#+begin_src sclang :results none
+  ~disp_snare = SynthDef(\snaredisp4, { | dur=60, out=33, pos=0, disp=0, pulse=2000, att=0.00001, n_attack=0.01, n_level=0.2, n_rel=0.1, osc1_f=100, osc2_f=130, release=0.01, tri_f=300 |
+      var snd, env;
+      env = Env.new(levels: [0, 1, 1, 0], times: [0.01, dur, 0.01]);
+      snd = IDispersedSnare.ar(pos, disp, pulse, att, n_attack, n_level, n_rel, osc1_f, osc2_f, release, tri_f) * EnvGen.kr(env, doneAction: Done.freeSelf);
+      Out.ar(out, snd);
+  }).play(s);
+//s.plotTree;
+#+end_src
      
-     define the busses
-    #+begin_src sclang :results none
-	    ~busses = Array.new(4);
-	    ~duration = 20;
+define the busses
+#+name: snare_disp_4_bus
+#+begin_src sclang :results none
+  ~busses = Array.new(4);
+  ~duration = 20;
 
-	    b = Bus.control(s, 1);
-	    ~disp_snare.map(\pos, b);
-	    c = Bus.control(s, 1);
-      c.set(4000);
-	    ~disp_snare.map(\pulse, c);
-	    d = Bus.control(s, 1);
-      d.set(0.1);
-	    ~disp_snare.map(\n_rel, d);
-	    e = Bus.control(s, 1);
-      e.set(0.2);
-	    ~disp_snare.map(\n_level, e);
+  b = Bus.control(s, 1);
+  ~disp_snare.map(\pos, b);
+  c = Bus.control(s, 1);
+  c.set(4000);
+  ~disp_snare.map(\pulse, c);
+  d = Bus.control(s, 1);
+  d.set(0.1);
+  ~disp_snare.map(\n_rel, d);
+  e = Bus.control(s, 1);
+  e.set(0.2);
+  ~disp_snare.map(\n_level, e);
 
-      //      {Out.kr(b, Line.kr(0, 29, ~duration, doneAction: Done.freeSelf))}.play(addAction: \addToHead);
-	    {Out.kr(c, Line.kr(4000, 200, ~duration, doneAction: Done.freeSelf))}.play(addAction: \addToHead);
-	    {Out.kr(c, Line.kr(0.1, 0.005, ~duration, doneAction: Done.freeSelf))}.play(addAction: \addToHead);
-	    {Out.kr(c, Line.kr(0.2, 0.001, ~duration, doneAction: Done.freeSelf))}.play(addAction: \addToHead);
-    #+end_src
+  //      {Out.kr(b, Line.kr(0, 29, ~duration, doneAction: Done.freeSelf))}.play(addAction: \addToHead);
+  {Out.kr(c, Line.kr(4000, 200, ~duration, doneAction: Done.freeSelf))}.play(addAction: \addToHead);
+  {Out.kr(c, Line.kr(0.1, 0.005, ~duration, doneAction: Done.freeSelf))}.play(addAction: \addToHead);
+  {Out.kr(c, Line.kr(0.2, 0.001, ~duration, doneAction: Done.freeSelf))}.play(addAction: \addToHead);
+#+end_src
 
-    #+begin_src sclang :results none
-s.makeGui(p);
-    #+end_src
+#+begin_src sclang :results none
+  s.makeGui(p);
+#+end_src
 **** player
+#+name: play_disp_snare_4
      #+begin_src sclang :results none
-       ~reg_snare = Synth.new("snaredisp4", [\dur, 30, \out, 0, \pos, 2, \disp, 0, \freq, 100, \gain, 20, \vol, 5] );
-       ~reg_snare.free;
+       ~reg_snare = Synth.new("snaredisp4", [\dur, 30, \out, 0, \pos, 2, \disp, 0, \pulse, 500, \gain, 20, \vol, 5] );
+       //       ~reg_snare.free;
      #+end_src
 
 **** control signals
      Various tasks that alter the parameters of the synth
-     #+begin_src sclang :results none
-       (
+     This takes the positions parameter
+     #+begin_src sclang :results none :noweb yes
+       <<snare_disp_4>>
+       <<snare_disp_4_bus>>
+       <<play_disp_snare_4>>
        ~pos_task = Task({
-	   loop {
-	       (0..28).do({ |position|
-		   position.postln;
-		   ~reg_snare.set(\pos, position);
-		   0.5.wait;
-	       });
-	   }
+               loop {
+                       (0..28).do({ |position|
+                               position.postln;
+                               ~reg_snare.set(\pos, position);
+                               0.5.wait;
+                       });
+               }
        }).play;
-       )
      #+end_src
 
-     #+begin_src sclang :results none
+     Slowly increaseing disperse parameter
+     #+begin_src sclang :results none :noweb yes
+       <<snare_disp_4>>
+       <<snare_disp_4_bus>>
+       <<play_disp_snare_4>>
        ~disp_task = Task({
-	   loop {
-	       (0..100).do({ |disperse|
-		   var disp;
-		   disp = disperse/100;
-		   ~reg_snare.set(\disp, disp);
-		   0.1.wait;
-	       });
-	   }
+           loop {
+                       (0..100).do({ |disperse|
+                               var disp;
+                               disp = disperse/100;
+                               ~reg_snare.set(\disp, disp);
+                               0.1.wait;
+                       });
+           }
        }).play;
      #+end_src
 
-     #+begin_src sclang :results none
-      ~pulse_task = Task({
-	   loop {
-	       (5000..500).do({ |pulse_time|
-		   var pulse;
-		   pulse = pulse_time;
-		   ~reg_snare.set(\pulse, pulse);
-		   0.01.wait;
-	       });
-	   }
-       }).play;
-     #+end_src
+#+begin_src sclang :results none :noweb yes
+  <<snare_disp_4>>
+  <<snare_disp_4_bus>>
+  <<play_disp_snare_4>>
+  ~pulse_task = Task({
+          loop {
+                  (5000..100).do({ |pulse_time|
+                          var pulse, disp;
+                          pulse = pulse_time;
+                          disp = 1 / pulse_time;
+                          ~reg_snare.set(\pulse, pulse);
+                          ~reg_snare.set(\disp, pulse);	
+                          0.01.wait;
+                  });
+          }
+  }).play;
+#+end_src
 
      Control the speed via a slider.
     #+begin_src sclang :results none
@@ -847,39 +947,47 @@ s.makeGui(p);
 
 **** Example using groups
 ***** Synth and modulator (1)
-      #+name: isnare2_def
-      #+begin_src sclang :results none
-	(
-	// Main snare synth
-	~isnare_def = SynthDef(\isnare2, { | position=0, disperse=0 |
-	    var snd, env, envelope, duration;
-	    envelope = Env.new([0, 1, 0.9, 0], [0.1, 0.5, 1], [-5, 0, -5]);
-	    b = 0;
-	    envelope.times.do({ arg i; b = b + i; });
-	    duration = \dur.ir / b;
-	    env = EnvGen.kr(envelope, timeScale: duration, doneAction: Done.freeSelf);
-	    snd = IDispersedSnare.ar(Impulse.ar(\freq.kr(1) * In.kr(\inBus3.kr)),
-			position,
-			disperse,
-			osc_1_freq: (\osc1.kr(330) * In.kr(\inBus1.kr)) + 100,
-			osc_2_freq: (\osc2.kr(180) * In.kr(\inBus2.kr)) + 120,
-			triangle_freq: (\tri.kr * In.kr(\inBus2.kr) + 200),
-			noise_lvl: \noise.kr(0.1)) * \gain.kr(0.5) * env;
-	    Out.ar(\outBus.ir, snd);
-	}).add;
+#+name: isnare2_def
+#+begin_src sclang :results none
+  (
+  // Main snare synth
+  ~isnare_def = SynthDef(\isnare2, { | position=0, disperse=0 |
+      var snd, env, envelope, duration;
+      envelope = Env.new([0, 1, 0.9, 0], [0.1, 0.5, 1], [-5, 0, -5]);
+      b = 0;
+      envelope.times.do({ arg i; b = b + i; });
+      duration = \dur.ir / b;
+      env = EnvGen.kr(envelope, timeScale: duration, doneAction: Done.freeSelf);
+      snd = IDispersedSnare.ar(Impulse.ar(\freq.kr(1) * In.kr(\inBus3.kr)),
+                  position,
+                  disperse,
+                  osc_1_freq: (\osc1.kr(330) * In.kr(\inBus1.kr)) + 100,
+                  osc_2_freq: (\osc2.kr(180) * In.kr(\inBus2.kr)) + 120,
+                  triangle_freq: (\tri.kr * In.kr(\inBus3.kr) + 200),
+                  noise_lvl: \noise.kr(0.1)) * \gain.kr(0.5) * env;
+      Out.ar(\outBus.ir, snd);
+  }).add;
 
-	// Control synth saw-tooth
-	SynthDef(\control_saw2, {
-	    Out.kr(\bus.ir(0), Saw.kr(\freq.kr(1), \mult.kr(1), \add.kr(0)));
-	}).send(s);
+  // Control synth saw-tooth
+  SynthDef(\control_saw2, {
+      Out.kr(\bus.ir(0), Saw.kr(\freq.kr(1), \mult.kr(1), \add.kr(0)));
+  }).send(s);
 
-	// Busses
-	~saw_control_bus_1 = Bus.control(s, 1);
-	~saw_control_bus_2 = Bus.control(s, 1);
-	~saw_control_bus_3 = Bus.control(s, 1);
-	)
-      #+end_src
-      
+  // Busses
+  ~saw_control_bus_1 = Bus.control(s, 1);
+  ~saw_control_bus_2 = Bus.control(s, 1);
+  ~saw_control_bus_3 = Bus.control(s, 1);
+  )
+#+end_src
+
+One hit
+#+begin_src sclang :results none
+  a = Synth(\isnare2, [ \position, 0, \disperse, 0, \noise, 0.5, \dur, 0.03, \freq, 1]);
+#+end_src
+#+begin_src sclang :results none
+  s.plotTree;
+#+end_src
+
 ***** Create group and add control instrument (2)
       Instantiate all control instruments. This could be integrated into the main routine above: [[*Synth and modulator (1)][Synth and modulator (1)]] thus not needed to be loaded separately.
       #+name: start_controls
@@ -909,7 +1017,7 @@ s.makeGui(p);
 	~param_update = { | range1=1, freq1=0.01, range2=1, freq2=1, range3=1, freq3=1 |
 	    ~impulse_ctrl.set(\mult, range1);
 	    ~impulse_ctrl.set(\add, range1);
-	    ~impulse_ctrl.set(\freq, 0.3);
+	    ~impulse_ctrl.set(\freq, freq1);
 
 	    ~freq_ctrl.set(\freq, freq2);
 	    ~freq_ctrl.set(\mult, range2);
@@ -921,6 +1029,7 @@ s.makeGui(p);
 	};
 	"loaded".postln;
       #+end_src
+
 ***** Presets
       Nice and noisy
       #+name: isnare_preset_1
@@ -948,6 +1057,20 @@ s.makeGui(p);
       #+begin_src sclang :results none :noweb yes :var mark="hoo"
 	<<load_presets>>
 	~param_update.value(6, 100, 0.01, 0.002, 1.3, 0.001);
+      #+end_src
+
+      Inharmonic
+      #+name: isnare_preset_4
+      #+begin_src sclang :results none :noweb yes :var mark="hoo"
+	<<load_presets>>
+	~param_update.value(1, 52, 1, 50, 1, 100);
+      #+end_src
+
+      Shady
+      #+name: isnare_preset_4
+      #+begin_src sclang :results none :noweb yes :var mark="hoo"
+	<<load_presets>>
+	~param_update.value(10, 23, 10, 24, 10, 200);
       #+end_src
 
       Poll a bus:
@@ -981,50 +1104,66 @@ s.makeGui(p);
       #+name: play_isnare2
       #+begin_src sclang :results none :noweb yes
 	<<start_controls>>
-	~isnare_synth = Synth.after(~group, \isnare2, [
+	~isnarce_synth = Synth.after(~group, \isnare2, [
 	    <<bus_assignment>>
 	    \freq, 10,
 	    \dur, 20]);
-        ~tempo_update.value(20, 0.01);
+	~tempo_update.value(20, 0.01);
       #+end_src
 
 ***** Play with a Pbind (4)
-      Now including [[*Create group and add control instrument (2)][Create group ...]] with a noweb link. This can be tangled to self contained sclang code (test.sc in this example)
-      #+begin_src sclang :results none :tangle test.sc :noweb yes
-	<<start_controls>>
-	<<isnare_preset_2>>
-	~event_str = Pbind(\instrument, \isnare2,
-	    <<bus_assignment>>
-	    \group, ~group,
-	    \addAction, 1,
-	    \position, 0,
-	    \disperse, 1,
-	    \noise, 0.01,
-	    \freq, Pwalk(Array.series(20, 0, 1), Pwrand([-2, -1, 0, 1, 2], [0.05, 0.1, 0.15, 1, 0.1].normalizeSum, inf), Pseq([1, -1], inf), 10),
-	    \dur, Pgauss(8, 4, inf)
-	).play;
-      #+end_src
+These work really well!
 
-      Move repeated stuff out for cleaner Pbind
-      #+name: bus_assignment
-      #+begin_src sclang :results none
-	\inBus1, ~saw_control_bus_1.index,
-	\inBus2, ~saw_control_bus_2.index,
-	\inBus3, ~saw_control_bus_3.index,
-      #+end_src
+Now including [[*Create group and add control instrument (2)][Create group ...]] with a noweb link. This can be tangled to self contained sclang code (test.sc in this example)
+#+begin_src sclang :results none :tangle test.sc :noweb yes
+  <<start_controls>>
+  <<isnare_preset_4>>
+  ~event_str = Pbind(\instrument, \isnare2,
+      <<bus_assignment>>
+      \group, ~group,
+      \addAction, 1,
+      \position, 0,
+      \disperse, 1,
+      \noise, 0.0001,
+      \freq, 10,
+      \dur, 0.1
+  ).play;
+#+end_src
 
-      To play from the variable.
-      #+begin_src sclang :results none
-	~event_str.play;
-	~event_str.reset;
-      #+end_src
+#+begin_src sclang :results none :tangle test.sc :noweb yes
+  <<start_controls>>
+  <<isnare_preset_1>>
+  ~event_str = Pbind(\instrument, \isnare2,
+          <<bus_assignment>>
+          \group, ~group,
+          \position, 12,
+          \disperse, 0,
+          \noise, 0.01,
+          \freq, 1,
+          \dur, 0.1,
+  ).play;
+#+end_src
 
-      Free the group
-      #+name: free_group
-      #+begin_src sclang :results none
-	~group.freeAll;
-	~group.free;
-      #+end_src
+Move repeated stuff out for cleaner Pbind
+#+name: bus_assignment
+#+begin_src sclang :results none
+  \inBus1, ~saw_control_bus_1.index,
+  \inBus2, ~saw_control_bus_2.index,
+  \inBus3, ~saw_control_bus_3.index,
+#+end_src
+
+To play from the variable.
+#+begin_src sclang :results none
+  ~event_str.play;
+  ~event_str.reset;
+#+end_src
+
+Free the group
+#+name: free_group
+#+begin_src sclang :results none
+  ~group.freeAll;
+  ~group.free;
+#+end_src
 **** Stuff
       Plot a control bus
       #+begin_src sclang :results none
@@ -1434,40 +1573,43 @@ s.makeGui(p);
      #+begin_src sclang :results none
        (
        ~bass_snare = SynthDef(\bsnare, {
-	   var impfreq = \impfreq.kr(1),
-	   osc1 = \osc1.kr(50),
-	   osc2 = \osc2.kr(70),
-	   trifreq = \trifreq.kr(10),
-	   fltq = \fltq.kr(1),
-	   fltfreq = \fltfrq.kr(100),
-	   fltgain = \fltgain.kr(1),
-	   modfreq = \modfreq.kr(0),
-	   attack = \attack.kr(0.0000001),
-	   rel = \release.kr(0.1),
-	   noise_attack = \nattack.kr(1e-08),
-	   noise_sustain = \nsustain.kr(0.016),
-	   noise_rel = \nrel.kr(0.1),
-	   noise_vol = \nvol.kr(0.073);
-	   var snd;
-	   snd = OBassSnare.ar(Impulse.ar(impfreq),
-	       osc_1_freq: osc1,
-	       osc_2_freq: osc2, 
-	       triangle_freq: trifreq,
-	       flt_frq: fltfreq,
-	       flt_q: fltq,
-	       flt_gain: fltgain,
-	       modulation_freq: modfreq,
-	       noise_sustain: 0.2,
-	       noise_vol: 0.05,
-	       noise_rel: 0.01,
-	       noise_vol: 0.0);
-	   Out.ar(0, snd);
+           var snd;
+           var impfreq = \impfreq.kr(1),
+           osc1 = \osc1.kr(50),
+           osc2 = \osc2.kr(70),
+           trifreq = \trifreq.kr(10),
+           fltq = \fltq.kr(1),
+           fltfreq = \fltfrq.kr(100),
+           fltgain = \fltgain.kr(1),
+           modfreq = \modfreq.kr(0),
+           attack = \attack.kr(0.0000001),
+           rel = \release.kr(0.1),
+           noise_attack = \nattack.kr(1e-08),
+           noise_sustain = \nsustain.kr(0.016),
+           noise_rel = \nrel.kr(0.1),
+           noise_vol = \nvol.kr(0.073),
+               dur = \length.ir(0.5),
+               env = Env.new(levels: [0, 1, 0], times: [0.000001, dur]);
+           snd = OBassSnare.ar(Impulse.ar(impfreq),
+                       osc_1_freq: osc1,
+                       osc_2_freq: osc2, 
+                       triangle_freq: trifreq,
+                       flt_frq: fltfreq,
+                       flt_q: fltq,
+                       flt_gain: fltgain,
+                       modulation_freq: modfreq,
+                       noise_sustain: 0.2,
+                       noise_vol: 0.05,
+                       noise_rel: 0.01,
+                       noise_vol: 0.0) * EnvGen.kr(env, doneAction: Done.freeSelf);
+           Out.ar(0, snd);
        }).add
        )
      #+end_src
 
+#+name: bsnare_play
      #+begin_src sclang :results none
-       ~bsnare = Synth.new("bsnare", [\impfreq, 1, \mod_freq, 0]);
+       ~bsnare = Synth.new("bsnare", [\impfreq, 0, \mod_freq, 0]);
      #+end_src
 
      #+begin_src sclang :results none
@@ -2163,7 +2305,217 @@ s.meter;
      Pdefn(\duration, 1);
      )
    #+end_src
+** beat
+*** drumloop
+#+begin_src sclang :results none
+p = Plambda(
+    Pbind(
+        \a, Plet(\z, Pseries(0, 1, inf), Pseries(100, -1, inf)),
+        \b, Pget(\z, 0, inf) * 2
+    ).trace(key: \eventScope, prefix: "\nscope: ")
+).asStream;
 
+p.next(());
+#+end_src
+
+#+begin_src sclang :results none
+(
+var a, b, c, t;
+a = Pbind(\x, Pseq([1, 2, 3, 4]), \dur, 1);
+b = Pbind(\x, Pseq([10, 20, 30, 40]), \dur, 0.4);
+c = Ppar([a, b]);
+t = c.asStream;
+20.do({ t.next(Event.default).postln; });
+)
+#+end_src
+
+#+call: bsnare()
+#+call: original_snare()
+#+call: i_snare_phase_2()
+#+call: bsnare_play()
+
+#+begin_src sclang :results none
+  Synth.new("snare_phase", [\pulse, 1, \nlevel, 0]);
+#+end_src
+
+Bass drum pulse with variation
+#+begin_src sclang :results none
+  var beatsInLoop = 4,
+  originalTempo = 110 / 60 * beatsInLoop;
+
+  TempoClock.tempo = originalTempo;
+
+  Pbind(
+          \instrument, \bsnare,
+          \impfreq, 0,
+          \length, 0.2,
+          \osc1, 80,
+          \osc2, 50,
+          \trifreq, 70,
+          \fltfrq, Pseq([100, 200, 300, 400, 500, 600, 700, 800], inf) + 200,
+          \fltq, Pseq((1..7), inf),
+          \release, 0.9,
+          \dur, beatsInLoop,
+          \time, Pkey(\dur) / Pfunc { thisThread.clock.tempo },
+          \rate, Pfunc { thisThread.clock.tempo / originalTempo }
+  ).play;
+#+end_src
+
+Snare drum beat
+#+begin_src sclang :results none
+  var beatsInLoop = 4,
+  originalTempo = 110 / 60 * beatsInLoop;
+
+  TempoClock.tempo = originalTempo;
+
+  Pbind(
+          \instrument, \snare,
+	\impf, 10,
+          \freq, 400,
+          \trifreq, 100,
+          \length, 0.2,
+          \out, 1,
+          \gain, 1,
+          \dur, beatsInLoop,
+          \time, Pkey(\dur) / Pfunc {thisThread.clock.tempo},
+          \rate, Pfunc {thisThread.clock.tempo / originalTempo}
+  ).play;
+#+end_src
+
+Global variables
+#+name: global_tempo
+#+begin_src sclang :results none
+  ~beatsInLoop = 8;
+  ~originalTempo = 90 / 60;
+  TempoClock.tempo = ~originalTempo;
+#+end_src
+
+First bass drum pattern
+#+name: b_drum_1
+#+begin_src sclang :results none :noweb yes
+ ~loop_bass_dr_1  = Pbind (
+          \instrument, \bsnare,
+          \impfreq, 100,
+          \osc1, 80,
+          \osc2, 50,
+          \trifreq, 70,
+          \fltfrq, Pseq([100, 200, 300, 400, 500, 600, 700, 800], inf) + 200,
+          \fltq, Pseq((1..7), inf),
+          \release, 0.9,
+          \length, Prand([0.2, 0.4, 0.5, 0.6, 0.9], inf) * 0.5,
+          \dur, ~beatsInLoop,
+          \time, Pkey(\dur) / Pfunc { thisThread.clock.tempo },
+          \rate, Pfunc { thisThread.clock.tempo / ~originalTempo }
+  );
+#+end_src
+
+First bass drum pattern
+#+name: b_drum_2
+#+begin_src sclang :results none :noweb yes
+  ~loop_bass_dr_2  = Pbind (
+          \instrument, \bsnare,
+          \impfreq, 1,
+          \osc1, 80,
+          \osc2, 50,
+          \trifreq, 70,
+          \fltfrq, Pseq([100, 200, 300, 400, 500, 600, 700, 800], inf) + 200,
+          \fltq, Pseq((1..7), inf),
+          \release, 0.9,
+          \length, Prand([0.2, 0.4, 0.5, 0.6, 0.9], inf) * 0.5,
+          \dur, ~beatsInLoop,
+          \time, Pkey(\dur) / Pfunc { thisThread.clock.tempo },
+          \rate, Pfunc { thisThread.clock.tempo / ~originalTempo }
+  );
+#+end_src
+
+First snare drum
+#+name: s_drum_1
+#+begin_src sclang :results none
+  ~loop_snare_1 = Pbind (
+          \instrument, \snare,
+          \impf, Prand((1..1), inf),
+          \freq, Pseq([100, 200], inf),
+          \trifreq, 500,
+          \length, Prand((100..100), inf) * 0.01,
+          \out, 0,
+          \gain, 0.5,
+          \dur, ~beatsInLoop,
+          \time, Pkey(\dur) / Pfunc {thisThread.clock.tempo},
+          \rate, Pfunc {thisThread.clock.tempo / ~originalTempo}
+  )
+#+end_src
+
+#+name: s_drum_2
+#+begin_src sclang :results none
+  ~loop_snare_2 = Pbind(
+          \instrument, \snare,
+          \impf, Prand([~originalTempo, ~originalTempo*2, ~originalTempo*3, ~originalTempo*4], inf),
+          \freq, Pseq([500, 520, 530], inf),
+          \trifreq, 50,
+          \length, Prand((50..100), inf) * 0.01,
+          \out, 1,
+          \gain, 0.8,
+          \dur, ~beatsInLoop,
+          \time, Pkey(\dur) / Pfunc {thisThread.clock.tempo},
+          \rate, Pfunc {thisThread.clock.tempo / ~originalTempo}
+  )
+#+end_src
+
+#+name: s_drum_3
+#+begin_src sclang :results none
+  ~loop_snare_3 = Pbind(
+          \instrument, \snare_phase_2,
+          \freq, Pseq([400, 500], inf),
+          \freq2, Pseq([400, 550], inf),	
+          \length, Prand((10..100), inf) * 0.01,
+          \out, 1,
+          \gain, 0.9,
+          \dur, ~beatsInLoop,
+          \time, Pkey(\dur) / Pfunc {thisThread.clock.tempo},
+          \rate, Pfunc {thisThread.clock.tempo / ~originalTempo}
+  )
+#+end_src
+Attempt to make a complete beat with variation.
+#+begin_src sclang :results none :noweb yes
+  (
+  <<global_tempo()>>;
+  <<b_drum_1()>>;
+  <<b_drum_2()>>;
+  <<s_drum_1()>>;
+  <<s_drum_2()>>;
+  <<s_drum_3()>>;
+  p = Ptpar([
+          0, ~loop_bass_dr_1,
+          0.5, ~loop_bass_dr_2,
+          0.75, Pn(
+                  ~loop_snare_1	
+          ),
+          1, Pn(
+                  Plazy {
+                          ~loop_snare_2	
+                  }	
+          ),
+          2, ~loop_bass_dr_1,
+          2.75, ~loop_bass_dr_2,
+          3, Pn(
+                  ~loop_snare_3
+          ),
+          4.5, ~loop_bass_dr_1,
+          4.75, ~loop_bass_dr_2,
+          5, Pn(
+                  Plazy {
+                          ~loop_snare_2	
+                  }	
+          ),
+          6, ~loop_bass_dr_1,
+          6, ~loop_bass_dr_2,
+          7, Pn(
+                  ~loop_snare_3
+          )
+  ], 1).play;
+  )
+
+#+end_src
 ** accelerando, fixed tempo
    This actually works in a weird way.
    - Why are the beats sometimes doubled?

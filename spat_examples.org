@@ -2,7 +2,7 @@
 #+SELECT_TAGS: export
 #+EXCLUDE_TAGS: noexport
 #+TAGS: export(e) noexport(n)
-#+STARTUP: overview
+#+STARTUP: overview hidestars
 
 * Spatialisation in SC
 ** Setup
@@ -355,7 +355,7 @@
        (
        ~panVBAP3 = { |azi = 0, ele = 0, spr = 0|
 	       var source;
-	       source = In.ar(33);
+	       source = In.ar(35);
 	       VBAP.ar(29, source, ~spkrBuffer.bufnum, LFSaw.kr(0.5, 0).range(-180, 180) * -1, SinOsc.kr(3, 0).range(0, 14.97), spr);
 
        }.play;
@@ -365,7 +365,7 @@
       Multi panning
       #+begin_src sclang :results none
 	(
-	~panVBAP3Dspread1 = { arg s1 = 0, f1 = 2;
+	~panVBAP3Dspread1 = { arg s1 = 0, f1 = 1;
 		VBAP.ar(29, In.ar(33), ~spkrBuffer.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
 	}.play;
 
@@ -381,36 +381,75 @@
      
       General, manual panning object
       #+begin_src sclang :results none
-	~panVBAP3D = { arg azi=0, ele=0, spr=0, in=33;
-		VBAP.ar(33, In.ar(in), ~spkrBuffer.bufnum, azi, ele, spr);
+	~panVBAP3D = { arg azi=0, ele=0, spr=0, in=35;
+		VBAP.ar(29, In.ar(in), ~spkrBuffer.bufnum, azi, ele, spr);
 	}.play;
       #+end_src
 
+      Controling the panning algorithmically
+      #+begin_src sclang :results none
+	~pannerA = SynthDef(\panControl, {arg bus;
+		Out.kr(bus, SinOsc.kr(1, 0, 90));
+	}).add;
+
+	~azib = Bus.control(s);
+
+	~csynth = Synth.new(\panControl, [\bus, ~azib]);
+
+	~panVBAP3D = { arg azi=0, ele=0, spr=0, in=35, azib, eleb, sprb;
+		VBAP.ar(29, In.ar(in), ~spkrBuffer.bufnum, In.kr(~azib), ele, spr);
+	}.play;
+
+	// ~panVBAP3D.set(\azib, ~azib);
+      #+end_src
+
+      Bus example
+      #+begin_src sclang :results none
+	a = SynthDef(\myControlSynth, {arg bus;
+		Out.ar (0, SinOsc.ar(500 * In.kr(bus), 0, 0.1))
+	}).add;
+
+	c = SynthDef(\controlSynth, { arg bus;
+		Out.kr(bus, SinOsc.kr(10, 0));
+	}).add;
+
+	b = Bus.control(s);
+
+	x = Synth.new(\controlSynth, [\bus, b]);
+	y = Synth.after(x, \myControlSynth, [\bus, b]);
+      #+end_src
       #+begin_src sclang :noweb yes
 	 <<play>>
       #+end_src      
 ****** 3D GUI aes                                                  :noexport:
        #+begin_src sclang :results none
 	 (
-	 var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid;
+	 var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid, textA, textE, textS;
 	 ~guiWindowVBAP = Window.new.front;
-
-	 aNumb = NumberBox(~guiWindowVBAP, Rect(20, 20, 70, 20));
-	 aSlid = Slider(~guiWindowVBAP, Rect(20, 60, 20, 150)).action_({
+	 // 1 is center, the counter clockwise to 0 which is back at center
+	 textA = StaticText(~guiWindowVBAP, Rect(20, 20, 70, 20));
+	 textA.string = "Azimuth";
+	 aNumb = NumberBox(~guiWindowVBAP, Rect(20, 40, 70, 20));
+	 aSlid = Slider(~guiWindowVBAP, Rect(20, 70, 20, 150)).action_({
 		 aNumb.value_(aSlid.value);
 		 ~panVBAP3D.set(\azi, aSlid.value * 360);
 	 });
 	 aSlid.action.value;
 
-	 eNumb = NumberBox(~guiWindowVBAP, Rect(90, 20, 70, 20));
-	 eSlid = Slider(~guiWindowVBAP, Rect(90, 60, 20, 150)).action_({
+	 // 0.5 is middle, 0 is as high as possible and 1 is as low as possible
+	 textE = StaticText(~guiWindowVBAP, Rect(100, 20, 70, 20));
+	 textE.string = "Elev";
+	 eNumb = NumberBox(~guiWindowVBAP, Rect(100, 40, 70, 20));
+	 eSlid = Slider(~guiWindowVBAP, Rect(100, 70, 20, 150)).action_({
 		 eNumb.value_(eSlid.value);
 		 ~panVBAP3D.set(\ele, eSlid.value * 180 - 90);
 	 });
 	 eSlid.action.value;
 
-	 sNumb = NumberBox(~guiWindowVBAP, Rect(160, 20, 70, 20));
-	 sSlid = Slider(~guiWindowVBAP, Rect(160, 60, 20, 150)).action_({
+	 textS = StaticText(~guiWindowVBAP, Rect(180, 20, 70, 20));
+	 textS.string = "Spread";
+	 sNumb = NumberBox(~guiWindowVBAP, Rect(180, 40, 70, 20));
+	 sSlid = Slider(~guiWindowVBAP, Rect(180, 70, 20, 150)).action_({
 		 sNumb.value_(sSlid.value);
 		 ~panVBAP3D.set(\spr, sSlid.value * 180);
 	 });
