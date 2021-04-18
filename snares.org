@@ -1568,6 +1568,7 @@ Free the group
       ~player1.stop;
     #+end_src
 *** bass snare 1
+Used in the drum loop among other places.
 **** synthdef
      #+name: bsnare
      #+begin_src sclang :results none
@@ -1588,8 +1589,9 @@ Free the group
            noise_sustain = \nsustain.kr(0.016),
            noise_rel = \nrel.kr(0.1),
            noise_vol = \nvol.kr(0.073),
-               dur = \length.ir(0.5),
-               env = Env.new(levels: [0, 1, 0], times: [0.000001, dur]);
+           dur = \length.ir(0.5),
+           gain = \gain.ir(1.0),
+           env = Env.new(levels: [0, 1, 0], times: [0.000001, dur]);
            snd = OBassSnare.ar(Impulse.ar(impfreq),
                        osc_1_freq: osc1,
                        osc_2_freq: osc2, 
@@ -1600,9 +1602,8 @@ Free the group
                        modulation_freq: modfreq,
                        noise_sustain: 0.2,
                        noise_vol: 0.05,
-                       noise_rel: 0.01,
-                       noise_vol: 0.0) * EnvGen.kr(env, doneAction: Done.freeSelf);
-           Out.ar(0, snd);
+                       noise_rel: 0.01) * EnvGen.kr(env, doneAction: Done.freeSelf);
+           Out.ar(0, snd * gain);
        }).add
        )
      #+end_src
@@ -2393,16 +2394,17 @@ Global variables
 First bass drum pattern
 #+name: b_drum_1
 #+begin_src sclang :results none :noweb yes
- ~loop_bass_dr_1  = Pbind (
+  ~loop_bass_dr_1  = Pbind (
           \instrument, \bsnare,
           \impfreq, 100,
           \osc1, 80,
-          \osc2, 50,
+          \osc2, 70,
           \trifreq, 70,
           \fltfrq, Pseq([100, 200, 300, 400, 500, 600, 700, 800], inf) + 200,
           \fltq, Pseq((1..7), inf),
+          \gain, 4,
           \release, 0.9,
-          \length, Prand([0.2, 0.4, 0.5, 0.6, 0.9], inf) * 0.5,
+          \length, Prand([0.2, 0.4, 0.5, 0.6, 0.9], inf) * 0.3,
           \dur, ~beatsInLoop,
           \time, Pkey(\dur) / Pfunc { thisThread.clock.tempo },
           \rate, Pfunc { thisThread.clock.tempo / ~originalTempo }
@@ -2415,17 +2417,18 @@ First bass drum pattern
   ~loop_bass_dr_2  = Pbind (
           \instrument, \bsnare,
           \impfreq, 1,
-          \osc1, 80,
+          \osc1, 70,
           \osc2, 50,
-          \trifreq, 70,
+          \trifreq, 75,
           \fltfrq, Pseq([100, 200, 300, 400, 500, 600, 700, 800], inf) + 200,
           \fltq, Pseq((1..7), inf),
+          \gain, 4,
           \release, 0.9,
           \length, Prand([0.2, 0.4, 0.5, 0.6, 0.9], inf) * 0.5,
           \dur, ~beatsInLoop,
           \time, Pkey(\dur) / Pfunc { thisThread.clock.tempo },
           \rate, Pfunc { thisThread.clock.tempo / ~originalTempo }
-  );
+  ).play;
 #+end_src
 
 First snare drum
@@ -2433,12 +2436,12 @@ First snare drum
 #+begin_src sclang :results none
   ~loop_snare_1 = Pbind (
           \instrument, \snare,
-          \impf, Prand((1..1), inf),
+          \impf, Prand([~originalTempo, ~originalTempo*7, ~originalTempo*9], inf),
           \freq, Pseq([100, 200], inf),
           \trifreq, 500,
-          \length, Prand((100..100), inf) * 0.01,
+          \length, Prand((40..80), inf) * 0.01,
           \out, 0,
-          \gain, 0.5,
+          \gain, 0.05,
           \dur, ~beatsInLoop,
           \time, Pkey(\dur) / Pfunc {thisThread.clock.tempo},
           \rate, Pfunc {thisThread.clock.tempo / ~originalTempo}
@@ -2452,9 +2455,9 @@ First snare drum
           \impf, Prand([~originalTempo, ~originalTempo*2, ~originalTempo*3, ~originalTempo*4], inf),
           \freq, Pseq([500, 520, 530], inf),
           \trifreq, 50,
-          \length, Prand((50..100), inf) * 0.01,
+          \length, Prand((80..150), inf) * 0.01,
           \out, 1,
-          \gain, 0.8,
+          \gain, 0.2,
           \dur, ~beatsInLoop,
           \time, Pkey(\dur) / Pfunc {thisThread.clock.tempo},
           \rate, Pfunc {thisThread.clock.tempo / ~originalTempo}
@@ -2467,13 +2470,17 @@ First snare drum
           \instrument, \snare_phase_2,
           \freq, Pseq([400, 500], inf),
           \freq2, Pseq([400, 550], inf),	
-          \length, Prand((10..100), inf) * 0.01,
+          \length, Prand((70..100), inf) * 0.01,
           \out, 1,
-          \gain, 0.9,
+          \gain, 0.4,
           \dur, ~beatsInLoop,
           \time, Pkey(\dur) / Pfunc {thisThread.clock.tempo},
           \rate, Pfunc {thisThread.clock.tempo / ~originalTempo}
   )
+#+end_src
+
+#+begin_src sclang :results none
+s.meter;
 #+end_src
 Attempt to make a complete beat with variation.
 #+begin_src sclang :results none :noweb yes
