@@ -29,7 +29,7 @@ import("music.lib") ; // for osci definition
 
 // Number of bands and number of output channels. Offset is if channels < bands.
 bands=16;
-channels = 2;
+channels = 29;
 offset = outgrp(hslider("offset", 0, 0, channels, 1));
 
 // Impulse control
@@ -39,7 +39,7 @@ imp = ba.pulse(impgrp(hslider("tempo", 5000, 50, 48000, 1)));
 // Output control
 outgrp(x) = vgroup("[1]output", x);
 port = outgrp(hslider("output port", 0, 0, 16, 1));
-ongrellls
+
 // Two distribution possibilities, wrapped or wrapped_rnd
 ch_wrapped_rnd(x) = ma.modulo(+(outputctrl, x), channels);
 ch_wrapped(x) = ma.modulo(+(port, x), channels);

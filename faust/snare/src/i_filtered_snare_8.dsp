@@ -1,4 +1,4 @@
-// -*- Compile-command: "cd .. && make jack src=i_filtered_snare_8.dsp && cd -"; -*-&& cd -"; -*-
+// -*- compile-command: "cd .. && make sc src=i_filtered_snare_8.dsp && cd -"; -*-&& cd -"; -*-
 
 declare version " 0.1 ";
 declare author " Henrik Frisk " ;
