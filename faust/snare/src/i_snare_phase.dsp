@@ -22,14 +22,13 @@ import("music.lib") ; // for osci definition
 //---------------------------------------------------
 
 p = hslider("pulse", 1, 1, 5000, 1) : si.smooth(0.999);
-//per = hslider("pulse", 192000, 10, 192000, 1) : *(4);
 per = ma.SR / p : int : *(4);
-//p = hslider("pulse", 1, 1, 1000, 0.01);
 imp = ba.pulse(per);
-// imp = os.imptrain(p);
+
 delA = per : *(0.25);
 delB = per : *(0.5);
 delC = per : *(0.75);
+
 imp_delA = imp : de.sdelay(192000, 64, delA);
 imp_delB = imp : de.sdelay(192000, 64, delB);
 imp_delC = imp : de.sdelay(192000, 64, delC);

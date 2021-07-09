@@ -593,9 +593,9 @@ Ptpar running two Pbinds
   );
   Ptpar([0.0, a, 1, b, 2, a]).play;
 #+end_src
-*** snare phase (polyyrhythmic harmony)
+*** snare phase (polyrhythmic harmony)
 **** synthdef
-Four hits per pulse. Min speed is 1/2 sec. These synths play severl hits for each impuls to allow for high frequencies.
+Four hits per pulse. Min speed is 1/2 sec. These synths play severl hits for each impuls to allow for high frequencies. ~ISnarePhase~ in this version has an accent on every four hits, which may not be desireable in all cases. Plays until stopped.
 #+name: i_snare_phase_1
 #+begin_src sclang :results none
   ~phased_snare = SynthDef(\snare_phase, {
@@ -607,13 +607,14 @@ Four hits per pulse. Min speed is 1/2 sec. These synths play severl hits for eac
   }).add
 #+end_src
 
+~i_snare_phase_2~ differs from the above ([[i_snare_phase_1][i_snare_phase_1]]) only by the addition of an envelope over the ~\length~ of the instance. 
 #+name: i_snare_phase_2
 #+begin_src sclang :results none
   ~phased_snare = SynthDef(\snare_phase_2, {
           var snd, pulse = \pulse.kr(10);
           var frq1 = \freq.kr(300),
           frq2 = \freq2.kr(300),
-          env = Env.new(levels: [1, 0], times: [\length.ir(0.1)], curve: \sin);
+          env = Env.new(levels: [0, 1, 0], times: [0.2, \length.ir(0.1)], curve: \sin);
           snd = ISnarePhase.ar(pulse, \amp.kr(0.5), \attack.ir(0.00001), \fsweep.kr(0), \nattack.kr(0.001), \nlevel.kr(0.2), \nrel.kr(0.1), frq1, frq2, \rel.kr(0.1), \trifreq.kr(111)) * EnvGen.kr(env, timeScale: \length.ir(0.1), doneAction: Done.freeSelf);
           Out.ar(\out.kr(0), snd * \gain.kr(0.5));
   }).add
@@ -622,15 +623,75 @@ Four hits per pulse. Min speed is 1/2 sec. These synths play severl hits for eac
 **** player
 Simple example, of a snare with no snare.
 #+name: single
+#+begin_src sclang :results none :noweb yes
+  <<i_snare_phase_1>>;
+  ~singletest = Synth.new("snare_phase", [\pulse, 10, \length, 1, \freq, 100, \nlevel, 0, \out, 0, \gain, 0.5]);
+#+end_src
+
+Make a series of notes up the harmonic series. Works very nicely. The variables for the function are:
+1. ~mode~: which mode to run the function in (0: harmonic rising, 1: inharmonic falling, 2: experimental
+2. ~fund~: fundamental frequency for the modes.
+3. ~reps~: how many rrepetitions of the function.
+4. ~delta~: delta time bwetween the notes.
+#+name: play_snare_phase
+#+begin_src sclang :results none :noweb yes
+  <<i_snare_phase_2>>;
+  ~play_chord = { |mode, fund, reps, delta, out|
+          var freq, len, osc1, osc2, tri, nlvl, gain;
+
+          switch(mode,
+                  /* mode == 0 */	
+                  0, 	{
+                          /* Starting from frequency x going down */
+                          freq = Array.fill(reps, {arg i; fund * (i + 1)});
+                          osc1 = Array.fill(reps, {arg i; 200 * (i + 1)});
+                          osc2 = Array.fill(reps, {arg i; 100 * (i + 1)});
+                          tri =  Array.fill(reps, {arg i; 410 * (i + 1)});
+
+                  },
+                  /* mode == 1 */	
+                  1,  {
+                          /* Starting from the fundamental, going up */
+//                          freq = Array.fill(reps, {arg i; fund - (100 * i)});
+                          freq = Array.fill(reps, {arg i; fund /  (1 + i)});	
+                          osc1 = Array.fill(reps, {arg i; 250 * (i + 1)});
+                          osc2 = Array.fill(reps, {arg i; 100 * (i + 1)});
+                          tri =  Array.fill(reps, {arg i; 410 * (i + 1)});
+
+                  },
+                  2,  {
+                          /* Inharmonic */
+                          freq = Array.fill(reps, {arg i; fund * ((i * 1) + 1)});
+                          osc1 = Array.fill(reps, {arg i; 200 * (i + 1)});
+                          osc2 = Array.fill(reps, {arg i; 100 * (i + 1)});
+                          tri =  Array.fill(reps, {arg i; 310 * (i + 1)});
+                  });
+          len = Array.exprand(reps, 8, 12);
+          gain = Array.fill(reps, {arg i; 1 / (i + 1) * 0.8;});
+          nlvl = Array.rand(reps, 0, 0);
+
+          fork {
+                  [\pulse, freq, \length, len, \freq, osc1, \freq2, osc2, \trifreq, tri, \nlevel, nlvl, \gain, gain, \out, out].flop.do { |args|
+                          args.postln;
+                          Synth("snare_phase_2", args);
+                          delta.wait;
+                  }
+          };
+  };
+#+end_src
+
+Play a chord according to [[play_snare_phase][play_snare_phase]] with the synth [[i_snare_phase_2][i_snare_phase_2]]. 
 #+begin_src sclang :results none
-  ~singletest = Synth.new("snare_phase", [\pulse, 1, \freq, 100, \nlevel, 0, \out, 0, \gain, 0.5]);
+  ~play_chord.value(1, 1, 2, 2, 0);
+  ~play_chord.value(1, 3, 2, 2, 1);
+  ~play_chord.value(1, 5, 2, 2, 1);
 #+end_src
 
 ***** Polyrhythmic functions (works)
 Polyrhythmic function with two synths (in the array ~synths~) at different speeds. 
 #+name: poly_rythm
 #+begin_src sclang :results none
-  ~polyr = { | nom, denom, f |
+  ~polyr = { | nom, denom, f, osc1, osc2 |
           var f1, f2, phase1, phase2, synths;
           postf("freq is %\n", f);
           f1 = nom * f;
@@ -638,8 +699,8 @@ Polyrhythmic function with two synths (in the array ~synths~) at different speed
           f2 = denom * f;
           "f2 is ".post; f2.postln;
           synths = [
-                  Synth.new("snare_phase", [\pulse, f1, \freq, 100, \nlevel, 0.5, \nrel, 0.2, \gain, 0.4, \out, 1] ),
-                  Synth.new("snare_phase", [\pulse, f2, \freq, 50, \nlevel, 0.5, \nrel, 0.2, \gain, 0.4, \out, 0] )
+                  Synth.new("snare_phase", [\pulse, f1, \freq, 100, \freq2, 130, \nlevel, 0.3, \nrel, 0.1, \gain, 0.4, \out, 1] ),
+                  Synth.new("snare_phase", [\pulse, f2, \freq, 50, \freq2, 230, \nlevel, 0.3, \nrel, 0.1, \gain, 0.4, \out, 0] )
           ];
   };
 #+end_src
@@ -657,7 +718,8 @@ Adjust values in the polyrhythmic structure above.
 
 Function setting the values relative to the pulse. This relies on ~poly_rhythm~ above that delivers the synths.
 #+name: phased_set_values
-#+begin_src sclang :results none
+#+begin_src sclang :results none :noweb yes
+  <<poly_rythm>>
   ~phased_set_values = { |frequency=10, nom, denom, synth|
           var freq = frequency, nlevel, f1, f2, t3, normalizedf, maxf = 2000;
           normalizedf = freq / maxf;
@@ -672,18 +734,8 @@ Function setting the values relative to the pulse. This relies on ~poly_rhythm~ 
           synth[0].set(\pulse, frequency*nom, \nlevel, nlevel, \freq, f1*nom, \freq2, f2*nom, \trifreq, 300);
           synth[1].set(\pulse, frequency*denom, \nlevel, nlevel, \freq, f1*denom, \freq2, f2*denom, \trifreq, 300);
   };
-  k = ~polyr.value(1, 2, 3);
-//  l = ~polyr.value(1, 2, 3);
+  ~polyr_synth = ~polyr.value(1, 2, 3);
   ~phased_set_values.value(1, 2,  3, k);
-//  ~phased_set_values.value(1, 1, 2, l);
-#+end_src
-
-Set a value in the synth.
-#+begin_src sclang :results none
-  k[0].set(\nlevel, 0.0);
-  k[1].set(\nlevel, 0.0);
-  l[0].set(\nlevel, 0.0);
-  l[1].set(\nlevel, 0.0);
 #+end_src
 
 Change values in the synth
@@ -694,22 +746,23 @@ Change values in the synth
 
 Loop to do a accelerando. Uncomment the first two lines to also load the other patches.
 #+begin_src sclang :results none :noweb yes
-  //<<poly_rhythm>>
-  //       <<phased_set_values>>
+  <<phased_set_values>>
   (
   t = Task({
-          loop {
-                  (1..500).do({ |pulse|
-                          //			       ~phased_set_values.set(pulse*0.1, 3, 2);
-                          ~phased_set_values.value(pulse*0.1, 3, 4, k);
-                          //                          ~phased_set_values.value(pulse*0.1, 2, 3, l);
-                          (pulse*0.1).postln;	
-                          0.5.wait;
-                  });
-          }
+          (1..500).do({ |pulse|
+                  ~phased_set_values.value(pulse*1, 3, 4, ~polyr_synth);
+                  ~polyr_synth[0].set(\nlevel, 1/pulse);
+                  ~polyr_synth[1].set(\nlevel, 1/pulse);
+                  ~polyr_synth[0].set(\freq, 100 + (pulse / 100));
+                  ~polyr_synth[1].set(\freq, 100 - (pulse / 250));
+                  if(pulse % 10 == 1,
+                          { "Current nlevel: ".post;		
+                                  (1/pulse).postln;
+                          }, { });
+                  0.2.wait;
+          });
   }).play;
   )
-
 #+end_src
 
 GUI for controling the speed.
