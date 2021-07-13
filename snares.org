@@ -3119,6 +3119,110 @@ Example: Create a accent array and print it.
   ~clock.beatsPerBar = 9
 #+end_src
 
+** harmony
+*** harmonic spat synth
+**** simple synth
+#+name: harmonic_synth
+#+begin_src sclang :results none
+  (
+  SynthDef("test", { arg freq = 440, out = 10, amp = 0.2;
+      Out.ar(out, SinOsc.ar(freq, 0, amp));
+  }).add;
+  )
+#+end_src
+**** harmonics function
+#+begin_src sclang :results none :noweb yes
+  <<harmonic_synth>>;
+  f = { arg fund=200, sel = [1,2], delta = 0.1;
+
+          var harmonics, amp, index = 0;
+          /* Fill arrays for pitches */
+          harmonics = Array.fill(32, { arg i; i*fund; });
+          amp = Array.fill(32, { arg i; 1/(i+1); });	    
+
+          /* Run the loop */
+          t = Task({
+                  (1..32).do({ |pulse|
+                          var ot=10, read, bus;
+                          if(pulse == sel[index],
+                                  { index = index + 1;
+                                          bus = Bus.audio(s, 1);
+                                          ~audioBusses.add(bus);
+                                          Synth("test", [\freq, harmonics[pulse], \amp, amp[pulse], \out, bus]);
+                                          Post << "Harmonic " <<< pulse << ": " <<< harmonics[pulse] <<  ", " <<< amp[pulse] << " at Audio bus " <<< bus.index << Char.nl;
+                                  },
+                                  { });
+                          delta.wait;
+                  });
+          });
+          /* Return the task */
+          t;
+  }
+#+end_src
+
+**** generate harmonics
+#+begin_src sclang :results none
+  var sel, int=0;
+  sel = [ 1, 2, 3];
+  //      sel = [ 1, 2, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23];
+  ~audioBusses = Array.new(sel.size);
+  ~spatializations = Array.new(sel.size);
+  if(sel.size < ~allRings.size,
+          {
+                  while( {int < sel.size},
+                          { ~spatializations.add(~allRings[int]);
+                                  int = int + 1;
+                          });
+          },
+          { "Too many elements".postln; });
+  m = f.value(200, sel, 0.5);
+  m.play;
+#+end_src
+**** free busses
+#+begin_src sclang :results none
+  ~freeAllBusses = {
+          var int = 0;
+          if(~audioBusses.size == 0,
+                  { "Array is empty".postln },
+                  {
+                          while({ int < ~audioBusses.size }, {~audioBusses[int].free; int = int + 1});
+                  })
+  };
+  ~freeAllBusses.value();
+#+end_src
+**** spatialisation
+Spatialisation angles for three rings in triangles:
+#+begin_src sclang :results none
+  ~allRings = [[-24,036688, 10.89], [21.279257, 10.89], [55.741675, 10.89], [101.49442, 10.89], [147.91193, 10.89], [-167.82013, 10.89], [ -123.784, 10.89], [-79.887731, 10.89], [ 0.247203, 21.786405], [69.013292, 21.786405], [158.89992, 21.786405], [-114.65354, 21.786405], [-90, 34.488977], [90, 34.488977]];
+#+end_src
+
+#+begin_src sclang :results none
+  var generate, size;
+  size = ~audioBusses.size;
+  ~audioBusses.do({arg item, i;
+          { VBAP.ar(29, In.ar(item), ~spkrBuffer.bufnum, ~spatializations[i][0], ~spatializations[i][1], 0)}.play(addAction: \addToTail);
+  });
+#+end_src
+#+begin_src sclang :results none
+s.meter;
+#+end_src
+#+begin_src sclang :results none
+s.plotTree
+#+end_src
+***** spkrBuffer settings
+The argument to ~VBAPSpeakerarray~ is ~3~ for 3D and an array of arrays of angle/elevation pairs:
+#+begin_src sclang :results none
+  ~spkrArray = VBAPSpeakerArray.new(3, [[ -34.689614 , 12.910417 ], [ -13.383763 , 12.910417 ], [ 10.440725 , 12.910417 ], [ 32.117788 , 12.910417 ],
+          [ 55.741675 , 12.910417 ], [ 78.207673 , 12.910417 ], [ 101.49442 , 12.910417 ], [ 124.85167 , 12.910417 ],
+          [ 147.91193 , 12.910417 ], [ 169.17789 , 12.910417 ], [ -167.82013 , 12.910417 ], [ -145.63454 , 12.910417 ],
+          [ -123.784 , 12.910417 ], [ -102.64182 , 12.910417 ], [ -79.887731 , 12.910417 ], [ -57.926139 , 12.910417 ],
+          [ -22.349553 , 34.696822 ], [ 22.843958 , 34.696822 ], [ 69.013292 , 34.696822 ], [ 115.56544 , 34.696822 ],
+          [ 158.89992 , 34.696822 ], [ -158.89763 , 34.696822 ], [ -114.65354 , 34.696822 ], [ -68.170128 , 34.696822 ],
+          [ -45 , 69.185799 ], [ 45 , 69.185799 ], [ 135 , 69.185799 ], [ -135 , 69.185799 ], [ 0 , 90 ]]);
+  ~spkrArray.speakers[1].dump;
+  ~spkrBuffer = Buffer.loadCollection(s, ~spkrArray.getSetsAndMatrices);
+#+end_src
+
 ** osc
 *** set netaddress to 'b'
 #+name: set_netaddress
@@ -3348,3 +3452,6 @@ Set parameters
 
 
     
+
+
+           
