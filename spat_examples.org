@@ -348,7 +348,7 @@
 	       [ -45 , 69.185799 ], [ 45 , 69.185799 ], [ 135 , 69.185799 ], [ -135 , 69.185799 ], [ 0 , 90 ]]);
        ~spkrArray.speakers[1].dump;
        ~spkrBuffer = Buffer.loadCollection(s, ~spkrArray.getSetsAndMatrices);
-     #+end_src
+       #+end_src
 
      Circle panning up and down in an unusable pattern. The spread argument is for dispersing the signal. 0 spread is maximum focus.:
      #+begin_src sclang :results none
@@ -361,6 +361,23 @@
        }.play;
        )
      #+end_src
+
+     #+begin_src sclang :results none
+       SynthDef("test_vbap", { arg freq = 440, out = 10, amp = 0.2;
+	       Out.ar(35, SinOsc.ar(freq, 0, amp));
+       }).play;
+       Synth.new("test_vbap");
+     #+end_src
+     #+begin_src sclang :results none
+       (
+       ~panVBAP3 = { |azi = 180, ele = 40, spr = 0|
+	       var source;
+	       source = In.ar(35);
+	       VBAP.ar(29, source, ~spkrBuffer.bufnum, azi, ele, spr);
+       }.play;
+       )
+     #+end_src
+
 ***** Panning examples                                             :noexport:
       Multi panning
       #+begin_src sclang :results none
