@@ -3171,35 +3171,38 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
 
 **** generate harmonics
 Initialize global variable ~~allRings~. Loads and calls the function defined in [[*harmonics function][harmonics function]] and plays it. The ~sel~ array defines the partials to be played. If this is three items long, the array of corresponding synths initatilzed in [[*harmonics function][harmonics function]] will be three.
+
+After calling this, call [[*spatialisation][spatialisation]]: make_vbap to play the busses on the speakers.
+
+- ~sel~: The harmonics to play
+- ~spat~: The angles for each audio bus (needs to be of equal length to ~sel~) 
 #+begin_src sclang :results none :noweb yes
   var sel, spat, int=0, task;
-  //  <<harmonics>>
-  //  <<all_rings>>
+  <<harmonics>>
+  <<all_rings>>
   sel = [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25];
-  //  spat = Array.fill(sel.size, { 0; });
+  //spat = Array.fill(sel.size, { 0; });
   spat = [0, 1, 5, 6, 3, 2, 7, 4, 9, 11, 8, 10];
   ~audioBusses = Array.new(sel.size);
   ~spatializations = Array.new(spat.size);
-  if(sel.size < ~allRings.size,
+  if(sel.size == spat.size,
           {
                   while( {int < sel.size},
                           { ~spatializations.add(~allRings[spat[int]]);
-                                  ~allRings[spat[int]].postln;
                                   int = int + 1;
                           });
           },
-          { "Too many elements in array 'sel'".postln; });
+          { "'sel' and 'spat' have unequal number of elements".postln; });
 
   /* Call the harmonics function and play it.*/
-  t = f.value(100, sel, 0.1);
-  t.play;
-  "here".postln;
+  task = f.value(100, sel, 0.1);
+  task.play;
 #+end_src
 **** spatialisation
 Spatialisation angles for three rings in triangles:
 #+name: all_rings
 #+begin_src sclang :results none
-  ~allRings = [[-24.036688, 10.89], [21.279257, 10.89], [55.741675, 10.89], [101.49442, 10.89], [147.91193, 10.89], [-167.82013, 10.89], [ -123.784, 10.89], [-79.887731, 10.89], [ 0.247203, 21.786405], [69.013292, 21.786405], [158.89992, 21.786405], [-114.65354, 21.786405], [-90, 34.488977], [90, 34.488977]];
+  ~allRings = [[-24.036688, 23.800417], [21.279257, 23.800417], [55.741675, 23.800417], [101.49442, 23.800417], [147.91193, 23.800417], [-167.82013, 23.800417], [ -123.784, 23.800417], [-79.887731, 23.800417], [ 0.247203, 56.476405], [69.013292, 56.476405], [158.89992, 56.476405], [-114.65354, 56.476405], [-90, 86.424489], [90, 86.424489]];
 #+end_src
 
 #+begin_src sclang :results none
@@ -3210,19 +3213,21 @@ Spatialisation angles for three rings in triangles:
 
 #+name: make_vbap
 #+begin_src sclang :results none :noweb yes
+  (
   var generate, size;
   <<vbap_speaker_array>>
-
+  ~spatChannels = Array.new(~audioBusses.size);
   ~audioBusses.do({arg item, i;
-          { VBAP.ar(29,
+          ~spatChannels.add({ VBAP.ar(29,
                   In.ar(item),
                   ~spkrBuffer.bufnum,
                   ~spatializations[i][0],
                   ~spatializations[i][1],
-                  0)}.play(addAction: \addToTail);
+                  0
+          )}.play(addAction: \addToTail););
           "Panning for bus ".post; i.post; ": ".post;
-          ~spatializations[i][0].post; ": ".post; ~spatializations[i][1].postln;
-  });
+          ~spatializations[i][0].post; ": ".post; ~spatializations[i][1].postln; });
+  )
 #+end_src
 #+begin_src sclang :results none
 s.meter;
