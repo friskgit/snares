@@ -3151,8 +3151,8 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
 
           /* Fill arrays for pitches */
           harmonics = Array.fill(32, { arg i; i*fund; });
-          //amp = Array.fill(32, { arg i; 1/(i+1); });
-          amp = Array.fill(32, { arg i; 1; });	    
+          amp = Array.fill(32, { arg i; 1/(i+1); });
+          // amp = Array.fill(32, { arg i; 1; });	    
 
           /* Run the loop */
           t = Task({
@@ -3191,10 +3191,10 @@ _1. Load this_
   <<all_rings>>
 
   //spat = Array.fill(sel.size, { 0; });
-  select = [ 1, 2];
-  spat_positions = [0, 1];
-  // select = [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25];
-  // spat_positions = [0, 1, 5, 6, 3, 2, 7, 4, 9, 11, 8, 10];
+  //select = [ 11, 12];
+  ///spat_positions = [0, 1];
+  select = [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25];
+  spat_positions = [0, 1, 5, 6, 3, 2, 7, 4, 9, 11, 8, 10];
   ~audioBusses = Array.new(select.size);
   ~spatializations = Array.new(spat_positions.size);
   if(select.size == spat_positions.size,
@@ -3213,15 +3213,6 @@ _1. Load this_
   )
 #+end_src
 
-#+begin_src sclang :results none
-  l = [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25];
-  t = [0, 1, 5, 6, 3, 2, 7, 4, 9, 11, 8];
-  [l, t].flop;
-  [[1, 2, 3], [4, 5, 6]].flop;
-  [[1, 2, 3], [4, 5, 6], [7, 8]].flop; // shorter array wraps
-  [].flop; // result is always 2-d.
-#+end_src
-
 **** spatialisation
 Spatialisation angles for three rings in triangles:
 #+name: all_rings
@@ -3229,11 +3220,7 @@ Spatialisation angles for three rings in triangles:
   ~allRings = [[-24.036688, 23.800417], [21.279257, 23.800417], [55.741675, 23.800417], [101.49442, 23.800417], [147.91193, 23.800417], [-167.82013, 23.800417], [ -123.784, 23.800417], [-79.887731, 23.800417], [ 0.247203, 56.476405], [69.013292, 56.476405], [158.89992, 56.476405], [-114.65354, 56.476405], [-90, 86.424489], [90, 86.424489]];
 #+end_src
 
-#+begin_src sclang :results none
-  // ~allRings.size.postln;
-  var spat = Array.fill(9, { 1; });
-  spat.postln;
-#+end_src
+#+call: generate_harmonics()
 
 Call this after running [[*generate harmonics][generate harmonics]] to start the spatialisation of the harmonics.
 
@@ -3243,22 +3230,54 @@ _2. Load this_
   <<vbap_speaker_array>>
   ~spatChannels = Array.new(~audioBusses.size);
   ~audioBusses.do({arg bus, i;
-          ~spatChannels.add({
-                  VBAP.ar(29,
-                          In.ar(bus),
-                          ~spkrBuffer.bufnum,
-                          ~spatializations[i][0],
-                          ~spatializations[i][1],
-                          0
-                  )}.play(addAction: \addToTail););
-          "Panning for bus ".post; i.post; ": ".post;
-          ~spatializations[i][0].post; ": ".post; ~spatializations[i][1].postln; });
+          ~spatChannels.add({ arg azi = 0, ele = 0, spr = 0;
+                  VBAP.ar(29, In.ar(bus), ~spkrBuffer.bufnum, azi, ele, spr)}.play(addAction: \addToTail);
+          );
+  });
 #+end_src
 
+Set an individual channel's panning
 #+begin_src sclang :results none
-~spatChannels[0].set(\spr, 100);
+~spatChannels[0].set(\azi, 0, \spr, 0);
 #+end_src
 
+Set all channels' panning positions.
+#+name: update_panning
+#+begin_src sclang :results none
+  ~spatChannels.do({ arg channel, i;
+          channel.set(\azi, ~spatializations[i][0], \ele, ~spatializations[i][1]);
+	});
+#+end_src
+
+Randomize positions
+#+begin_src sclang :results none :noweb yes
+  var spat_positions =  Array.rand(12, 0, 13);
+  ~spatializations.do({ arg item, i;
+          ~spatializations.put(i, ~allRings[spat_positions[i]]);
+          "Putting ".post;  spat_positions[i].post; " at index ".post; i.postln;
+  });
+  <<update_panning>>
+#+end_src
+
+#+begin_src sclang :results none :noweb yes
+  var delta = 0.5;
+  Task({
+          (1..64).do({ arg index;
+                  var spat_positions =  Array.rand(12, 0, 13);
+                  ~spatializations.do({ arg item, i;
+                          ~spatializations.put(i, ~allRings[spat_positions[i]]);
+                          "Putting ".post;  spat_positions[i].post; " at index ".post; i.postln;
+                  });
+                  ~spatChannels.do({ arg channel, i;
+                          channel.set(\ele, ~spatializations[i][0], \ele, ~spatializations[i][1]);
+                  });
+                  delta.wait;	
+          });
+  }).play;
+#+end_src
+#+begin_src sclang :results none
+  ~allRings.size.postln;
+#+end_src
 #+begin_src sclang :results none
 s.meter;
 #+end_src
@@ -3309,7 +3328,15 @@ Synth.new(\vbap_panning, [\bus, ~audioBusses[0], \spkr_buffer, ~spkrBuffer.bufnu
           if(~audioBusses.size == 0,
                   { "Array is empty".postln },
                   {
-                          while({ int < ~audioBusses.size }, {~audioBusses[int].free; int = int + 1});
+                          while({ int < ~audioBusses.size }, {
+                                  if(~audioBusses[int].index == nil,
+                                          { "Bus cleared already".postln; },
+                                          {		
+                                                  "Clearing bus ".post; ~audioBusses[int].index.postln;
+                                                  ~audioBusses[int].free;
+                                          });		
+                                  int = int + 1;
+                          });
                   })
   };
   ~freeAllBusses.value();
