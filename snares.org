@@ -3121,6 +3121,11 @@ Example: Create a accent array and print it.
 
 ** harmony
 *** harmonic spat synth
+**** boot audio
+#+begin_src sclang :results none :noweb yes
+<<boot_jack>>;
+#+end_src
+
 **** simple synth
 #+name: harmonic_synth
 #+begin_src sclang :results none
@@ -3143,11 +3148,11 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
   f = { arg fund=200, sel = [1,2], delta = 2;
 
           var harmonics, amp, index = 0;
-	
+
           /* Fill arrays for pitches */
           harmonics = Array.fill(32, { arg i; i*fund; });
-          amp = Array.fill(32, { arg i; 1/(i+1); });
-          //          amp = Array.fill(32, { arg i; 1; });	    
+          //amp = Array.fill(32, { arg i; 1/(i+1); });
+          amp = Array.fill(32, { arg i; 1; });	    
 
           /* Run the loop */
           t = Task({
@@ -3174,30 +3179,49 @@ Initialize global variable ~~allRings~. Loads and calls the function defined in 
 
 After calling this, call [[*spatialisation][spatialisation]]: make_vbap to play the busses on the speakers.
 
-- ~sel~: The harmonics to play
-- ~spat~: The angles for each audio bus (needs to be of equal length to ~sel~) 
+- ~select~: The harmonics to play
+- ~spat_positions~: The angles for each audio bus (needs to be of equal length to ~sel~)
+
+_1. Load this_
+#+name: generate_harmonics
 #+begin_src sclang :results none :noweb yes
-  var sel, spat, int=0, task;
+  (
+  var select, spat_positions, task;
   <<harmonics>>
   <<all_rings>>
-  sel = [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25];
+
   //spat = Array.fill(sel.size, { 0; });
-  spat = [0, 1, 5, 6, 3, 2, 7, 4, 9, 11, 8, 10];
-  ~audioBusses = Array.new(sel.size);
-  ~spatializations = Array.new(spat.size);
-  if(sel.size == spat.size,
+  select = [ 1, 2];
+  spat_positions = [0, 1];
+  // select = [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25];
+  // spat_positions = [0, 1, 5, 6, 3, 2, 7, 4, 9, 11, 8, 10];
+  ~audioBusses = Array.new(select.size);
+  ~spatializations = Array.new(spat_positions.size);
+  if(select.size == spat_positions.size,
           {
-                  while( {int < sel.size},
-                          { ~spatializations.add(~allRings[spat[int]]);
-                                  int = int + 1;
+                  i = 0;	
+                  while( {i < select.size},
+                          { ~spatializations.add(~allRings[spat_positions[i]]);
+                                  i = i + 1;
                           });
           },
           { "'sel' and 'spat' have unequal number of elements".postln; });
 
   /* Call the harmonics function and play it.*/
-  task = f.value(100, sel, 0.1);
+  task = f.value(100, select, 0.1);
   task.play;
+  )
 #+end_src
+
+#+begin_src sclang :results none
+  l = [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25];
+  t = [0, 1, 5, 6, 3, 2, 7, 4, 9, 11, 8];
+  [l, t].flop;
+  [[1, 2, 3], [4, 5, 6]].flop;
+  [[1, 2, 3], [4, 5, 6], [7, 8]].flop; // shorter array wraps
+  [].flop; // result is always 2-d.
+#+end_src
+
 **** spatialisation
 Spatialisation angles for three rings in triangles:
 #+name: all_rings
@@ -3211,29 +3235,38 @@ Spatialisation angles for three rings in triangles:
   spat.postln;
 #+end_src
 
+Call this after running [[*generate harmonics][generate harmonics]] to start the spatialisation of the harmonics.
+
+_2. Load this_
 #+name: make_vbap
 #+begin_src sclang :results none :noweb yes
-  (
-  var generate, size;
   <<vbap_speaker_array>>
   ~spatChannels = Array.new(~audioBusses.size);
-  ~audioBusses.do({arg item, i;
-          ~spatChannels.add({ VBAP.ar(29,
-                  In.ar(item),
-                  ~spkrBuffer.bufnum,
-                  ~spatializations[i][0],
-                  ~spatializations[i][1],
-                  0
-          )}.play(addAction: \addToTail););
+  ~audioBusses.do({arg bus, i;
+          ~spatChannels.add({
+                  VBAP.ar(29,
+                          In.ar(bus),
+                          ~spkrBuffer.bufnum,
+                          ~spatializations[i][0],
+                          ~spatializations[i][1],
+                          0
+                  )}.play(addAction: \addToTail););
           "Panning for bus ".post; i.post; ": ".post;
           ~spatializations[i][0].post; ": ".post; ~spatializations[i][1].postln; });
-  )
 #+end_src
+
+#+begin_src sclang :results none
+~spatChannels[0].set(\spr, 100);
+#+end_src
+
 #+begin_src sclang :results none
 s.meter;
 #+end_src
 #+begin_src sclang :results none
 s.plotTree
+#+end_src
+#+begin_src sclang :results none
+~audioBusses[1].scope;
 #+end_src
 ***** spkrBuffer settings
 The argument to ~VBAPSpeakerarray~ is ~3~ for 3D and an array of arrays of angle/elevation pairs:
@@ -3248,6 +3281,25 @@ The argument to ~VBAPSpeakerarray~ is ~3~ for 3D and an array of arrays of angle
           [ -45 , 69.185799 ], [ 45 , 69.185799 ], [ 135 , 69.185799 ], [ -135 , 69.185799 ], [ 0 , 90 ]]);
   ~spkrArray.speakers[1].dump;
   ~spkrBuffer = Buffer.loadCollection(s, ~spkrArray.getSetsAndMatrices);
+#+end_src
+
+***** test with Synthdef
+#+begin_src sclang :results none
+Synth.new(\vbap_panning, [\bus, ~audioBusses[0], \spkr_buffer, ~spkrBuffer.bufnum, \azimuth, 0, \elevation, 0, \spread, 0], addAction: \addToTail);
+#+end_src
+
+#+begin_src sclang :results none
+  SynthDef(\vbap_panning, { var input, snd, bus;
+          bus = \bus.kr;
+          input = In.ar(bus);
+          snd = VBAP.ar(29,
+                  input,
+                  \spkr_buffer.ir,
+                  \azimuth.kr(0),
+                  \elevation.kr(0),
+                  \spread.kr(0));
+          Out.ar(0, snd);
+  }).add;
 #+end_src
 
 **** free busses
