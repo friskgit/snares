@@ -3192,7 +3192,7 @@ _1. Load this_
 
   //spat = Array.fill(sel.size, { 0; });
   //select = [ 11, 12];
-  ///spat_positions = [0, 1];
+  //spat_positions = [0, 1];
   select = [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25];
   spat_positions = [0, 1, 5, 6, 3, 2, 7, 4, 9, 11, 8, 10];
   ~audioBusses = Array.new(select.size);
@@ -3230,23 +3230,81 @@ _2. Load this_
   <<vbap_speaker_array>>
   ~spatChannels = Array.new(~audioBusses.size);
   ~audioBusses.do({arg bus, i;
-          ~spatChannels.add({ arg azi = 0, ele = 0, spr = 0;
-                  VBAP.ar(29, In.ar(bus), ~spkrBuffer.bufnum, azi, ele, spr)}.play(addAction: \addToTail);
+          ~spatChannels.add({ arg azi = 0, ele = 0, spr = 0, cbus;
+                  VBAP.ar(29, In.ar(bus), ~spkrBuffer.bufnum,
+                          azi, ele, spr)}.play(addAction: \addToTail);
           );
   });
 #+end_src
 
+#+begin_src sclang :results none :noweb yes
+  <<vbap_speaker_array>>
+  Ndef.new(\osc, { arg freq = 0;
+          SinOsc.kr(freq, 0, 90, 1) });
+  //  Ndef(\osc).play;
+  ~spatChannels = Array.new(~audioBusses.size);
+  ~spatNdefs = Array.new(~audioBusses.size);
+  ~audioBusses.do({ arg bus, i;
+          m = "Ch" ++ i.asString.asSymbol;
+          n = "Lfo" ++ i.asString.asSymbol;
+          Ndef.new(n, { LFNoise1.kr(0.1, -180, 180) });
+          ~spatNdefs.add(
+                  Ndef.new(m, { arg azi = 0, ele = 0, spr = 0;
+                          VBAP.ar(29, In.ar(bus), ~spkrBuffer.bufnum, azi, ele, spr)}););
+          Ndef(m).play(addAction: \addToTail);
+//          Ndef(m).map(\azi, Ndef(n));
+          //          Ndef(m).set(\azi, 0);
+  });
+#+end_src
+
+#+call: free_busses()
+
+#+begin_src sclang :results none
+  Ndef(\osc).set(\freq, 0);
+#+end_src
+Interpolate over pan values
+#+begin_src sclang :results none
+  var interpolate;
+  interpolate = Task({
+          (1..180).do({ arg index;
+                  ~spatNdefs[1].set(\azi, index);
+                  index.postln;	
+                  0.05.wait;	
+          });
+  }).play;
+#+end_src
+
 Set an individual channel's panning
 #+begin_src sclang :results none
-~spatChannels[0].set(\azi, 0, \spr, 0);
+  b = Bus.control(s, 1);
+  ~spatChannel[0].map(\azi, b);
+  b.set(180);
+#+end_src
+
+#+begin_src sclang :results none
+s.reboot;
+#+end_src
+
+#+begin_src sclang :results none
+  var env = Env([0, 1], [2]), gen, gate;
+  gate = { Impulse.ar(0.5, 0.0, 1, 0) }.play;
+  gen = EnvGen.kr(env, gate, doneAction: \freeSelf);
+#+end_src
+#+begin_src sclang :results none
+  { Impulse.ar(XLine.kr(0,180,5), 0.0,  0.5, 0) }.play;
 #+end_src
 
 Set all channels' panning positions.
 #+name: update_panning
 #+begin_src sclang :results none
   ~spatChannels.do({ arg channel, i;
-          channel.set(\azi, ~spatializations[i][0], \ele, ~spatializations[i][1]);
-	});
+          var as, ae, ii = i - 1;
+          if(i == 0,
+                  {as = 0; ae = ~spatializations[i][0] },
+                  {as = ~spatializations[ii][0]; ae = ~spatializations[i][0] }
+                  ); 
+          channel.set(\azi, as, \azi_e, ae, \ele, ~spatializations[i][1]);
+  });
 #+end_src
 
 Randomize positions
@@ -3322,6 +3380,7 @@ Synth.new(\vbap_panning, [\bus, ~audioBusses[0], \spkr_buffer, ~spkrBuffer.bufnu
 #+end_src
 
 **** free busses
+#+name: free_busses
 #+begin_src sclang :results none
   ~freeAllBusses = {
           var int = 0;
