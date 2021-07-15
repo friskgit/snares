@@ -3184,17 +3184,17 @@ After calling this, call [[*spatialisation][spatialisation]]: make_vbap to play 
 
 _1. Load this_
 #+name: generate_harmonics
-#+begin_src sclang :results none :noweb yes
+#+begin_src sclang :results none :noweb yes :tangle test.sc
   (
   var select, spat_positions, task;
   <<harmonics>>
   <<all_rings>>
 
   //spat = Array.fill(sel.size, { 0; });
-  //select = [ 11, 12];
-  //spat_positions = [0, 1];
-  select = [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25];
-  spat_positions = [0, 1, 5, 6, 3, 2, 7, 4, 9, 11, 8, 10];
+  select = [5,6,7,8,9,10];
+  spat_positions = [5,6,7,8,9,10 ];
+  //select = [ 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25];
+  //spat_positions = [0, 1, 5, 6, 3, 2, 7, 4, 9, 11, 8, 10];
   ~audioBusses = Array.new(select.size);
   ~spatializations = Array.new(spat_positions.size);
   if(select.size == spat_positions.size,
@@ -3208,7 +3208,7 @@ _1. Load this_
           { "'sel' and 'spat' have unequal number of elements".postln; });
 
   /* Call the harmonics function and play it.*/
-  task = f.value(100, select, 0.1);
+  task = f.value(300, select, 0.1);
   task.play;
   )
 #+end_src
@@ -3226,61 +3226,89 @@ Call this after running [[*generate harmonics][generate harmonics]] to start the
 
 _2. Load this_
 #+name: make_vbap
-#+begin_src sclang :results none :noweb yes
+#+begin_src sclang :results none :noweb yes :tangle test.sc
   <<vbap_speaker_array>>
-  ~spatChannels = Array.new(~audioBusses.size);
-  ~audioBusses.do({arg bus, i;
-          ~spatChannels.add({ arg azi = 0, ele = 0, spr = 0, cbus;
-                  VBAP.ar(29, In.ar(bus), ~spkrBuffer.bufnum,
-                          azi, ele, spr)}.play(addAction: \addToTail);
-          );
-  });
-#+end_src
 
-#+begin_src sclang :results none :noweb yes
-  <<vbap_speaker_array>>
-  Ndef.new(\osc, { arg freq = 0;
-          SinOsc.kr(freq, 0, 90, 1) });
-  //  Ndef(\osc).play;
   ~spatChannels = Array.new(~audioBusses.size);
   ~spatNdefs = Array.new(~audioBusses.size);
   ~audioBusses.do({ arg bus, i;
-          m = "Ch" ++ i.asString.asSymbol;
-          n = "Lfo" ++ i.asString.asSymbol;
-          Ndef.new(n, { LFNoise1.kr(0.1, -180, 180) });
+          m = "ch" ++ i.asString.asSymbol;
           ~spatNdefs.add(
                   Ndef.new(m, { arg azi = 0, ele = 0, spr = 0;
                           VBAP.ar(29, In.ar(bus), ~spkrBuffer.bufnum, azi, ele, spr)}););
           Ndef(m).play(addAction: \addToTail);
-//          Ndef(m).map(\azi, Ndef(n));
-          //          Ndef(m).set(\azi, 0);
+  });
+  <<interpolator>>
+  <<update_panning>>
+#+end_src
+
+#+begin_src sclang :results none
+Ndef(~spatNdefs[0].key).set(\ele, 45);
+#+end_src
+Free all busses and stop execution
+#+call: free_busses()
+#+begin_src sclang :results none :noweb yes
+  <<free_busses>>
+  CmdPeriod.run;
+#+end_src
+
+Interpolate over pan values by means of Task
+#+name: interpolator
+#+begin_src sclang :results none :tangle test.sc
+  ~interpolator = { arg instance = 0, range = (0..180), delta = 0.05, param = \azi;
+          var interpolate;
+          interpolate = Task({
+                  range.do({ arg index;
+                          p = index;
+                          ~spatNdefs[instance].set(param, p);
+                          delta.wait;	
+                  });
+          });
+          interpolate;
+  };
+#+end_src
+
+Set all channels' panning positions.
+#+name: update_panning
+#+begin_src sclang :results none :tangle test.sc
+  ~spatNdefs.do({ arg channel, i;
+          var ae, as, es = 0, ee = 1;
+          as = channel.get(\azi);
+          es = channel.get(\ele);
+          ae = ~spatializations[i][0];
+          ~interpolator.value(i, (as..ae), 0.1, \azi).play;
+          ~interpolator.value(i, (es..ee), 0.1, \ele).play;
+          //          "Angles are set to ".post; ae.postln;
+          channel.set(\ele, ~spatializations[i][1]);
   });
 #+end_src
 
-#+call: free_busses()
-
-#+begin_src sclang :results none
-  Ndef(\osc).set(\freq, 0);
-#+end_src
-Interpolate over pan values
-#+begin_src sclang :results none
-  var interpolate;
-  interpolate = Task({
-          (1..180).do({ arg index;
-                  ~spatNdefs[1].set(\azi, index);
-                  index.postln;	
-                  0.05.wait;	
-          });
-  }).play;
+Randomize panning positions
+#+begin_src sclang :results none :noweb yes  :tangle test.sc
+  var spat_positions =  Array.rand(12, 0, 13);
+  ~spatializations.do({ arg item, i;
+          ~spatializations.put(i, ~allRings[spat_positions[i]]);
+          "Putting ".post;  spat_positions[i].post; " at index ".post; i.postln;
+  });
+  <<update_panning>>
 #+end_src
 
-Set an individual channel's panning
+--------------------------------
+
+Example calls
+#+begin_src sclang :results none
+  q = ~interpolator.value(0, (0..180), 0.1).play;
+  p = ~interpolator.value(1, (180..0), 0.1).play;
+#+end_src
+
+Set an individual channel's panning via a bus.
 #+begin_src sclang :results none
   b = Bus.control(s, 1);
   ~spatChannel[0].map(\azi, b);
   b.set(180);
 #+end_src
 
+Reboot Supercollider
 #+begin_src sclang :results none
 s.reboot;
 #+end_src
@@ -3290,33 +3318,8 @@ s.reboot;
   gate = { Impulse.ar(0.5, 0.0, 1, 0) }.play;
   gen = EnvGen.kr(env, gate, doneAction: \freeSelf);
 #+end_src
-#+begin_src sclang :results none
-  { Impulse.ar(XLine.kr(0,180,5), 0.0,  0.5, 0) }.play;
-#+end_src
 
-Set all channels' panning positions.
-#+name: update_panning
-#+begin_src sclang :results none
-  ~spatChannels.do({ arg channel, i;
-          var as, ae, ii = i - 1;
-          if(i == 0,
-                  {as = 0; ae = ~spatializations[i][0] },
-                  {as = ~spatializations[ii][0]; ae = ~spatializations[i][0] }
-                  ); 
-          channel.set(\azi, as, \azi_e, ae, \ele, ~spatializations[i][1]);
-  });
-#+end_src
-
-Randomize positions
-#+begin_src sclang :results none :noweb yes
-  var spat_positions =  Array.rand(12, 0, 13);
-  ~spatializations.do({ arg item, i;
-          ~spatializations.put(i, ~allRings[spat_positions[i]]);
-          "Putting ".post;  spat_positions[i].post; " at index ".post; i.postln;
-  });
-  <<update_panning>>
-#+end_src
-
+Not sure what this is.
 #+begin_src sclang :results none :noweb yes
   var delta = 0.5;
   Task({
@@ -3333,9 +3336,7 @@ Randomize positions
           });
   }).play;
 #+end_src
-#+begin_src sclang :results none
-  ~allRings.size.postln;
-#+end_src
+
 #+begin_src sclang :results none
 s.meter;
 #+end_src
@@ -3348,7 +3349,7 @@ s.plotTree
 ***** spkrBuffer settings
 The argument to ~VBAPSpeakerarray~ is ~3~ for 3D and an array of arrays of angle/elevation pairs:
 #+name: vbap_speaker_array
-#+begin_src sclang :results none
+#+begin_src sclang :results none :tangle test.sc
   ~spkrArray = VBAPSpeakerArray.new(3, [[ -34.689614 , 12.910417 ], [ -13.383763 , 12.910417 ], [ 10.440725 , 12.910417 ], [ 32.117788 , 12.910417 ],
           [ 55.741675 , 12.910417 ], [ 78.207673 , 12.910417 ], [ 101.49442 , 12.910417 ], [ 124.85167 , 12.910417 ],
           [ 147.91193 , 12.910417 ], [ 169.17789 , 12.910417 ], [ -167.82013 , 12.910417 ], [ -145.63454 , 12.910417 ],
