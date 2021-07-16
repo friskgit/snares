@@ -298,7 +298,7 @@
      #+begin_src sclang :results none :tangle vbap_example.sc
        (
        ~panVBAP = { |azi = 0, ele = 0, spr = 0|
-	       VBAP.ar(16, In.ar(33,1), ~spkrBuffer.bufnum, azi, ele, spr);
+	       VBAP.ar(16, In.ar(35,1), ~spkrBuffer.bufnum, azi, ele, spr);
        }.scope;
        ~panVBAP.set(\azi, 90);
        )       
@@ -306,7 +306,7 @@
 
      Change the panning angle:
      #+begin_src sclang :results none
-       ~panVBAP.set(\azi, 2400);
+       ~panVBAP.set(\azi, 80);
      #+end_src     
 **** 2D GUI                                                        :noexport:
      #+begin_src sclang :results none :tangle vbap_example.sc
@@ -356,17 +356,21 @@
        ~panVBAP3 = { |azi = 0, ele = 0, spr = 0|
 	       var source;
 	       source = In.ar(35);
-	       VBAP.ar(29, source, ~spkrBuffer.bufnum, LFSaw.kr(0.5, 0).range(-180, 180) * -1, SinOsc.kr(3, 0).range(0, 14.97), spr);
+	       VBAP.ar(29, source, ~spkrBuffer.bufnum, LFSaw.kr(0.1, 0).range(-180, 180) * -1, SinOsc.kr(3, 0).range(0, 14.97), spr);
 
        }.play;
        )
      #+end_src
 
      #+begin_src sclang :results none
-       SynthDef("test_vbap", { arg freq = 440, out = 10, amp = 0.2;
+       SynthDef(\test_vbap, { arg freq = 440, out = 10, amp = 0.2;
 	       Out.ar(35, SinOsc.ar(freq, 0, amp));
        }).play;
-       Synth.new("test_vbap");
+       Synth.new(\test_vbap);
+     #+end_src
+
+     #+begin_src sclang :results none
+       s.meter;
      #+end_src
      #+begin_src sclang :results none
        (
