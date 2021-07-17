@@ -3170,14 +3170,17 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                   { 
                                           bus = Bus.audio(s, 1);
                                           ~audioBusses.add(bus);
-                                          // Synth("test", [\freq, harmonics[i], \amp, amp[i], \out, bus]);
-                                          Synth.new("snare_phase", [\pulse, harmonics[i],
-                                                  \length, 1,
-                                                  \freq, harmonics[i]/10,
-                                                  \freq2, harmonics[i]/2,
-                                                  \trifreq, harmonics[i] /20,
-                                                  \nlevel, 0, \out, bus,
-                                                  \gain, amp[i]]);		
+                                          ~originalFrequencies.add(harmonics[i]);		
+                                          ~synths.add(
+                                                  // Synth("test", [\freq, harmonics[i], \amp, amp[i], \out, bus]);
+                                                  Synth.new("snare_phase", [\pulse, harmonics[i],
+                                                          \length, 1,
+                                                          \freq, harmonics[i]/10,
+                                                          \freq2, harmonics[i]/2,
+                                                          \trifreq, harmonics[i] /20,
+                                                          \nlevel, 0, \out, bus,
+                                                          \gain, amp[i]]);
+                                          );
                                           Post << "Harmonic " <<< i << ": " <<< harmonics[i] <<  ", " <<< amp[i] << " at Audio bus " <<< bus.index << Char.nl;
                                           index = index + 1; i.postln;		
                                   },
@@ -3193,6 +3196,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
 #+begin_src sclang :results none :noweb yes
   <<free_busses>>
 #+end_src
+
 **** generate harmonics
 Initialize global variable ~~allRings~. Loads and calls the function defined in [[*harmonics function][harmonics function]] and plays it. The ~sel~ array defines the partials to be played. If this is three items long, the array of corresponding synths initatilzed in [[*harmonics function][harmonics function]] will be three.
 
@@ -3205,23 +3209,30 @@ _1. Load this_
 #+name: generate_harmonics
 #+begin_src sclang :results none :noweb yes :tangle harmony.sc
   (
-  var select, spat_positions, task;
+  var select, spat_positions, task, mode = \full;
   <<all_rings>>
   <<harmonics>>
 
-  //spat = Array.fill(sel.size, { 0; });
-  //  select = [3,5,7,9,11,13,15,17,19,21,23,25,27,29,31];
-  //spat_positions = [0,1,5,6,3,2,7,4,9,11,8,10,12,13,14];
-  select = [3,5];
-  spat_positions = [0,1];
+  switch( mode,
+          \full, {
+                  select = [3,5,7,9,11,13,15,17,19,21,23,25,27,29,31];
+                  spat_positions = [0,1,5,6,3,2,7,4,9,11,8,10,12,13,14];
+          },
+          \alt, {
+                  select = [3,5];
+                  spat_positions = [0,1];
+          });
   if(~logging > 1,
           {
                   "Select array is ".post; select.size.postln;
                   "Spat array is ".post; spat_positions.size.postln; },
           { });
-  //  select = [ 0, 1, 2, 3, 4, 5];
-  //  spat_positions = [0, 1, 5, 6, 3, 2];
+  /* Holds the busses */
   ~audioBusses = Array.new(select.size);
+  /* Holds the synths */
+  ~synths = Array.new(select.size);
+  /* Holds the original frequency for each bin */
+  ~originalFrequencies = Array.new(select.size);
   ~spatializations = Array.new(spat_positions.size);
 
   if(select.size == spat_positions.size,
@@ -3284,7 +3295,30 @@ Call this after running [[*generate harmonics][generate harmonics]] to start the
 #+end_src
 
 #+begin_src sclang :results none
-~audioBusses[0].set(\pulse, 20);
+  ~synths[1].set(\pulse, 300);
+#+end_src
+
+#+begin_src sclang :results none 
+  ~speeder = { arg instance = 0, range = (3..100), delta = 0.5, param = \pulse;
+          var interpolate;
+          interpolate = Task({
+                  range.do({ arg index;
+                          ~synths[1].set(param, index);
+                          delta.wait;	
+                  });
+          });
+          interpolate.play;
+  };
+~speeder.value(1, (10..100), 0.8, \pulse);
+#+end_src
+
+#+begin_src sclang :results none
+  var ind = 1;
+  ~synths[ind].set(\pulse, ~originalFrequencies[ind]);
+#+end_src
+
+#+begin_src sclang :results none
+~originalFrequencies[0].postln;
 #+end_src
 Function for generating the lines for the panning modulation.
 #+name: inter_pan
@@ -3325,7 +3359,6 @@ _3. Randomize panning here_
 
 _4. Free all_
 Free all busses and stop execution
-#+name: free_busses()
 #+begin_src sclang :results none :noweb yes
   <<free_busses>>
   CmdPeriod.run;
@@ -3394,7 +3427,8 @@ Synth.new(\vbap_panning, [\bus, ~audioBusses[0], \spkr_buffer, ~spkrBuffer.bufnu
                                           {		
                                                   "Clearing bus ".post; ~audioBusses[int].index.postln;
                                                   ~audioBusses[int].free;
-                                                  ~controlBus[int].free;			
+                                                  ~controlBus[int].free;
+                                                  ~synths[int].free;			
                                           });		
                                   int = int + 1;
                           });
@@ -3403,7 +3437,7 @@ Synth.new(\vbap_panning, [\bus, ~audioBusses[0], \spkr_buffer, ~spkrBuffer.bufnu
   ~freeAllBusses.value();
 
   ~freeNdefs = {
-          Ndef.clear(1);
+          Ndef.clear(0);
   };
   ~freeNdefs.value();
 #+end_src
