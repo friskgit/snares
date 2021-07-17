@@ -3152,16 +3152,24 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
 #+begin_src sclang :results none :noweb yes
   <<harmonic_synth>>;
   <<i_snare_phase_1>>;
-  f = { arg fund=200, sel = [1,2,3], delta = 0.1;
+  f = { arg fund=200, sel = [1,2,3], delta = 0.05, amp_mode = \full;
 
-          var harmonics, amp, index = 0;
+          var harmonics, amp, index = 0, noise_level = 0;
 
           /* Fill arrays for pitches */
           harmonics = Array.fill(32, { arg i; i*fund; });
-          amp = Array.fill(32, { arg i; 1/(i+1); });
-          // All harmonics with the same amplitude //
-          // amp = Array.fill(32, { arg i; 1; });	    
+          switch(amp_mode, 
+                  \default, {amp = Array.fill(32, { arg i; 1/(i+1); }); },
+                  /* All harmonics with the same amplitude */	
+                  \full, {amp = Array.fill(32, { arg i; 1; });  },
+                  \linear, {amp = Array.series(32, 1, -0.03125)},
+                  \reverse, {amp = Array.series(32, 0.03125, 0.3125)}
+          );	
 
+          /* Map frequency to noise level */
+          g = ControlSpec(0.1, 0.0, \linear, 0.001, 0);
+          g.clipHi(0.1);   g.clipLo(0.0);
+	
           /* Run the loop */
           t = Task({
                   (0..31).do({ |i|
@@ -3170,7 +3178,10 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                   { 
                                           bus = Bus.audio(s, 1);
                                           ~audioBusses.add(bus);
-                                          ~originalFrequencies.add(harmonics[i]);		
+                                          ~originalFrequencies.add(harmonics[i]);
+                                          noise_level = g.map(harmonics[i] / 120);
+                                          "Noise level: ".post; noise_level.postln;
+                                          (harmonics[i] / 120).postln;
                                           ~synths.add(
                                                   // Synth("test", [\freq, harmonics[i], \amp, amp[i], \out, bus]);
                                                   Synth.new("snare_phase", [\pulse, harmonics[i],
@@ -3193,10 +3204,21 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
   };
 #+end_src
 
+#+begin_src sclang :results none
+  var freq = 10;
+  y = freq / 120;
+  g = ControlSpec(0.1, 0.0, \lin, 0.001, 0);
+  g.clipHi(0.1);   g.clipLow(0.0);
+  g.map(y).postln;
+
+#+end_src
+
 #+begin_src sclang :results none :noweb yes
   <<free_busses>>
 #+end_src
-
+#+begin_src sclang :results none
+Array.series(32, 1, -0.03125).postln;
+#+end_src
 **** generate harmonics
 Initialize global variable ~~allRings~. Loads and calls the function defined in [[*harmonics function][harmonics function]] and plays it. The ~sel~ array defines the partials to be played. If this is three items long, the array of corresponding synths initatilzed in [[*harmonics function][harmonics function]] will be three.
 
@@ -3218,7 +3240,7 @@ _1. Load this_
                   select = [3,5,7,9,11,13,15,17,19,21,23,25,27,29,31];
                   spat_positions = [0,1,5,6,3,2,7,4,9,11,8,10,12,13,14];
           },
-          \alt, {
+          \test, {
                   select = [3,5];
                   spat_positions = [0,1];
           });
