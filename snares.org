@@ -625,7 +625,7 @@ Simple example, of a snare with no snare.
 #+name: single
 #+begin_src sclang :results none :noweb yes
   <<i_snare_phase_1>>;
-  ~singletest = Synth.new("snare_phase", [\pulse, 10, \length, 1, \freq, 100, \nlevel, 0, \out, 0, \gain, 0.5]);
+  ~singletest = Synth.new("snare_phase", [\pulse, 4000, \length, 1, \freq, 10, \nlevel, 0, \out, 0, \gain, 0.5]);
 #+end_src
 
 Make a series of notes up the harmonic series. Works very nicely. The variables for the function are:
@@ -3151,6 +3151,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
 #+name: harmonics
 #+begin_src sclang :results none :noweb yes
   <<harmonic_synth>>;
+  <<i_snare_phase_1>>;
   f = { arg fund=200, sel = [1,2,3], delta = 0.1;
 
           var harmonics, amp, index = 0;
@@ -3169,7 +3170,14 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                   { 
                                           bus = Bus.audio(s, 1);
                                           ~audioBusses.add(bus);
-                                          Synth("test", [\freq, harmonics[i], \amp, amp[i], \out, bus]);
+                                          // Synth("test", [\freq, harmonics[i], \amp, amp[i], \out, bus]);
+                                          Synth.new("snare_phase", [\pulse, harmonics[i],
+                                                  \length, 1,
+                                                  \freq, harmonics[i]/10,
+                                                  \freq2, harmonics[i]/2,
+                                                  \trifreq, harmonics[i] /20,
+                                                  \nlevel, 0, \out, bus,
+                                                  \gain, amp[i]]);		
                                           Post << "Harmonic " <<< i << ": " <<< harmonics[i] <<  ", " <<< amp[i] << " at Audio bus " <<< bus.index << Char.nl;
                                           index = index + 1; i.postln;		
                                   },
@@ -3178,7 +3186,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                   });
           });
           /* Return the task */
-	t;
+          t;
   };
 #+end_src
 
@@ -3202,8 +3210,10 @@ _1. Load this_
   <<harmonics>>
 
   //spat = Array.fill(sel.size, { 0; });
-  select = [3,5,7,9,11,13,15,17,19,21,23,25,27,29,31];
-  spat_positions = [0,1,5,6,3,2,7,4,9,11,8,10,12,13,14];
+  //  select = [3,5,7,9,11,13,15,17,19,21,23,25,27,29,31];
+  //spat_positions = [0,1,5,6,3,2,7,4,9,11,8,10,12,13,14];
+  select = [3,5];
+  spat_positions = [0,1];
   if(~logging > 1,
           {
                   "Select array is ".post; select.size.postln;
@@ -3233,7 +3243,7 @@ _1. Load this_
 
 
   /* Call the harmonics function and play it.*/
-  task = f.value(300, select, 0.1);
+  task = f.value(1, select, 0.1);
   task.play;
   )
 #+end_src
@@ -3266,13 +3276,16 @@ Call this after running [[*generate harmonics][generate harmonics]] to start the
                           azi = In.kr(n);
                           ele = In.kr(n.index + 1);	
                           VBAP.ar(29, In.ar(bus), ~spkrBuffer.bufnum, In.kr(n), In.kr(n.index + 1), spr)}););
+          Ndef(m).fadeTime(1);
           Ndef(m).play(addAction: \addToTail);
   });
-  <<update_panning>>
   <<inter_pan>>
   <<update_panning>>
 #+end_src
 
+#+begin_src sclang :results none
+~audioBusses[0].set(\pulse, 20);
+#+end_src
 Function for generating the lines for the panning modulation.
 #+name: inter_pan
 #+begin_src sclang :results none  :tangle harmony.sc
@@ -3394,8 +3407,7 @@ Synth.new(\vbap_panning, [\bus, ~audioBusses[0], \spkr_buffer, ~spkrBuffer.bufnu
   };
   ~freeNdefs.value();
 #+end_src
-
-**** alternative studd
+**** alternative stuff
 Interpolate over pan values by means of Task
 #+name: interpolator
 #+begin_src sclang :results none 
