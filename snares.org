@@ -3161,7 +3161,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
           switch(amp_mode, 
                   \default, {amp = Array.fill(32, { arg i; 1/(i+1); }); },
                   /* All harmonics with the same amplitude */	
-                  \full, {amp = Array.fill(32, { arg i; 1; });  },
+                  \full, {amp = Array.fill(32, { arg i; 0.3; });  },
                   \linear, {amp = Array.series(32, 1, -0.03125)},
                   \reverse, {amp = Array.series(32, 0.03125, 0.3125)}
           );	
@@ -3173,7 +3173,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
           /* Run the loop */
           t = Task({
                   (0..31).do({ |i|
-                          var bus;
+                          var bus, synth;
                           if(i == sel[index],
                                   { 
                                           bus = Bus.audio(s, 1);
@@ -3181,32 +3181,29 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                           ~originalFrequencies.add(harmonics[i]);
                                           noise_level = g.map(harmonics[i] / 120);
                                           "Noise level: ".post; noise_level.postln;
-                                          ~synths.add(
-						
-                                                  switch(synth_mode,
-                                                          \sin, {			
-                                                                  Synth("test", [\freq, harmonics[i], \amp, amp[i], \out, bus]);
-                                                          },
-                                                          \snare, {
-                                                                  Synth.new("snare_phase", [\pulse, harmonics[i],
-                                                                          \length, 1,
-                                                                          \freq, harmonics[i]/10,
-                                                                          \freq2, harmonics[i]/2,
-                                                                          \trifreq, harmonics[i] /20,
-                                                                          \nlevel, noise_level,
-                                                                          \out, bus,
-                                                                          \gain, amp[i]]);
-                                                          }); //switch
-						
-                                                  if(~logging > 0,
-                                                          {			
-                                                                  Post << "Harmonic " <<< i << ": " <<< harmonics[i] <<  ", " <<< amp[i] << " at Audio bus " <<< bus.index << Char.nl;
-                                                                  index = index + 1; i.postln;
-                                                          },
-                                                          { }); //if
+                                          switch(synth_mode,
+                                                  \sin, {			
+                                                          synth = Synth("test", [\freq, harmonics[i], \amp, amp[i], \out, bus]);
+                                                  },
+                                                  \snare, {
+                                                          synth = Synth.new("snare_phase", [\pulse, harmonics[i],
+                                                                  \length, 1,
+                                                                  \freq, harmonics[i]/10,
+                                                                  \freq2, harmonics[i]/2,
+                                                                  \trifreq, harmonics[i] /20,
+                                                                  \nlevel, noise_level,
+                                                                  \out, bus,
+                                                                  \gain, amp[i]]);
+                                                  }); //switch
 
-                                          ); // synths.add
-					
+                                          if(~logging > 0,
+                                                  {			
+                                                          Post << "Harmonic " <<< i << ": " <<< harmonics[i] <<  ", " <<< amp[i] << " at Audio bus " <<< bus.index << Char.nl;
+                                                          index = index + 1; i.postln;
+                                                  },
+                                                  { }); //if
+                                          ~synths.add( synth ); // synths.add
+
                                   }, //if true
                                   {  }); // false, end
                           delta.wait;
@@ -3279,7 +3276,7 @@ _1. Load this_
           { "'sel' and 'spat' have unequal number of elements".postln; }); // if clause
 
   /* Call the harmonics function and play it.*/
-  task = f.value(100, select, 0.1, \default, \sin);
+  task = f.value(150, select, 0.1, \full, \snare);
   task.play;
   )
 #+end_src
@@ -3315,18 +3312,24 @@ Call this after running [[*generate harmonics][generate harmonics]] to start the
           Ndef(m).fadeTime(1);
           Ndef(m).play(addAction: \addToTail);
   });
-//  <<inter_pan>>
-//  <<update_panning>>
+  <<inter_pan>>
+  <<update_panning>>
 #+end_src
 
 Control individual synths pulse.
 #+begin_src sclang :results none
-  ~synths[1].set(\pulse, 300);
+  ~synths[0].set(\freq, 10);
 #+end_src
 
+#+begin_src sclang :results none
+  var changeAll = ~synths.do({ arg item, i;
+          ~synths[i].set(\trifreq, 200);	
+  });	
+#+end_src
 Gradually increase pulse speed in one synth.
-#+begin_src sclang :results none 
-  ~speeder = { arg instance = 0, range = (3..100), delta = 0.5, param = \pulse;
+#+begin_src sclang :results none
+  var speeder;
+  speeder = { arg instance = 0, range = (3..200), delta = 0.5, param = \pulse;
           var interpolate;
           interpolate = Task({
                   range.do({ arg index;
@@ -3336,7 +3339,7 @@ Gradually increase pulse speed in one synth.
           });
           interpolate.play;
   };
-~speeder.value(1, (10..100), 0.8, \pulse);
+  speeder.value(0, (150..5), 0.8, \pulse);
 #+end_src
 
 #+begin_src sclang :results none
@@ -3365,8 +3368,7 @@ Function for generating the lines for the panning modulation.
 ~update_panning~ is called to update panning positions in the ~spatNdefs~ arrays. The actual modulation happens in [[inter_pan][inter_pan]].
 #+name: update_panning
 #+begin_src sclang :results none :tangle harmony.sc
-  var updatePanning;
-  updatePanning = { arg duration;
+  ~updatePanning = { arg duration;
           ~spatNdefs.do({ arg channel, i;
                   ~interPan.value(i, ~controlBus[i],
                           ~controlBus[i].getnSynchronous(2)[0], ~spatializations[i][0],
@@ -3389,7 +3391,7 @@ _3 Setting spatialization_
                                   "Putting ".post;  spat_array.wrapAt(i).post; " at index ".post; i.postln;
                           }, { }); // if logging
           }); // spatialilzation.do
-          updatePanning.value(10);
+          ~updatePanning.value(10);
   };
 #+end_src
 
