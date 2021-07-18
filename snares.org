@@ -3152,7 +3152,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
 #+begin_src sclang :results none :noweb yes
   <<harmonic_synth>>;
   <<i_snare_phase_1>>;
-  f = { arg fund=200, sel = [1,2,3], delta = 0.05, amp_mode = \full;
+  f = { arg fund=200, sel = [1,2,3], delta = 0.05, amp_mode = \full, synth_mode = \sin;
 
           var harmonics, amp, index = 0, noise_level = 0;
 
@@ -3168,8 +3168,8 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
 
           /* Map frequency to noise level */
           g = ControlSpec(0.1, 0.0, \linear, 0.001, 0);
-          g.clipHi(0.1);   g.clipLo(0.0);
-	
+          g.clipHi(0.1);  g.clipLo(0.0);
+
           /* Run the loop */
           t = Task({
                   (0..31).do({ |i|
@@ -3181,36 +3181,40 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                           ~originalFrequencies.add(harmonics[i]);
                                           noise_level = g.map(harmonics[i] / 120);
                                           "Noise level: ".post; noise_level.postln;
-                                          (harmonics[i] / 120).postln;
                                           ~synths.add(
-                                                  // Synth("test", [\freq, harmonics[i], \amp, amp[i], \out, bus]);
-                                                  Synth.new("snare_phase", [\pulse, harmonics[i],
-                                                          \length, 1,
-                                                          \freq, harmonics[i]/10,
-                                                          \freq2, harmonics[i]/2,
-                                                          \trifreq, harmonics[i] /20,
-                                                          \nlevel, 0, \out, bus,
-                                                          \gain, amp[i]]);
-                                          );
-                                          Post << "Harmonic " <<< i << ": " <<< harmonics[i] <<  ", " <<< amp[i] << " at Audio bus " <<< bus.index << Char.nl;
-                                          index = index + 1; i.postln;		
-                                  },
-                                  {  });
+						
+                                                  switch(synth_mode,
+                                                          \sin, {			
+                                                                  Synth("test", [\freq, harmonics[i], \amp, amp[i], \out, bus]);
+                                                          },
+                                                          \snare, {
+                                                                  Synth.new("snare_phase", [\pulse, harmonics[i],
+                                                                          \length, 1,
+                                                                          \freq, harmonics[i]/10,
+                                                                          \freq2, harmonics[i]/2,
+                                                                          \trifreq, harmonics[i] /20,
+                                                                          \nlevel, noise_level,
+                                                                          \out, bus,
+                                                                          \gain, amp[i]]);
+                                                          }); //switch
+						
+                                                  if(~logging > 0,
+                                                          {			
+                                                                  Post << "Harmonic " <<< i << ": " <<< harmonics[i] <<  ", " <<< amp[i] << " at Audio bus " <<< bus.index << Char.nl;
+                                                                  index = index + 1; i.postln;
+                                                          },
+                                                          { }); //if
+
+                                          ); // synths.add
+					
+                                  }, //if true
+                                  {  }); // false, end
                           delta.wait;
                   });
           });
           /* Return the task */
           t;
   };
-#+end_src
-
-#+begin_src sclang :results none
-  var freq = 10;
-  y = freq / 120;
-  g = ControlSpec(0.1, 0.0, \lin, 0.001, 0);
-  g.clipHi(0.1);   g.clipLow(0.0);
-  g.map(y).postln;
-
 #+end_src
 
 #+begin_src sclang :results none :noweb yes
@@ -3232,10 +3236,11 @@ _1. Load this_
 #+begin_src sclang :results none :noweb yes :tangle harmony.sc
   (
   var select, spat_positions, task, mode = \full;
+  <<global_variables>>
   <<all_rings>>
   <<harmonics>>
 
-  switch( mode,
+  switch(mode,
           \full, {
                   select = [3,5,7,9,11,13,15,17,19,21,23,25,27,29,31];
                   spat_positions = [0,1,5,6,3,2,7,4,9,11,8,10,12,13,14];
@@ -3243,12 +3248,13 @@ _1. Load this_
           \test, {
                   select = [3,5];
                   spat_positions = [0,1];
-          });
+          }); // switch(mode
   if(~logging > 1,
           {
                   "Select array is ".post; select.size.postln;
                   "Spat array is ".post; spat_positions.size.postln; },
-          { });
+          { }); //if clause
+
   /* Holds the busses */
   ~audioBusses = Array.new(select.size);
   /* Holds the synths */
@@ -3265,18 +3271,15 @@ _1. Load this_
                                   while( {i < spat_positions.size},
                                           { ~spatializations.add(~allRings[spat_positions[i]]);
                                                   if(~logging > 1,
-                                                          { "Loading spat position ".post;
-                                                                  i.post;
-                                                                  ":".post;                                ~allRings[spat_positions[i]].postln; }, {});
+                                                          { "Loading spat position ".post; i.post; ":".post; ~allRings[spat_positions[i]].postln; }, { }); // if clause
                                                   i = i + 1;
-                                          });
-                          }, { });
+                                          }); // while clause
+                          }, { }); // if clause
           },
-          { "'sel' and 'spat' have unequal number of elements".postln; });
-
+          { "'sel' and 'spat' have unequal number of elements".postln; }); // if clause
 
   /* Call the harmonics function and play it.*/
-  task = f.value(1, select, 0.1);
+  task = f.value(100, select, 0.1, \default, \sin);
   task.play;
   )
 #+end_src
@@ -3312,14 +3315,16 @@ Call this after running [[*generate harmonics][generate harmonics]] to start the
           Ndef(m).fadeTime(1);
           Ndef(m).play(addAction: \addToTail);
   });
-  <<inter_pan>>
-  <<update_panning>>
+//  <<inter_pan>>
+//  <<update_panning>>
 #+end_src
 
+Control individual synths pulse.
 #+begin_src sclang :results none
   ~synths[1].set(\pulse, 300);
 #+end_src
 
+Gradually increase pulse speed in one synth.
 #+begin_src sclang :results none 
   ~speeder = { arg instance = 0, range = (3..100), delta = 0.5, param = \pulse;
           var interpolate;
@@ -3342,6 +3347,7 @@ Call this after running [[*generate harmonics][generate harmonics]] to start the
 #+begin_src sclang :results none
 ~originalFrequencies[0].postln;
 #+end_src
+
 Function for generating the lines for the panning modulation.
 #+name: inter_pan
 #+begin_src sclang :results none  :tangle harmony.sc
@@ -3359,26 +3365,53 @@ Function for generating the lines for the panning modulation.
 ~update_panning~ is called to update panning positions in the ~spatNdefs~ arrays. The actual modulation happens in [[inter_pan][inter_pan]].
 #+name: update_panning
 #+begin_src sclang :results none :tangle harmony.sc
-  ~spatNdefs.do({ arg channel, i;
-          ~interPan.value(i, ~controlBus[i],
-                  ~getCBusValue.value(i, 0), ~spatializations[i][0],
-                  ~getCBusValue.value(i, 1), ~spatializations[i][1], 10);
-  });
+  var updatePanning;
+  updatePanning = { arg duration;
+          ~spatNdefs.do({ arg channel, i;
+                  ~interPan.value(i, ~controlBus[i],
+                          ~controlBus[i].getnSynchronous(2)[0], ~spatializations[i][0],
+                          ~controlBus[i].getnSynchronous(2)[1], ~spatializations[i][1], duration);
+          });
+  };
 #+end_src
 
-_3. Randomize panning here_
+_3 Setting spatialization_
 #+begin_src sclang :results none :noweb yes  :tangle harmony.sc
-  var spat_positions =  Array.rand(~spatializations.size, 0, 14);
-  ~spatializations.do({ arg item, i;
-          ~spatializations.put(i, ~allRings[spat_positions[i]]);       
-          if(~logging > 1,
-                  {
-                          "Putting ".post;  spat_positions[i].post; " at index ".post; i.postln;
-                  }, { });
-  });
-<<update_panning>>
+  <<spat_function>>
+  <<update_panning>>
+  ~setSpatPositions = { arg spat_array = [0, 1, 2];
+          "spat size ".post;  ~spatializations.size.postln;
+          ~spatializations.do({ arg item, i;
+                  ~spatializations.put(i, ~allRings.wrapAt(spat_array.wrapAt(i)));       
+                  if(~logging > 1,
+                          {
+                                  "Set panning:".postln;
+                                  "Putting ".post;  spat_array.wrapAt(i).post; " at index ".post; i.postln;
+                          }, { }); // if logging
+          }); // spatialilzation.do
+          updatePanning.value(10);
+  };
 #+end_src
 
+Change spatialization. Spat is controlled by an arbitrary length array that points to one of the 14 (0-13) speaker positions available. Use the ~spat_function~ to create new presets.
+#+begin_src sclang :results none
+~setSpatialization.value(\random, 1);
+#+end_src
+
+#+name: spat_function
+#+begin_src sclang :results none
+  ~setSpatialization = { arg preset, time;
+      switch(preset,
+		\simple, { ~setSpatPositions.value([3,4]); },
+                  \frontTop, { ~setSpatPositions.value([13, 12 ,13, 12,13,12,13,12,8,9,8,9,8,9]); },
+                  \back, { ~setSpatPositions.value([6,5,4,3,3,4,5,6,11,10,11,10,11,10,11]); },
+                  \allInOne, { ~setSpatPositions.value(Array.fill(15, { arg i; 1; })); },
+                  \random, { ~setSpatPositions.value(Array.rand(~spatializations.size, 0, 14)); });
+  };
+#+end_src
+#+begin_src sclang :results none
+~allRings.size.postln;
+#+end_src
 _4. Free all_
 Free all busses and stop execution
 #+begin_src sclang :results none :noweb yes
