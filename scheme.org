@@ -20,11 +20,11 @@
 : #<unspecified>
 
 #+begin_src scheme :results value
-(length (make-list 16 0))
+(length (make-list 20 0))
 #+end_src
 
 #+RESULTS:
-: 16
+: 20
 
 #+begin_src scheme :results value
 (car (list 1 2 3))

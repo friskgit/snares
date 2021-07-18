@@ -3126,7 +3126,7 @@ Example: Create a accent array and print it.
 <<boot_jack>>;
 #+end_src
 
-**** simple synth
+**** synth
 #+name: harmonic_synth
 #+begin_src sclang :results none
   (
@@ -3134,6 +3134,17 @@ Example: Create a accent array and print it.
       Out.ar(out, SinOsc.ar(freq, 0, amp));
   }).add;
   )
+#+end_src
+
+#+name: snare_phase_multi
+#+begin_src sclang :results none
+  ~phased_snare = SynthDef(\p_snare, { arg bus;
+          var snd, pulse = \pulse.kr(10);
+          var frq1 = \freq.kr(300),
+          frq2 = \freq2.kr(300);
+          snd = ISnarePhase.ar(In.kr(bus), \amp.kr(0.5), \attack.ir(0.00001), \fsweep.kr(0), \nattack.kr(0.001), \nlevel.kr(0.2), \nrel.kr(0.1), frq1, frq2, \rel.kr(0.1), \trifreq.kr(111));
+          Out.ar(\out.kr(0), snd * \gain.kr(0.5));
+  }).add
 #+end_src
 
 Global variables and semaphhores
@@ -3151,13 +3162,13 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
 #+name: harmonics
 #+begin_src sclang :results none :noweb yes
   <<harmonic_synth>>;
-  <<i_snare_phase_1>>;
+  <<snare_phase_multi>>;
   f = { arg fund=200, sel = [1,2,3], delta = 0.05, amp_mode = \full, synth_mode = \sin;
 
-          var harmonics, amp, index = 0, noise_level = 0;
+          var harmonics, amp, index = 0, noise_level = 0, fbus;
 
           /* Fill arrays for pitches */
-          harmonics = Array.fill(32, { arg i; i*fund; });
+          harmonics = Array.fill(32, { arg i; (i+1)*fund; });
           switch(amp_mode, 
                   \default, {amp = Array.fill(32, { arg i; 1/(i+1); }); },
                   /* All harmonics with the same amplitude */	
@@ -3166,18 +3177,30 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                   \reverse, {amp = Array.series(32, 0.03125, 0.3125)}
           );	
 
+          harmonics.postln;
+
           /* Map frequency to noise level */
           g = ControlSpec(0.1, 0.0, \linear, 0.001, 0);
           g.clipHi(0.1);  g.clipLo(0.0);
+
+          /* Frequency (pulse) control using a Bus */
+          ~frequencyBus = Array.new(sel.size);
 
           /* Run the loop */
           t = Task({
                   (0..31).do({ |i|
                           var bus, synth;
                           if(i == sel[index],
-                                  { 
+                                  {
+                                          /* audio bus for output */		
                                           bus = Bus.audio(s, 1);
                                           ~audioBusses.add(bus);
+
+                                          /* Control bus for freq control */
+                                          fbus = Bus.control(s, 1);
+                                          fbus.value(harmonics[i]);		
+                                          ~frequencyBus.add(fbus);
+                                          "freq: ".post; fbus.get.postln;
                                           ~originalFrequencies.add(harmonics[i]);
                                           noise_level = g.map(harmonics[i] / 120);
                                           "Noise level: ".post; noise_level.postln;
@@ -3186,7 +3209,10 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                                           synth = Synth("test", [\freq, harmonics[i], \amp, amp[i], \out, bus]);
                                                   },
                                                   \snare, {
-                                                          synth = Synth.new("snare_phase", [\pulse, harmonics[i],
+                                                          synth = Synth.new(\p_snare, [
+                                                                  \bus, fbus,
+                                                                  \pulse, harmonics[i],
+                                                                  \bus, fbus,
                                                                   \length, 1,
                                                                   \freq, harmonics[i]/10,
                                                                   \freq2, harmonics[i]/2,
@@ -3194,6 +3220,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                                                   \nlevel, noise_level,
                                                                   \out, bus,
                                                                   \gain, amp[i]]);
+                                                          synth.map(\pulse, fbus);
                                                   }); //switch
 
                                           if(~logging > 0,
@@ -3217,6 +3244,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
 #+begin_src sclang :results none :noweb yes
   <<free_busses>>
 #+end_src
+
 #+begin_src sclang :results none
 Array.series(32, 1, -0.03125).postln;
 #+end_src
@@ -3232,7 +3260,7 @@ _1. Load this_
 #+name: generate_harmonics
 #+begin_src sclang :results none :noweb yes :tangle harmony.sc
   (
-  var select, spat_positions, task, mode = \full;
+  var select, spat_positions, task, mode = \test;
   <<global_variables>>
   <<all_rings>>
   <<harmonics>>
@@ -3326,6 +3354,7 @@ Control individual synths pulse.
           ~synths[i].set(\trifreq, 200);	
   });	
 #+end_src
+
 Gradually increase pulse speed in one synth.
 #+begin_src sclang :results none
   var speeder;
@@ -3342,6 +3371,30 @@ Gradually increase pulse speed in one synth.
   speeder.value(0, (150..5), 0.8, \pulse);
 #+end_src
 
+#+name: interpolate_pulse
+#+begin_src sclang :results none  :tangle harmony.sc
+  ~interpolatePulse = { arg int, bus, astart, aend, dur;
+          {Out.kr(bus, Line.kr(astart, aend, dur, doneAction: 2))}.play(addAction: \addToHead);
+  };
+  ~interpolatePulse.value(0, ~frequencyBus[0], 10, 1, 10);
+#+end_src
+
+#+begin_src sclang :results none  :tangle harmony.sc
+  ~interpolatePulse = { arg int, bus, astart, aend, dur;
+          ~spatNdefs.do({ arg obj, i;
+                  {Out.kr(~frequencyBus[i], Line.kr(astart, aend, dur, doneAction: 2))}.play(addAction: \addToHead);
+          });
+  };
+  ~interpolatePulse.value(0, ~frequencyBus[0], 10, 1, 10);
+#+end_src
+
+#+begin_src sclang :results none
+  ~frequencyBus[0].set(1);
+  ~frequencyBus[0].get.postln;
+#+end_src
+#+begin_src sclang :results none
+~frequencyBus[0].get;
+#+end_src
 #+begin_src sclang :results none
   var ind = 1;
   ~synths[ind].set(\pulse, ~originalFrequencies[ind]);
@@ -3404,7 +3457,8 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
 #+begin_src sclang :results none
   ~setSpatialization = { arg preset, time;
       switch(preset,
-		\simple, { ~setSpatPositions.value([3,4]); },
+                  \simple, { ~setSpatPositions.value([3,4]); },
+                  \sine, { ~setSpatPositions.value([0.0, 2.0, 4.0, 6.0, 7.0, 9.0, 10.0, 12.0, 13.0, 13.0, 13.0, 13.0, 13.0, 13.0, 12.0, 10.0, 9.0, 7.0, 6.0, 4.0, 2.0]); },
                   \frontTop, { ~setSpatPositions.value([13, 12 ,13, 12,13,12,13,12,8,9,8,9,8,9]); },
                   \back, { ~setSpatPositions.value([6,5,4,3,3,4,5,6,11,10,11,10,11,10,11]); },
                   \allInOne, { ~setSpatPositions.value(Array.fill(15, { arg i; 1; })); },
@@ -3420,6 +3474,21 @@ Free all busses and stop execution
   <<free_busses>>
   CmdPeriod.run;
 #+end_src
+
+#+name: spat_list
+#+begin_src scheme :var mult=0.01 :noweb yes :results output
+  <<sequenced_array>>
+  (map (lambda (x)
+         (format #t "~a, " (truncate (* x 14))))
+       (seq-array-sin 0 21 (list)))
+#+end_src
+
+#+begin_src scheme :results output
+(display "hej")
+#+end_src
+
+#+RESULTS:
+: hej
 
 --------------------------------
 
@@ -3484,6 +3553,7 @@ Synth.new(\vbap_panning, [\bus, ~audioBusses[0], \spkr_buffer, ~spkrBuffer.bufnu
                                           {		
                                                   "Clearing bus ".post; ~audioBusses[int].index.postln;
                                                   ~audioBusses[int].free;
+                                                  ~frequencyBus[int].free;			
                                                   ~controlBus[int].free;
                                                   ~synths[int].free;			
                                           });		
