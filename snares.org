@@ -3147,10 +3147,8 @@ Example: Create a accent array and print it.
   }).add
 #+end_src
 
-Global variables and semaphhores
-#+name: global_variables
 #+begin_src sclang :results none
-  ~logging = 2; /* The general level of loggging */
+Synth.new(\p_snare, [\pulse, 1]);
 #+end_src
 
 **** harmonics function
@@ -3165,7 +3163,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
   <<snare_phase_multi>>;
   f = { arg fund=200, sel = [1,2,3], delta = 0.05, amp_mode = \full, synth_mode = \sin;
 
-          var harmonics, amp, index = 0, noise_level = 0, fbus;
+          var harmonics, amp, index = 0, noise_level = 0, fbus, nmap;
 
           /* Fill arrays for pitches */
           harmonics = Array.fill(32, { arg i; (i+1)*fund; });
@@ -3177,9 +3175,11 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                   \reverse, {amp = Array.series(32, 0.03125, 0.3125)}
           );	
 
+          "Harmonics are loaded:".postln;
           harmonics.postln;
 
           /* Map frequency to noise level */
+          //nmap = ~noiseMap.value;
           g = ControlSpec(0.1, 0.0, \linear, 0.001, 0);
           g.clipHi(0.1);  g.clipLo(0.0);
 
@@ -3200,7 +3200,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                           fbus = Bus.control(s, 1);
                                           fbus.value(harmonics[i]);		
                                           ~frequencyBus.add(fbus);
-                                          "freq: ".post; fbus.get.postln;
+                                          "freq: ".post; fbus.getn.postln;
                                           ~originalFrequencies.add(harmonics[i]);
                                           noise_level = g.map(harmonics[i] / 120);
                                           "Noise level: ".post; noise_level.postln;
@@ -3225,7 +3225,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
 
                                           if(~logging > 0,
                                                   {			
-                                                          Post << "Harmonic " <<< i << ": " <<< harmonics[i] <<  ", " <<< amp[i] << " at Audio bus " <<< bus.index << Char.nl;
+                                                          Post << "Harmonic " <<< i << ": " <<< harmonics[i] <<  ", " <<< amp[i] << " at noise level " << noise_level <<< " at Audio bus " <<< bus.index << Char.nl;
                                                           index = index + 1; i.postln;
                                                   },
                                                   { }); //if
@@ -3241,13 +3241,19 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
   };
 #+end_src
 
+#+begin_src sclang :results none
+  ~noiseMap = { arg max = 0.1, min = 0.0, transform = \linear;
+          var control_spec;
+          control_spec = ControlSpec(max, min, \linear, 0.001, 0);
+          control_spec.clipHi(0.1);  control_spec.clipLo(0.0);
+          control_spec;
+  };
+#+end_src
+
 #+begin_src sclang :results none :noweb yes
   <<free_busses>>
 #+end_src
 
-#+begin_src sclang :results none
-Array.series(32, 1, -0.03125).postln;
-#+end_src
 **** generate harmonics
 Initialize global variable ~~allRings~. Loads and calls the function defined in [[*harmonics function][harmonics function]] and plays it. The ~sel~ array defines the partials to be played. If this is three items long, the array of corresponding synths initatilzed in [[*harmonics function][harmonics function]] will be three.
 
@@ -3269,11 +3275,14 @@ _1. Load this_
           \full, {
                   select = [3,5,7,9,11,13,15,17,19,21,23,25,27,29,31];
                   spat_positions = [0,1,5,6,3,2,7,4,9,11,8,10,12,13,14];
+                  "Full mode".postln;		
           },
           \test, {
-                  select = [3,5];
+                  select = [2,3];
                   spat_positions = [0,1];
-          }); // switch(mode
+                  "Test mode".postln;	
+          }); // switch mode
+
   if(~logging > 1,
           {
                   "Select array is ".post; select.size.postln;
@@ -3286,6 +3295,7 @@ _1. Load this_
   ~synths = Array.new(select.size);
   /* Holds the original frequency for each bin */
   ~originalFrequencies = Array.new(select.size);
+  /* Holds the spat positions for each note */
   ~spatializations = Array.new(spat_positions.size);
 
   if(select.size == spat_positions.size,
@@ -3304,20 +3314,34 @@ _1. Load this_
           { "'sel' and 'spat' have unequal number of elements".postln; }); // if clause
 
   /* Call the harmonics function and play it.*/
-  task = f.value(150, select, 0.1, \full, \snare);
+  task = f.value(~fundamental, select, 0.1, \full, \snare);
   task.play;
   )
 #+end_src
 
-**** spatialisation
+**** COMMENT spatialisation
 Spatialisation angles for three rings in triangles.
 #+name: all_rings
 #+begin_src sclang :results none :tangle harmony.sc
+
+#+end_src
+
+Global variables and semaphhores
+#+name: global_variables
+#+begin_src sclang :results none
+  /* Fundamental frequency */
+  ~fundamental = 1;
+  /* The general level of loggging */
+  ~logging = 2;
+  /* Spatialisation positions */
   ~allRings = [[-24.036688, 23.800417], [21.279257, 23.800417], [55.741675, 23.800417], [101.49442, 23.800417], [147.91193, 23.800417], [-167.82013, 23.800417], [ -123.784, 23.800417], [-79.887731, 23.800417], [ 0.247203, 56.476405], [69.013292, 56.476405], [158.89992, 56.476405], [-114.65354, 56.476405], [-90, 86.424489], [90, 86.424489], [0, 90]];
 #+end_src
 
-_1. Load this_
+_1. Load all_
 #+call: generate_harmonics()
+#+call: make_vbap()
+#+call: set_spatialization()
+#+call: free_all()
 
 _2. Load this_
 Call this after running [[*generate harmonics][generate harmonics]] to start the spatialisation of the harmonics.
@@ -3346,13 +3370,19 @@ Call this after running [[*generate harmonics][generate harmonics]] to start the
 
 Control individual synths pulse.
 #+begin_src sclang :results none
-  ~synths[0].set(\freq, 10);
+  var pulse = 0;
+  ~synths[1].set(\freq, 8000);
+  ~synths[0].get(\pulse, {arg item; pulse = item; });
+  pulse.postln;
 #+end_src
 
 #+begin_src sclang :results none
-  var changeAll = ~synths.do({ arg item, i;
-          ~synths[i].set(\trifreq, 200);	
-  });	
+//  ~updateSynths = { arg parameter = \trifreq, value = 100;
+          var changeAll = ~synths.do({ arg item, i;
+                  ~synths[i].set(\nlevel, 0.2);	
+          });
+//  };
+ // ~updateSynths.value(\nlevel, 0.3);
 #+end_src
 
 Gradually increase pulse speed in one synth.
@@ -3371,33 +3401,84 @@ Gradually increase pulse speed in one synth.
   speeder.value(0, (150..5), 0.8, \pulse);
 #+end_src
 
+Interpolate one pulse bus.
 #+name: interpolate_pulse
 #+begin_src sclang :results none  :tangle harmony.sc
-  ~interpolatePulse = { arg int, bus, astart, aend, dur;
+  ~interpolatePulseSingle = { arg int, bus, astart, aend, dur;
           {Out.kr(bus, Line.kr(astart, aend, dur, doneAction: 2))}.play(addAction: \addToHead);
   };
-  ~interpolatePulse.value(0, ~frequencyBus[0], 10, 1, 10);
+  ~interpolatePulseSingle.value(0, ~frequencyBus[0], 10, 1, 10);
 #+end_src
 
+Interpolate all busses.
 #+begin_src sclang :results none  :tangle harmony.sc
-  ~interpolatePulse = { arg int, bus, astart, aend, dur;
-          ~spatNdefs.do({ arg obj, i;
-                  {Out.kr(~frequencyBus[i], Line.kr(astart, aend, dur, doneAction: 2))}.play(addAction: \addToHead);
+  ~interpolatePulse = { arg map;
+          map.rowsDo({ arg obj, i;
+                  if(~logging > 1,
+                          { 
+                                  "Starting envelope for item ".post; i.post; " from ".post; obj[0].post; " to ".post; obj[1].post; " in ".post; obj[2].post; " seconds.".postln;						
+                          }, { });
+                  {Out.kr(~frequencyBus[i], Line.kr(obj[0], obj[1], obj[2], doneAction: 2))}.play(addAction: \addToHead);
           });
   };
-  ~interpolatePulse.value(0, ~frequencyBus[0], 10, 1, 10);
+  /* Interpolate all busses by the same value */
+  //  ~interpolatePulse.value(10, 1, 10);
 #+end_src
 
+Create an array of arrays, each with a start, end and dur, parameter.
+#+name: pulse_modulation
+#+begin_src sclang :results none
+  ~modulateSpeed = { arg mult = 2, dur = 2;
+          var mod_map = Array2D.new(~spatNdefs.size, 3);
+          mod_map.rowsDo({ arg obj, i;
+                  mod_map[i,0] = ~frequencyBus[i].getSynchronous;
+                  mod_map[i,1] = ~frequencyBus[i].getSynchronous * mult * (i + 1);
+                  mod_map[i,2] = 20;
+          });
+  };
+//  ~interpolatePulse.value(mod_map);
+#+end_src
+
+Build an array of arguments for the interpolation of the pulse frequence of the instruments.
+#+begin_src sclang :results none
+~interpolatePulse.value(~modulateSpeed.value(10, 10));
+#+end_src
+
+Create an array and interpolate the pulse frequence of the instruments.
+#+begin_src sclang :results none
+  ~interpolatePulse.value(Array2D.fromArray(2, 3, [10, 3, 2, 20, 2, 2]))
+#+end_src
+
+Set and get a bus' value:
 #+begin_src sclang :results none
   ~frequencyBus[0].set(1);
-  ~frequencyBus[0].get.postln;
+  ~frequencyBus[0].getSynchronous.postln;
 #+end_src
+
+Reset original pulse frequencies.
 #+begin_src sclang :results none
-~frequencyBus[0].get;
-#+end_src
-#+begin_src sclang :results none
-  var ind = 1;
-  ~synths[ind].set(\pulse, ~originalFrequencies[ind]);
+  ~reset_freqs = { arg index = 0, mode = \all;
+
+          if( (index != 0) && (mode == \all),
+                  {
+                          "If mode is = \all, index must be 0".postln;
+                          index = 0;
+                  }, { });
+	
+          switch(mode,
+                  \all, {
+                          ~frequencyBus.do({ arg bus, i;
+                                  "Setting voice ".post; i.post; " to original frequency: ".post; ~originalFrequencies[i].postln;
+                                  ~frequencyBus[i].set(~originalFrequencies[i]);
+                          });
+                  },
+                  \single, {
+                          "Setting voice ".post; index.post; " to original frequency: ".post; ~originalFrequencies[index].postln;
+                          ~frequencyBus[index].set(~originalFrequencies[index]);
+                  });
+  };
+
+  ~reset_freqs.value(0, \all);
 #+end_src
 
 #+begin_src sclang :results none
@@ -3431,6 +3512,7 @@ Function for generating the lines for the panning modulation.
 #+end_src
 
 _3 Setting spatialization_
+#+name: set_spatialization
 #+begin_src sclang :results none :noweb yes  :tangle harmony.sc
   <<spat_function>>
   <<update_panning>>
@@ -3450,7 +3532,7 @@ _3 Setting spatialization_
 
 Change spatialization. Spat is controlled by an arbitrary length array that points to one of the 14 (0-13) speaker positions available. Use the ~spat_function~ to create new presets.
 #+begin_src sclang :results none
-~setSpatialization.value(\random, 1);
+~setSpatialization.value(\sine, 1);
 #+end_src
 
 #+name: spat_function
@@ -3470,6 +3552,7 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
 #+end_src
 _4. Free all_
 Free all busses and stop execution
+#+name: free_all
 #+begin_src sclang :results none :noweb yes
   <<free_busses>>
   CmdPeriod.run;
@@ -3483,18 +3566,11 @@ Free all busses and stop execution
        (seq-array-sin 0 21 (list)))
 #+end_src
 
-#+begin_src scheme :results output
-(display "hej")
-#+end_src
-
-#+RESULTS:
-: hej
-
 --------------------------------
 
 Reboot Supercollider
 #+begin_src sclang :results none
-s.reboot;
+  s.reboot;
 #+end_src
 #+begin_src sclang :results none
   s.meter;
@@ -3622,7 +3698,6 @@ Not sure what this is.
           });
   }).play;
 #+end_src
-
 
 ** osc
 *** set netaddress to 'b'
