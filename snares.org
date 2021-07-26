@@ -1,6 +1,9 @@
 #+STARTUP: indent overview hidestars
 
 * Snare snippets
+** TODO Things to do
+- [ ] Implement distance in panning with reverb
+- [ ] Glue \nlevel to \pulse
 ** audio init
 Query interfaces
 #+begin_src sclang :results none
@@ -3125,7 +3128,13 @@ Example: Create a accent array and print it.
 #+begin_src sclang :results none :noweb yes
 <<boot_jack>>;
 #+end_src
-
+**** list of global variables
+- ~~fundamental~ The fundamental pitch from which harmonics are built
+- ~~alllRings~ General XY positions of the centerrs of the triangles.
+- ~~spatChannels~
+- ~~spatNdefs~
+- ~~controlBus~
+- ~~audioBusses~
 **** synth
 #+name: harmonic_synth
 #+begin_src sclang :results none
@@ -3242,12 +3251,12 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
 #+end_src
 
 #+begin_src sclang :results none
-  ~noiseMap = { arg max = 0.1, min = 0.0, transform = \linear;
-          var control_spec;
-          control_spec = ControlSpec(max, min, \linear, 0.001, 0);
-          control_spec.clipHi(0.1);  control_spec.clipLo(0.0);
-          control_spec;
-  };
+~noiseMap = { arg max = 0.1, min = 0.0, transform = \linear;
+	var control_spec;
+	control_spec = ControlSpec(max, min, \linear, 0.001, 0);
+	control_spec.clipHi(0.1);  control_spec.clipLo(0.0);
+	control_spec;
+};
 #+end_src
 
 #+begin_src sclang :results none :noweb yes
@@ -3354,8 +3363,8 @@ Call this after running [[*generate harmonics][generate harmonics]] to start the
           ~controlBus.add(n);
           ~spatNdefs.add(
                   Ndef.new(m, { arg azi = 0, ele = 0, spr = 0.1;
-                          azi = In.kr(n);
-                          ele = In.kr(n.index + 1);	
+//                          azi = In.kr(n);
+//                          ele = In.kr(n.index + 1);	
                           VBAP.ar(29, In.ar(bus), ~spkrBuffer.bufnum, In.kr(n), In.kr(n.index + 1), spr)}););
           Ndef(m).fadeTime(1);
           Ndef(m).play(addAction: \addToTail);
@@ -3500,10 +3509,24 @@ Reset original pulse frequencies.
 ~originalFrequencies[0].postln;
 #+end_src
 
-Function for generating the lines for the panning modulation.
+Function for generating the lines for the panning modulation using azimuth and elevation.
 #+name: inter_pan
 #+begin_src sclang :results none  :tangle harmony.sc
   ~interPan = { arg int, bus, astart, aend, estart, eend, dur;
+          {Out.kr(bus.index, Line.kr(astart, aend, dur, doneAction: 2))}.play(addAction: \addToHead);
+          {Out.kr(bus.index + 1, Line.kr(estart, eend, dur, doneAction: 2))}.play(addAction: \addToHead);
+          if(~logging > 1,
+                  {
+                          "Azimuth from ".post; astart.post; " to ".post; aend.postln;
+                          "Elevation from ".post; estart.post; " to ".post; eend.postln;
+                  }, { });
+  };
+#+end_src
+
+Function for generating the lines for the panning modulation using azimuth, elevation and distance.
+#+name: inter_pan_full
+#+begin_src sclang :results none  :tangle harmony.sc
+  ~interPanFull = { arg int, bus, astart, aend, estart, eend, dur;
           {Out.kr(bus.index, Line.kr(astart, aend, dur, doneAction: 2))}.play(addAction: \addToHead);
           {Out.kr(bus.index + 1, Line.kr(estart, eend, dur, doneAction: 2))}.play(addAction: \addToHead);
           if(~logging > 1,
@@ -3712,6 +3735,71 @@ Not sure what this is.
                   delta.wait;	
           });
   }).play;
+#+end_src
+** reverb
+Create Specs for the reverb parameters. Not sure if this is needed?
+#+begin_src sclang :results none
+  //s.options.memSize_(65536 * 2);
+  //s.reboot;
+  Spec.add(\t60, [0.1, 60, \exp]);
+  Spec.add(\damp, [0, 1]);
+  Spec.add(\size, [0.5, 3]);
+  Spec.add(\earlydiff, [0, 1]);
+  Spec.add(\mdepth, [0, 50]);
+  Spec.add(\mfreq, [0, 10]);
+  Spec.add(\lowx, [0, 1]);
+  Spec.add(\midx, [0, 1]);
+  Spec.add(\highx, [0, 1]);
+  Spec.add(\lowband, [100, 6000, \exp]);
+  Spec.add(\highband, [1000, 10000, \exp]);
+#+end_src
+
+Reset the two example Ndefs
+#+begin_src sclang :results none
+  Ndef(\src).clear;
+  Ndef(\reerb).clear;
+#+end_src
+
+Load the source for the reverb.
+#+begin_src sclang :results none
+  Ndef(\src, {
+          Splay.ar(Impulse.ar([1, 3, 5, 7, 9, 11]).scramble);
+  });
+#+end_src
+
+Load the reverb
+#+begin_src sclang :results none
+  Ndef(\reverb, {
+      var src = \input.ar * \amp.kr(1);
+      src = JPverb.ar(
+          src,
+          \t60.kr(1,           0.05),
+          \damp.kr(0,          0.05),
+          \size.kr(1,          0.05),
+          \earlydiff.kr(0.707, 0.05),
+          \mdepth.kr(5,        0.05),
+          \mfreq.kr(2,         0.05),
+          \lowx.kr(1,          0.05),
+          \midx.kr(1,          0.05),
+          \highx.kr(1,         0.05),
+          \lowband.kr(500,     0.05),
+          \highband.kr(2000,   0.05)
+      );
+  });
+  #+end_src
+
+  Start the two Ndefs (and stop)
+#+begin_src sclang :results none
+  Ndef(\reverb).fadeTime = 1;
+  Ndef(\reverb).play;
+  Ndef(\src).play;
+  Ndef(\src).stop;
+  Ndef(\reverb).set(\t60, 0.5);
+#+end_src
+
+Connect the source to the reverb.
+#+begin_src sclang :results none
+Ndef(\reverb) <<>.input Ndef(\src);
 #+end_src
 
 ** osc
@@ -3946,3 +4034,31 @@ Set parameters
 
 
            
+** testing
+*** ndef
+It's possible to map an output of a nedfe to a specific parameter off another.
+#+begin_src sclang :results none
+  (
+  Ndef(\sound, {
+      RHPF.ar(
+          \in1.ar([0, 0]) * \in2.ar([0, 0]),
+          \freq.kr(6000, 2),
+          \rq.kr(0.2)
+      ) * 7
+  }).play;
+  Ndef(\sound).fadeTime = 0.2;    // avoid harsh clicks
+  )
+
+  Ndef(\a, { SinOsc.ar(MouseX.kr(300, 1000, 1) * [1, 1.2], \phase.ar([0, 0]) * 0.2) });
+  Ndef(\b, { LFDNoise3.ar(MouseY.kr(3, 1000, 1) * [1, 1.2]) });
+  Ndef(\c, { LFTri.ar(MouseY.kr(3, 10, 1) * [1, 1.2]).max(0) });
+  Ndef(\a).fadeTime = 0.2;    // avoid harsh clicks again
+
+  Ndef(\sound) <<>.in1 Ndef(\a);
+  Ndef(\sound) <<>.in2 Ndef(\b);
+  Ndef(\sound) <<>.in2 Ndef(\c);
+  Ndef(\a) <<>.phase Ndef(\sound);
+  Ndef(\a) <<>.phase nil;    // unmap
+  Ndef.clear(3);        // fade out and clear all Ndefs
+#+end_src
+
