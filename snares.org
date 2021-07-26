@@ -3200,7 +3200,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                           fbus = Bus.control(s, 1);
                                           fbus.value(harmonics[i]);		
                                           ~frequencyBus.add(fbus);
-                                          "freq: ".post; fbus.getn.postln;
+                                          "freq: ".post; fbus.getSynchronous.postln;
                                           ~originalFrequencies.add(harmonics[i]);
                                           noise_level = g.map(harmonics[i] / 120);
                                           "Noise level: ".post; noise_level.postln;
@@ -3319,12 +3319,8 @@ _1. Load this_
   )
 #+end_src
 
-**** COMMENT spatialisation
+**** spatialisation
 Spatialisation angles for three rings in triangles.
-#+name: all_rings
-#+begin_src sclang :results none :tangle harmony.sc
-
-#+end_src
 
 Global variables and semaphhores
 #+name: global_variables
@@ -3370,25 +3366,26 @@ Call this after running [[*generate harmonics][generate harmonics]] to start the
 
 Control individual synths pulse.
 #+begin_src sclang :results none
-  var pulse = 0;
-  ~synths[1].set(\freq, 8000);
-  ~synths[0].get(\pulse, {arg item; pulse = item; });
-  pulse.postln;
+  var pulse = 0, synth = 1;
+  ~synths[synth].set(\nlevel, 0.3);
+  ~synths[synth].get(\pulse, {arg item; item.postln; });
 #+end_src
 
+Set all synths parameter to a value.
 #+begin_src sclang :results none
-//  ~updateSynths = { arg parameter = \trifreq, value = 100;
+  ~updateSynths = { arg parameter = \trifreq, value = 100;
           var changeAll = ~synths.do({ arg item, i;
-                  ~synths[i].set(\nlevel, 0.2);	
+                  item.set(parameter, value);
+                  "Setting ".post; parameter.post; " to ".post; value.postln;
           });
-//  };
- // ~updateSynths.value(\nlevel, 0.3);
+  };
+  ~updateSynths.value(\nlevel, 0.2);
 #+end_src
 
-Gradually increase pulse speed in one synth.
+Gradually increase parameter in one synth.
 #+begin_src sclang :results none
   var speeder;
-  speeder = { arg instance = 0, range = (3..200), delta = 0.5, param = \pulse;
+  speeder = { arg instance = 0, range = (3..200), delta = 0.5, param = \freq;
           var interpolate;
           interpolate = Task({
                   range.do({ arg index;
@@ -3398,7 +3395,7 @@ Gradually increase pulse speed in one synth.
           });
           interpolate.play;
   };
-  speeder.value(0, (150..5), 0.8, \pulse);
+  speeder.value(0, (400..150), 0.05, \freq);
 #+end_src
 
 Interpolate one pulse bus.
@@ -3410,7 +3407,7 @@ Interpolate one pulse bus.
   ~interpolatePulseSingle.value(0, ~frequencyBus[0], 10, 1, 10);
 #+end_src
 
-Interpolate all busses.
+Interpolate all busses. Call this from [[pulse_interpolate_array][pulse_interpolate_array]], that creates an array of values for pulse modulation and interpolation.
 #+begin_src sclang :results none  :tangle harmony.sc
   ~interpolatePulse = { arg map;
           map.rowsDo({ arg obj, i;
@@ -3420,6 +3417,7 @@ Interpolate all busses.
                           }, { });
                   {Out.kr(~frequencyBus[i], Line.kr(obj[0], obj[1], obj[2], doneAction: 2))}.play(addAction: \addToHead);
           });
+          map;
   };
   /* Interpolate all busses by the same value */
   //  ~interpolatePulse.value(10, 1, 10);
@@ -3428,25 +3426,42 @@ Interpolate all busses.
 Create an array of arrays, each with a start, end and dur, parameter.
 #+name: pulse_modulation
 #+begin_src sclang :results none
-  ~modulateSpeed = { arg mult = 2, dur = 2;
+  ~modulateSpeed = { arg mult = 2, dur = 2, end = 100, mode = 0;
           var mod_map = Array2D.new(~spatNdefs.size, 3);
           mod_map.rowsDo({ arg obj, i;
                   mod_map[i,0] = ~frequencyBus[i].getSynchronous;
-                  mod_map[i,1] = ~frequencyBus[i].getSynchronous * mult * (i + 1);
-                  mod_map[i,2] = 20;
+                  switch(mode,
+                          0, {	
+                                  mod_map[i,1] = ~frequencyBus[i].getSynchronous * mult * (i + 1);
+                          },		
+                          1, {
+                                  mod_map[i,1] = end;
+                          });
+                  mod_map[i,2] = dur;
           });
   };
-//  ~interpolatePulse.value(mod_map);
+//  ~modulateSpeed.value(2, 2, 200, 0).postln;
+  //  ~interpolatePulse.value(mod_map);
 #+end_src
 
-Build an array of arguments for the interpolation of the pulse frequence of the instruments.
+Build an array of arguments for the interpolation of the pulse frequence of the instruments. This is always relative to the current pulse frequency.
+#+name: pulse_interpolate_array
 #+begin_src sclang :results none
-~interpolatePulse.value(~modulateSpeed.value(10, 10));
+  ~interpolatePulse.value(~modulateSpeed.value(0.1, 10, 200, 0));
 #+end_src
 
 Create an array and interpolate the pulse frequence of the instruments.
 #+begin_src sclang :results none
-  ~interpolatePulse.value(Array2D.fromArray(2, 3, [10, 3, 2, 20, 2, 2]))
+  ~pulsePresets = { arg preset = 0;
+          switch(preset,	
+                  1,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 50, 2, 20, 2000, 2])); },
+                  2,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 2, 20, 20, 2]));},
+                  3,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 1, 1, 6, 1]));},
+                  4,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 1, 1, 4, 1]));},
+                  5, {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 2, 5, 1, 1, 6]));}		
+          ) // switch
+  };
+  ~pulsePresets.value(5);
 #+end_src
 
 Set and get a bus' value:
