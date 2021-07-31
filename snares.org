@@ -3302,36 +3302,32 @@ ControlSpec for the mapping between frequency and noise level
 Load reverb
 #+name: load_reverb
 #+begin_src sclang :results none :noweb yes
-  <<reverb_bus>>
   <<reverb_ndef>>
+  <<reverb_specs>>
   <<reverb_panning>>
   <<connect_reverb>>
 #+end_src
 
-Mix audio busses together for reverb send
-#+name: reverbBusOld
-#+begin_src sclang :results none 
-  Ndef(\reverbBusOld, {
-          Mix.fill(~audioBusses.size, {
-                  arg i;
-                  In.ar(~audioBusses[i]) * ;
-          });
-  });
-#+end_src
-
-#+name: reverbBus
+#+name: reverb_specs
 #+begin_src sclang :results none
-  Ndef(\reverbBus { arg cbus, abus;
-          var src = \input.ar * In.kr(cbus.index + 2);
-          Out.ar(src)
-  });
+  Spec.add(\t60, [0.1, 60, \exp]);
+  Spec.add(\damp, [0, 1]);
+  Spec.add(\size, [0.5, 3]);
+  Spec.add(\earlydiff, [0, 1]);
+  Spec.add(\mdepth, [0, 50]);
+  Spec.add(\mfreq, [0, 10]);
+  Spec.add(\lowx, [0, 1]);
+  Spec.add(\midx, [0, 1]);
+  Spec.add(\highx, [0, 1]);
+  Spec.add(\lowband, [100, 6000, \exp]);
+  Spec.add(\highband, [1000, 10000, \exp]);
 #+end_src
 
 Load the reverb
 #+name: reverb_ndef
 #+begin_src sclang :results none
   Ndef(\reverb, {
-          var src = \input.ar * \amp.kr(1);
+          var src = In.ar(~reverbSendBus.index) * \amp.kr(1);
           src = JPverb.ar(
                   src,
                   \t60.kr(1,           0.05),
@@ -3346,13 +3342,11 @@ Load the reverb
                   \lowband.kr(500,     0.05),
                   \highband.kr(2000,   0.05)
           );
-          //          VBAP.ar(29, src, ~spkrBuffer.bufnum, \azi.kr(0), \ele.kr(45), \spr.kr(1));
   });
   #+end_src
 
-  Reset the two example Ndefs
+Reset the two example Ndefs
 #+begin_src sclang :results none
-  Ndef(\reverbBus).clear;
   Ndef(\reverb).clear;
   Ndef(\reverbPanning).clear;
 #+end_src
@@ -3363,14 +3357,20 @@ Load the reverb
           var src = \input.ar;
           PanX.ar(16, src, \revPanPos.kr(0), \revPanAmp.kr(1), \revPanSpread.kr(64));
   }).mold(16);
-
 #+end_src
+
 Connect the source to the reverb.
 #+name: connect_reverb
 #+begin_src sclang :results none
   Ndef(\reverb).fadeTime = 1;
-  Ndef(\reverbPanning).play;
-  Ndef(\reverbPanning) <<>.input Ndef(\reverb) <<>.input Ndef(\reverbBus);
+  Ndef(\reverbPanning).play(addAction: \addToTail);
+  Ndef(\reverbPanning) <<>.input Ndef(\reverb);
+  Ndef(\reverb).set(\t60, 0.7);
+  Ndef(\reverb).set(\size, 0.2);
+  Ndef(\reverb).set(\amp, 0.5);
+  Ndef(\reverb).set(\earlydiff, 0.1);
+  Ndef(\reverb).set(\mdepth, 1);
+  Ndef(\reverbPanning).set(\revPanSpread, 64);
 #+end_src
 
 Start the two Ndefs (and stop)
@@ -3382,13 +3382,11 @@ Start the two Ndefs (and stop)
   Ndef(\reverb).stop;
   Ndef(\reverbBus).play;
   Ndef(\reverbBus).stop;
-  Ndef(\reverb).set(\t60, 1);
-  Ndef(\reverb).set(\amp, 0.1);
 #+end_src
 
 #+begin_src sclang :results none
   Ndef(\reverbPanning).set(\revPanSpread, 64);
-  Ndef(\reverbPanning).set(\revPanAmp, 0.1);
+  Ndef(\reverbPanning).set(\revPanAmp, 0.7);
 #+end_src
 
 #+begin_src sclang :results none
@@ -3466,6 +3464,7 @@ _1. Load all_
 #+call: generate_harmonics()
 #+call: make_vbap()
 #+call: init_spatialization()
+#+call: load_reverb()
 #+call: free_all()
 
 #+begin_src sclang :results none :noweb yes
@@ -3478,11 +3477,14 @@ The functions controlling panning are here: [[inter_pan][inter_pan]].
 #+name: make_vbap
 #+begin_src sclang :results none :noweb yes :tangle harmony.sc
   <<vbap_speaker_array>>
-
   ~spatChannels = Array.new(~audioBusses.size); // Unused
   ~spatNdefs = Array.new(~audioBusses.size);
+  ~reverbSendNdefs = Array.new(~audioBusses.size);
+  ~reverbBus = Array.new(~audioBusses.size);
   ~controlBus = Array.new(~audioBusses.size);
+  ~reverbSendBus = Bus.audio(s, 1);
   ~audioBusses.do({ arg bus, i;
+          o = "reverbBus" ++ i.asString.asSymbol;
           m = "ch" ++ i.asString.asSymbol;
           n = Bus.control(s, 3);
           ~controlBus.add(n);
@@ -3493,22 +3495,31 @@ The functions controlling panning are here: [[inter_pan][inter_pan]].
                           ele = In.kr(n.index + 1);
                           dist = LinLin.kr( In.kr(n.index + 2).squared, 0, 1, 1, 0.00001);
                           src = src * dist;
-                          VBAP.ar(29, src, ~spkrBuffer.bufnum, In.kr(n), In.kr(n.index + 1), spr)}););
-//          ~controlBus[i].setn([0,0,1]);
+                          VBAP.ar(29, src, ~spkrBuffer.bufnum, In.kr(n), In.kr(n.index + 1), spr)});
+          );
+          ~reverbSendNdefs.add(
+                  Ndef(o, {
+                          var src = In.ar(bus) * In.kr(n.index + 2) * 0.5;
+                          src = src * (In.kr(n.index) + 0.575).cos * 0.3;
+                          //src = src * ((In.kr(n.index) - 1).abs) * 0.2;
+                          Out.ar(~reverbSendBus.index, src)
+                  });
+          );	
           Ndef(m).fadeTime(1);
-          Ndef(m).play(addAction: \addToTail);});
+          Ndef(m).play(addAction: \addToTail);
+          Ndef(o).play(addAction: \addToTail);});
   <<inter_pan>>
   <<update_panning>>
 #+end_src
 
 #+begin_src sclang :results none
-  Ndef.new(m, {
+{ (Line.kr(0, 1, 2) - 1 ).abs}.scope;
+#+end_src
 
-	});
-#+end_src
 #+begin_src sclang :results none
-  {LinLin.kr(Line.kr(0, 1, 2).squared, 0, 1, 1, 0.00001)}.scope;
+~reverbSendBus.scope;
 #+end_src
+ 
 
 #+begin_src sclang :results none
 s.reboot;
@@ -3601,7 +3612,7 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 - ~mode~ the mode of the transformation: 0 = modulation map using the index and multiplier, 1 = linear map using end value for the modulation.
 #+name: pulse_interpolate_array
 #+begin_src sclang :results none
-  ~interpolatePulse.value(~modulateSpeed.value(0.5, 1, 3, 0));
+  ~interpolatePulse.value(~modulateSpeed.value(0.5, 10, 3, 0));
 #+end_src
 
 Create an array and interpolate the pulse frequence of the instruments.
@@ -3616,7 +3627,7 @@ Create an array and interpolate the pulse frequence of the instruments.
                   6,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 5, 20, 2, 2]));};	
           ) // switch
   };
-  ~pulsePresets.value(6);
+  ~pulsePresets.value(1);
 #+end_src
 
 Set and get a bus' value:
@@ -3750,8 +3761,12 @@ Loads necesary auxilliary functions and copies over the positions according to t
 
 Change spatialization. Spat is controlled by an arbitrary length array that points to one of the 14 (0-13) speaker positions available. Use the ~spat_function~ to create new presets.
 #+begin_src sclang :results none
-  ~setSpatialization.value(\distanceO, 1);
-  ~setSpatialization.value(\distanceI, 1);
+  ~setSpatialization.value(\distanceO, 5);
+  ~setSpatialization.value(\distanceI, 5);
+#+end_src
+
+#+begin_src sclang :results none
+  ~setSpatialization.value(\frontTop, 5);
 #+end_src
 
 #+begin_src sclang :results none
@@ -3763,7 +3778,7 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
 #+begin_src sclang :results none
   ~setSpatialization = { arg preset, time;
       switch(preset,
-                  \simple, { ~setSpatPositions.value([[0, 0.2], [5, 0.2]]); },
+                  \simple, { ~setSpatPositions.value([[0, 0.2], [5, 0.9]]); },
                   \distanceI, { ~setSpatPositions.value([[0, 0.2], [1, 0.2]]); },
                   \distanceO, { ~setSpatPositions.value([[0, 1], [1, 1]]); },
                   \nther, { ~setSpatPositions.value([[3, 0.1], [0, 0.6]]); },
@@ -3935,8 +3950,6 @@ Not sure what this is.
 ** reverb
 Create Specs for the reverb parameters. Not sure if this is needed?
 #+begin_src sclang :results none
-  //s.options.memSize_(65536 * 2);
-  //s.reboot;
   Spec.add(\t60, [0.1, 60, \exp]);
   Spec.add(\damp, [0, 1]);
   Spec.add(\size, [0.5, 3]);
@@ -3964,7 +3977,7 @@ Load the source for the reverb.
 #+end_src
 
 Backup
-#+name: reverb_ndef
+#+name: reverb
 #+begin_src sclang :results none
   Ndef(\reverb, {
       var src = \input.ar * \amp.kr(1);
