@@ -3129,14 +3129,27 @@ Example: Create a accent array and print it.
 <<boot_jack>>;
 #+end_src
 **** list of global variables
+Global variables and semaphhores
+
 - ~~fundamental~  The fundamental pitch from which harmonics are built
 - ~~alllRings~  General XY positions of the centerrs of the triangles.
 - ~~spatializations~  List of the positions for each ~~audioBus~ that may be updated.
-- ~~spatChannels~ 
+- ~~spatChannels~ Array of Ndefs, channels of VBAP panners  (same size as ~audioBusses~
 - ~~spatNdefs~ 
 - ~~controlBus~ 
 - ~~frequencyBus~  The bus through which the frequency of the impulse is controlled (the \pulse)
 - ~~audioBusses~ The channels that outputs audio from the synth.
+
+#+name: global_variables
+#+begin_src sclang :results none
+  /* Fundamental frequency */
+  ~fundamental = 1;
+  /* The general level of loggging */
+  ~logging = 2;
+  /* Spatialisation positions */
+  ~allRings = [[-24.036688, 23.800417, 0], [21.279257, 23.800417, 0], [55.741675, 23.800417, 0], [101.49442, 23.800417, 0], [147.91193, 23.800417, 0], [-167.82013, 23.800417, 0], [ -123.784, 23.800417, 0], [-79.887731, 23.800417, 0], [ 0.247203, 56.476405, 0], [69.013292, 56.476405, 0], [158.89992, 56.476405, 0], [-114.65354, 56.476405, 0], [-90, 86.424489, 0], [90, 86.424489, 0], [0, 90, 0]];
+#+end_src
+
 **** synth
 #+name: harmonic_synth
 #+begin_src sclang :results none
@@ -3147,19 +3160,27 @@ Example: Create a accent array and print it.
   )
 #+end_src
 
+Main snare synth. The pulse parameter is controlled by the ~pulse_bus~
 #+name: snare_phase_multi
 #+begin_src sclang :results none
   ~phased_snare = SynthDef(\p_snare, { arg pulse_bus;
-          var snd, pulse = \pulse.kr(10);
-          var frq1 = \freq.kr(300),
-          frq2 = \freq2.kr(300);
-          snd = ISnarePhase.ar(In.kr(pulse_bus), \amp.kr(0.5), \attack.ir(0.00001), \fsweep.kr(0), \nattack.kr(0.001), \nlevel.kr(0.2), \nrel.kr(0.1), frq1, frq2, \rel.kr(0.1), \trifreq.kr(111));
+          var snd,
+          pulse = \pulse.kr(10),
+          frq1 = \freq.kr(300),
+          frq2 = \freq2.kr(300),
+          trifreq = pulse * 3,
+          nlevel = LinLin.kr(pulse / 120, 0, 1, 0.1, 0.001);
+          snd = ISnarePhase.ar(pulse, \amp.kr(0.5), \attack.ir(0.00001), \fsweep.kr(0), \nattack.kr(0.001), nlevel, \nrel.kr(0.1), frq1, frq2, \rel.kr(0.1), trifreq);
           Out.ar(\out.kr(0), snd * \gain.kr(0.5));
   }).add
 #+end_src
 
 #+begin_src sclang :results none
-Synth.new(\p_snare, [\pulse, 1]);
+  b = Bus.control(s,1).set(10);
+  c = Synth.new(\p_snare, [\freq, [100, 200]]);
+  c.map(\pulse, b);
+  b.set(810);
+  b.get.postln;
 #+end_src
 
 **** harmonics function
@@ -3213,6 +3234,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                           fbus.value(harmonics[i]);		
                                           ~frequencyBus.add(fbus);
                                           ~originalFrequencies.add(harmonics[i]);
+                                          /* This sets the initial nlevel */		
                                           noise_level = g.map(harmonics[i] / 120);
                                           "pulse: ".post; harmonics[i].postln;		
                                           "Noise level: ".post; noise_level.postln;
@@ -3224,7 +3246,6 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                                           synth = Synth.new(\p_snare, [
                                                                   \bus, fbus,
                                                                   \pulse, harmonics[i],
-                                                                  \bus, fbus,
                                                                   \length, 1,
                                                                   \freq, harmonics[i]/10,
                                                                   \freq2, harmonics[i]/2,
@@ -3263,7 +3284,7 @@ Function to map frequency to noise level
   ~noiseMap = { arg val;
           ~noiseMapSpec.map(val / 120).postln
   };
-  ~noiseMap.value(100);
+  ~noiseMap.value(119);
 #+end_src
 
 ControlSpec for the mapping between frequency and noise level
@@ -3271,9 +3292,12 @@ ControlSpec for the mapping between frequency and noise level
 #+begin_src sclang :results none
   ~noiseMapSpec = ControlSpec(0.1, 0.0, \linear, 0.001, 0);
   ~noiseMapSpec.clipHi(0.1);
-  ~noiseMapSpec.clipLow(0);
+  ~noiseMapSpec.clipLo(0);
 #+end_src
 
+#+begin_src sclang :results none
+  { LinLin.kr(1, 0, 1, 0.1, 0.0); }.plot
+#+end_src
 **** reverb
 Load reverb
 #+name: load_reverb
@@ -3285,13 +3309,21 @@ Load reverb
 #+end_src
 
 Mix audio busses together for reverb send
-#+name: reverbBus
+#+name: reverbBusOld
 #+begin_src sclang :results none 
-  Ndef(\reverbBus, {
+  Ndef(\reverbBusOld, {
           Mix.fill(~audioBusses.size, {
                   arg i;
-                  In.ar(~audioBusses[i]);
+                  In.ar(~audioBusses[i]) * ;
           });
+  });
+#+end_src
+
+#+name: reverbBus
+#+begin_src sclang :results none
+  Ndef(\reverbBus { arg cbus, abus;
+          var src = \input.ar * In.kr(cbus.index + 2);
+          Out.ar(src)
   });
 #+end_src
 
@@ -3368,7 +3400,7 @@ Initialize global variable ~~allRings~. Loads and calls the function defined in 
 After calling this, call [[*spatialisation][spatialisation]]: make_vbap to play the busses on the speakers.
 
 - ~select~: The harmonics to play
-- ~spat_positions~: The angles for each audio bus (needs to be of equal length to ~sel~)
+- ~spat_positions~: The angles for each audio bus (needs to be of equal length to ~sel~). These are initialized at the same time that the partials are selectd.
 
 _1. Load this_
 #+name: generate_harmonics
@@ -3387,7 +3419,7 @@ _1. Load this_
           },
           \dual, {
                   select = [0,1];
-                  spat_positions = [0,1];
+                  spat_positions = [4,6];
                   "Dual mode".postln;	
           }); // switch mode
 
@@ -3430,23 +3462,15 @@ _1. Load this_
 **** spatialisation
 Spatialisation angles for three rings in triangles.
 
-Global variables and semaphhores
-#+name: global_variables
-#+begin_src sclang :results none
-  /* Fundamental frequency */
-  ~fundamental = 100;
-  /* The general level of loggging */
-  ~logging = 2;
-  /* Spatialisation positions */
-  ~allRings = [[-24.036688, 23.800417, 0], [21.279257, 23.800417, 0], [55.741675, 23.800417, 0], [101.49442, 23.800417, 0], [147.91193, 23.800417, 0], [-167.82013, 23.800417, 0], [ -123.784, 23.800417, 0], [-79.887731, 23.800417, 0], [ 0.247203, 56.476405, 0], [69.013292, 56.476405, 0], [158.89992, 56.476405, 0], [-114.65354, 56.476405, 0], [-90, 86.424489, 0], [90, 86.424489, 0], [0, 90, 0]];
-#+end_src
-
 _1. Load all_
 #+call: generate_harmonics()
 #+call: make_vbap()
-#+call: set_spatialization()
+#+call: init_spatialization()
 #+call: free_all()
 
+#+begin_src sclang :results none :noweb yes
+<<show_meter>>
+#+end_src
 _2. Load this_
 Call this after running [[*generate harmonics][generate harmonics]] to start the spatialisation of the harmonics. It creates the VBAP instances (inside a Ndef) stored in ~~spatNdefs~. It also fills the ~~controlBus~ array with three channel busses for the control of azimuth, elevation and distance respectively.
 
@@ -3467,8 +3491,8 @@ The functions controlling panning are here: [[inter_pan][inter_pan]].
                           src = In.ar(bus);
                           azi = In.kr(n);
                           ele = In.kr(n.index + 1);
-                          dist = In.kr(n.index + 2);
-                          src = src * LinLin.kr( In.kr(n.index + 2).squared, 0, 1, 1, 0.00001);
+                          dist = LinLin.kr( In.kr(n.index + 2).squared, 0, 1, 1, 0.00001);
+                          src = src * dist;
                           VBAP.ar(29, src, ~spkrBuffer.bufnum, In.kr(n), In.kr(n.index + 1), spr)}););
 //          ~controlBus[i].setn([0,0,1]);
           Ndef(m).fadeTime(1);
@@ -3477,6 +3501,11 @@ The functions controlling panning are here: [[inter_pan][inter_pan]].
   <<update_panning>>
 #+end_src
 
+#+begin_src sclang :results none
+  Ndef.new(m, {
+
+	});
+#+end_src
 #+begin_src sclang :results none
   {LinLin.kr(Line.kr(0, 1, 2).squared, 0, 1, 1, 0.00001)}.scope;
 #+end_src
@@ -3487,7 +3516,7 @@ s.reboot;
 
 Control individual synths pulse.
 #+begin_src sclang :results none
-  var pulse = 0, synth = 3;
+  var pulse = 10, synth = 0;
   ~synths.size.postln;
   ~synths[synth].set(\pulse, 3);
   ~synths[synth].get(\pulse, {arg item; item.postln; });
@@ -3517,7 +3546,7 @@ Gradually increase parameter in one synth.
           });
           interpolate.play;
   };
-  speeder.value(0, (400..150), 0.05, \freq);
+  speeder.value(0, (150..190), 0.05, \freq);
 #+end_src
 
 Interpolate one pulse bus.
@@ -3526,7 +3555,7 @@ Interpolate one pulse bus.
   ~interpolatePulseSingle = { arg int, bus, astart, aend, dur;
           {Out.kr(bus, Line.kr(astart, aend, dur, doneAction: 2))}.play(addAction: \addToHead);
   };
-  ~interpolatePulseSingle.value(0, ~frequencyBus[0], 400, 220, 10);
+  ~interpolatePulseSingle.value(0, ~frequencyBus[0], 3, 1, 10);
 #+end_src
 
 Interpolate all busses. Call this from [[pulse_interpolate_array][pulse_interpolate_array]], that creates an array of values for pulse modulation and interpolation.
@@ -3572,7 +3601,7 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 - ~mode~ the mode of the transformation: 0 = modulation map using the index and multiplier, 1 = linear map using end value for the modulation.
 #+name: pulse_interpolate_array
 #+begin_src sclang :results none
-  ~interpolatePulse.value(~modulateSpeed.value(1.2, 1, 3, 0));
+  ~interpolatePulse.value(~modulateSpeed.value(0.5, 1, 3, 0));
 #+end_src
 
 Create an array and interpolate the pulse frequence of the instruments.
@@ -3583,10 +3612,11 @@ Create an array and interpolate the pulse frequence of the instruments.
                   2,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 2, 20, 20, 2]));},
                   3,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 1, 1, 6, 1]));},
                   4,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 1, 1, 4, 1]));},
-                  5, {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 2, 5, 1, 1, 6]));}		
+                  5, {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 2, 5, 1, 1, 6]));},
+                  6,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 5, 20, 2, 2]));};	
           ) // switch
   };
-  ~pulsePresets.value(1);
+  ~pulsePresets.value(6);
 #+end_src
 
 Set and get a bus' value:
@@ -3670,7 +3700,7 @@ Function for generating the lines for the panning modulation using azimuth, elev
 ~controlBus[1].getnSynchronous(3)[2].postln;
 #+end_src
 #+begin_src sclang :results none
-~spatializations[1].postln;
+~spatializations[0].postln;
 #+end_src
 #+begin_src sclang :results none
 ~updatePanning.value(5);
@@ -3687,25 +3717,41 @@ Loads necesary auxilliary functions and copies over the positions according to t
   <<update_panning>>
   ~setSpatPositions = { arg spat_array;
           ~spatializations.do({ arg item, i;
+                  var pos;
                   /* Get the x/y position */	
-                  var pos = ~allRings.wrapAt(spat_array.wrapAt(i)[0]);
+                  if(spat_array.size == 0,
+                          {
+                                  /* The call to ~setSpatPositions was done without an argument */
+                                  pos = ~spatializations.at(i);
+                          }, 
+                          {
+                                  /* The call to ~setSpatPositions was done with an argument */
+                                  pos = ~allRings.wrapAt(spat_array.wrapAt(i)[0]);
+                                  pos.put(2, spat_array.wrapAt(i)[1]);		
+                          }); /* End of if(spat_array.size) */
                   /* update the distance parameter */
-                  pos.put(2, spat_array.wrapAt(i)[1]);
                   pos.postln;		
                   ~spatializations.put(i, pos);
                   if(~logging > 1,
                           {
                                   "Set panning:".postln;
-                                  "Putting spat angles at index ".post;  spat_array.wrapAt(i).post; " at index ".post; i.post; " with distance ".post; pos[2].postln;
+                                  "Putting spat angles at index ".post;  pos.wrapAt(i).post; " at index ".post; i.post; " with distance ".post; pos[2].postln;
                           }, { }); // if logging
           }); // spatialilzation.do
           ~updatePanning.value(10);
   };
 #+end_src
 
+#+name: init_spatialization
+#+begin_src sclang :results none :noweb yes
+  <<set_spatialization>>
+  ~setSpatPositions.value();
+#+end_src
+
 Change spatialization. Spat is controlled by an arbitrary length array that points to one of the 14 (0-13) speaker positions available. Use the ~spat_function~ to create new presets.
 #+begin_src sclang :results none
-~setSpatialization.value(\simple, 1);
+  ~setSpatialization.value(\distanceO, 1);
+  ~setSpatialization.value(\distanceI, 1);
 #+end_src
 
 #+begin_src sclang :results none
@@ -3718,6 +3764,8 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
   ~setSpatialization = { arg preset, time;
       switch(preset,
                   \simple, { ~setSpatPositions.value([[0, 0.2], [5, 0.2]]); },
+                  \distanceI, { ~setSpatPositions.value([[0, 0.2], [1, 0.2]]); },
+                  \distanceO, { ~setSpatPositions.value([[0, 1], [1, 1]]); },
                   \nther, { ~setSpatPositions.value([[3, 0.1], [0, 0.6]]); },
                   \sine, { ~setSpatPositions.value([[0.0, 0.1], [2.0, 0.2], [4.0, 0.3], [6.0, 0.4], [7.0, 0.3], [9.0, 0.3], [10.0, 0.2], [12.0, 0.1], [13.0, 0.1], [13.0 , 0.1], [ 13.0, 0.1], [ 13.0, 0.1], [ 3.0, 0.1], [13.0 , 0.1], [12.0, 0.1], [10.0, 0.1], [9.0 , 0.1], [7.0, 0.1], [6.0, 0.1], [4.0, 0.1], [2.0, 0.1]]); },
                   \frontTop, { ~setSpatPositions.value([[9, 0.3], [12, 0.4], [9, 0.3], [12, 0.3],[9, 0.3],[12, 0.3],[9, 0.3],[12, 0.3],[8, 0.3],[9, 0.3]]); },
