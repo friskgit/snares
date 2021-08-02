@@ -3465,6 +3465,7 @@ _1. Load all_
 #+call: make_vbap()
 #+call: init_spatialization()
 #+call: load_reverb()
+#+call: show_meter()
 #+call: free_all()
 
 #+begin_src sclang :results none :noweb yes
@@ -3655,7 +3656,9 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 #+end_src
 
 Create an array and interpolate the pulse frequence of the instruments.
-#+begin_src sclang :results none
+#+begin_src sclang :results none :noweb yes
+  <<pulse_modulation>>
+  <<interpolate_pulse>>
   ~pulsePresets = { arg preset = 0;
           switch(preset,	
                   1,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 50, 2, 20, 2000, 2])); },
@@ -3663,16 +3666,38 @@ Create an array and interpolate the pulse frequence of the instruments.
                   3,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 1, 1, 6, 1]));},
                   4,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 1, 1, 4, 1]));},
                   5, {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 2, 5, 1, 1, 6]));},
-                  6,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 5, 20, 2, 2]));};	
+                  6, {
+                          ~interpolatePulse.value(Array2D.fromArray(2, 3, [2, 32, 30, 1.5, 24, 30]));
+                          ~setSpatialization.value(\nther, 20);   
+                  },  
+                  7,  {
+                          ~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 2, 20, 2, 1.5, 15]));
+                          ~setSpatialization.value(\sine, 15);
+                  },
+                  8,  {
+                          ~interpolatePulse.value(Array2D.fromArray(2, 3, [6, 100, 40, 2, 160, 45]));
+                          ~setSpatialization.value(\sine, 40);
+                  },
+                  9,  {
+                          ~interpolatePulse.value(Array2D.fromArray(2, 3, [100, 200, 40, 160, 6, 45]));
+                          ~setSpatialization.value(\simple, 40);
+                  },      
+                  10,  {
+                          ~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 5, 20, 2, 2]));
+                          ~setSpatialization.value(\simple, 5);   
+                  };	
           ) // switch
   };
-  ~pulsePresets.value(1);
+  ~pulsePresets.value(8);
 #+end_src
 
+#+begin_src sclang :results none
+Array2D.fromArray(2, 3, [1, 5, 2, 20, 20, 2]).postln;
+#+end_src
 Set and get a bus' value:
 #+begin_src sclang :results none
-  ~frequencyBus[0].set(9);
-  ~frequencyBus[0].getSynchronous.postln;
+//  ~frequencyBus[1].set(1);
+  ~frequencyBus[1].getSynchronous.postln;
 #+end_src
 
 Reset original pulse frequencies.
@@ -3805,7 +3830,7 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
 #+end_src
 
 #+begin_src sclang :results none
-  ~setSpatialization.value(\frontTop, 5);
+  ~setSpatialization.value(\simple, 5);
 #+end_src
 
 #+begin_src sclang :results none
@@ -3817,7 +3842,7 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
 #+begin_src sclang :results none
   ~setSpatialization = { arg preset, time;
       switch(preset,
-                  \simple, { ~setSpatPositions.value([[0, 0.2], [5, 0.9]]); },
+                  \simple, { ~setSpatPositions.value([[0, 0.9], [5, 0.7]]); },
                   \distanceI, { ~setSpatPositions.value([[0, 0.0], [1, 0.0]]); },
                   \distanceO, { ~setSpatPositions.value([[0, 1], [1, 1]]); },
                   \nther, { ~setSpatPositions.value([[3, 0.1], [0, 0.6]]); },
