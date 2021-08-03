@@ -3194,9 +3194,9 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
   <<harmonic_synth>>;
   <<snare_phase_multi>>;
   f = { arg fund=200, sel = [1,2,3], delta = 0.05, amp_mode = \full, synth_mode = \sin;
-
+  
           var harmonics, amp, index = 0, noise_level = 0, fbus, nmap;
-
+  
           /* Fill arrays for pitches */
           harmonics = Array.fill(32, { arg i; (i+1)*fund; });
           switch(amp_mode, 
@@ -3206,19 +3206,19 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                   \linear, {amp = Array.series(32, 1, -0.03125)},
                   \reverse, {amp = Array.series(32, 0.03125, 0.3125)}
           );	
-
+  
           "Harmonics are loaded:".postln;
           harmonics.postln;
-
+  
           /* Map frequency to noise level */
           //nmap = ~noiseMap.value;
           g = ControlSpec(0.1, 0.0, \linear, 0.001, 0);
           g.clipHi(0.1);
           g.clipLo(0.0);
-
+  
           /* Frequency (pulse) control using a Bus */
           ~frequencyBus = Array.new(sel.size);
-
+  
           /* Run the loop */
           t = Task({
                   (0..31).do({ |i|
@@ -3228,7 +3228,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                           /* audio bus for output */		
                                           bus = Bus.audio(s, 1);
                                           ~audioBusses.add(bus);
-
+  
                                           /* Control bus for freq control */
                                           fbus = Bus.control(s, 1);
                                           fbus.value(harmonics[i]);		
@@ -3255,7 +3255,7 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                                                   \gain, amp[i]]);
                                                           synth.map(\pulse, fbus);
                                                   }); //switch
-
+  
                                           if(~logging > 0,
                                                   {			
                                                           Post << "Harmonic " <<< i << ": " <<< harmonics[i] <<  ", " <<< amp[i] << " at noise level " << noise_level <<< " at Audio bus " <<< bus.index << Char.nl;
@@ -3263,7 +3263,6 @@ Initialize the arrays for freq/amp for the first 32 harmonics and create audio b
                                                   },
                                                   { }); //if
                                           ~synths.add( synth ); // synths.add
-
                                   }, //if true
                                   {  }); // false, end
                           delta.wait;
@@ -3401,6 +3400,9 @@ After calling this, call [[*spatialisation][spatialisation]]: make_vbap to play 
 - ~spat_positions~: The angles for each audio bus (needs to be of equal length to ~sel~). These are initialized at the same time that the partials are selectd.
 
 _1. Load this_
+
+Function that loads ~global_variables~, ~all_rings~, ~harmonics~. It also initializes the ~~spatialisations~, however only the first value, azimuth. The following three 
+
 #+name: generate_harmonics
 #+begin_src sclang :results none :noweb yes :tangle harmony.sc
   (
@@ -3452,7 +3454,7 @@ _1. Load this_
           { "'sel' and 'spat' have unequal number of elements".postln; }); // if clause
 
   /* Call the harmonics function and play it.*/
-  task = f.value(~fundamental, select, 0.1, \default, \snare);
+  task = f.value(~fundamental, select, 0.1, \full, \snare);
   task.play;
   )
 #+end_src
@@ -3513,6 +3515,7 @@ The functions controlling panning are here: [[inter_pan][inter_pan]].
           Ndef(o).play(addAction: \addToTail);});
   <<inter_pan>>
   <<update_panning>>
+  <<reset_freqs>>
 #+end_src
 
 #+begin_src sclang :results none
@@ -3529,7 +3532,7 @@ a.map(2).postln; // a curve warp;
 #+end_src
 
 #+begin_src sclang :results none
-{ (Line.kr(1, 0, 2)) * (Line.kr(0, 1, 2))}.scope;
+{ (Line.kr(1, 0, 2)) * (Line.kr(1, 0, 2))}.scope;
 #+end_src
 
 #+begin_src sclang :results none
@@ -3568,8 +3571,8 @@ s.reboot;
 Control individual synths pulse.
 #+begin_src sclang :results none
   var pulse = 10, synth = 0;
-  ~synths.size.postln;
-  ~synths[synth].set(\pulse, 3);
+//  ~synths.size.postln;
+  ~synths[synth].set(\pulse, 800);
   ~synths[synth].get(\pulse, {arg item; item.postln; });
 #+end_src
 
@@ -3652,7 +3655,7 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 - ~mode~ the mode of the transformation: 0 = modulation map using the index and multiplier, 1 = linear map using end value for the modulation.
 #+name: pulse_interpolate_array
 #+begin_src sclang :results none
-  ~interpolatePulse.value(~modulateSpeed.value(2, 10, 3, 0));
+  ~interpolatePulse.value(~modulateSpeed.value(0.2, 20, 3, 1));
 #+end_src
 
 Create an array and interpolate the pulse frequence of the instruments.
@@ -3701,6 +3704,7 @@ Set and get a bus' value:
 #+end_src
 
 Reset original pulse frequencies.
+#+name: reset_freqs
 #+begin_src sclang :results none
   ~reset_freqs = { arg index = 0, mode = \all;
 
@@ -3722,7 +3726,6 @@ Reset original pulse frequencies.
                           ~frequencyBus[index].set(~originalFrequencies[index]);
                   });
   };
-
   ~reset_freqs.value(0, \all);
 #+end_src
 
@@ -3765,8 +3768,7 @@ Function for generating the lines for the panning modulation using azimuth, elev
                   ~interPan.value(~controlBus[i],
                           ~controlBus[i].getnSynchronous(3)[0], ~spatializations[i][0],
                           ~controlBus[i].getnSynchronous(3)[1], ~spatializations[i][1],
-                          ~controlBus[i].getnSynchronous(3)[2],
-                          ~spatializations[i][2], duration);	
+                          ~controlBus[i].getnSynchronous(3)[2], ~spatializations[i][2], duration);
           }); // end of spatNdefs.do
   }; //end of function
 #+end_src
@@ -3783,9 +3785,8 @@ Function for generating the lines for the panning modulation using azimuth, elev
 
 _3 Setting spatialization_
 
-Loads necesary auxilliary functions and copies over the positions according to the ~spat_array~ and ~distance_array~ arguments. Calls ~~updatePanning~ before exiting. The function takes two arguments:
-- ~spat_array~: The indexes in the ~~allRings~ array.
-- ~distance_array~: The distance parameters for each channel.
+Loads necesary auxilliary functions and copies over the positions according to the ~spat_array~ argument. If provided it should be an array (length equal to the number of spat channels) of arrays, each of which is an array with [azimuth, elevation, distance and spread]. It calls ~~updatePanning~ before exiting. The function takes one arguments:
+- ~spat_array~: An array of arrays with he indexes in the ~~allRings~ array to be copied over, the distancs and the spread.
 #+name: set_spatialization
 #+begin_src sclang :results none :noweb yes  :tangle harmony.sc
   <<spat_function>>
@@ -3994,7 +3995,7 @@ Example calls for the ~~interpolator~ function.
   p = ~interpolator.value(1, (180..0), 0.1).play;
 #+end_src
 
-Not sure what this is.
+Fill the ~~spatializations~ array with random indexes.
 #+begin_src sclang :results none :noweb yes
   var delta = 0.5;
   Task({
