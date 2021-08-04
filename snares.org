@@ -3126,7 +3126,7 @@ Example: Create a accent array and print it.
 *** harmonic spat synth
 **** boot audio
 #+begin_src sclang :results none :noweb yes
-<<boot_jack>>;
+  <<boot_jack>>;
 #+end_src
 **** list of global variables
 Global variables and semaphhores
@@ -3143,7 +3143,7 @@ Global variables and semaphhores
 #+name: global_variables
 #+begin_src sclang :results none
   /* Fundamental frequency */
-  ~fundamental = 1;
+  ~fundamental = 0.2;
   /* The general level of loggging */
   ~logging = 2;
   /* Spatialisation positions */
@@ -3418,7 +3418,7 @@ Function that loads ~global_variables~, ~all_rings~, ~harmonics~. It also initia
                   "Full mode".postln;		
           },
           \dual, {
-                  select = [0,1];
+                  select = [7, 9];
                   spat_positions = [4,6];
                   "Dual mode".postln;	
           }); // switch mode
@@ -3494,7 +3494,7 @@ The functions controlling panning are here: [[inter_pan][inter_pan]].
           n = Bus.control(s, 3);
           ~controlBus.add(n);
           ~spatNdefs.add(
-                  Ndef.new(m, { arg src, azi = 0, ele = 0, spr = 0.1, dist = 0;
+                  Ndef.new(m, { arg src, azi = 0, ele = 0, spr = 90, dist = 0;
                           src = In.ar(bus);
                           azi = In.kr(n);
                           ele = In.kr(n.index + 1);
@@ -3525,7 +3525,9 @@ The functions controlling panning are here: [[inter_pan][inter_pan]].
   ~reverbSendNdefs[1].set(\revScaleI, setMe);
   ~reverbSendNdefs[1].set(\revScaleII, setMe);
 #+end_src
-
+#+begin_src sclang :results none
+~spatNdefs[1].set(\spr, 0);
+#+end_src
 #+begin_src sclang :results none
 a = \sin.asWarp;
 a.map(2).postln; // a curve warp;
@@ -3572,7 +3574,7 @@ Control individual synths pulse.
 #+begin_src sclang :results none
   var pulse = 10, synth = 0;
 //  ~synths.size.postln;
-  ~synths[synth].set(\pulse, 800);
+  ~synths[synth].set(\pulse, 2);
   ~synths[synth].get(\pulse, {arg item; item.postln; });
 #+end_src
 
@@ -3585,6 +3587,17 @@ Set all synths parameter to a value.
           });
   };
   ~updateSynths.value(\nlevel, 0.1);
+#+end_src
+
+Set all spatNdefs parameter to a value.
+#+begin_src sclang :results none
+  ~updateVBAP = { arg parameter = \trifreq, value = 0;
+          var changeAll = ~spatNdefs.do({ arg item, i;
+                  item.set(parameter, value);
+                  "Setting ".post; parameter.post; " to ".post; value.postln;
+          });
+  };
+  ~updateVBAP.value(\spr, 0);
 #+end_src
 
 Gradually increase parameter in one synth.
@@ -3655,7 +3668,7 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 - ~mode~ the mode of the transformation: 0 = modulation map using the index and multiplier, 1 = linear map using end value for the modulation.
 #+name: pulse_interpolate_array
 #+begin_src sclang :results none
-  ~interpolatePulse.value(~modulateSpeed.value(0.2, 20, 3, 1));
+  ~interpolatePulse.value(~modulateSpeed.value(2, 20, 3, 1));
 #+end_src
 
 Create an array and interpolate the pulse frequence of the instruments.
@@ -3664,10 +3677,10 @@ Create an array and interpolate the pulse frequence of the instruments.
   <<interpolate_pulse>>
   ~pulsePresets = { arg preset = 0;
           switch(preset,	
-                  1,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 50, 2, 20, 2000, 2])); },
-                  2,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 2, 20, 20, 2]));},
-                  3,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 1, 1, 6, 1]));},
-                  4,  {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 1, 1, 4, 1]));},
+                  1, {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 50, 2, 20, 2000, 2])); },
+                  2, {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 2, 20, 20, 2]));},
+                  3, {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 1, 1, 6, 1]));},
+                  4, {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 5, 1, 1, 4, 1]));},
                   5, {~interpolatePulse.value(Array2D.fromArray(2, 3, [1, 2, 5, 1, 1, 6]));},
                   6, {
                           ~interpolatePulse.value(Array2D.fromArray(2, 3, [2, 32, 30, 1.5, 24, 30]));
@@ -3697,6 +3710,7 @@ Create an array and interpolate the pulse frequence of the instruments.
 #+begin_src sclang :results none
 Array2D.fromArray(2, 3, [1, 5, 2, 20, 20, 2]).postln;
 #+end_src
+
 Set and get a bus' value:
 #+begin_src sclang :results none
 //  ~frequencyBus[1].set(1);
@@ -3843,7 +3857,7 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
 #+begin_src sclang :results none
   ~setSpatialization = { arg preset, time;
       switch(preset,
-                  \simple, { ~setSpatPositions.value([[0, 0.9], [5, 0.7]]); },
+                  \simple, { ~setSpatPositions.value([[0, 0.0], [5, 0.0]]); },
                   \distanceI, { ~setSpatPositions.value([[0, 0.0], [1, 0.0]]); },
                   \distanceO, { ~setSpatPositions.value([[0, 1], [1, 1]]); },
                   \nther, { ~setSpatPositions.value([[3, 0.1], [0, 0.6]]); },
