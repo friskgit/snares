@@ -23,9 +23,8 @@ import("music.lib") ; // for osci definition
 
 p = hslider("pulse", 1, 1, 10000, 1);// : si.smooth(0.999);
 per = ma.SR / p : int : *(4);
-// imp = ba.period(per);
 
-// This is to avoid lagging when modulating the pulse 
+//This is to avoid lagging when modulating the pulse 
 hit(t) = (diff(ba.period(t)) < 0) + impulse
 with {
   diff(x) = x <: _ - _';
