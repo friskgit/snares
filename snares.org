@@ -715,7 +715,7 @@ Start the polyrhythmic structure above
 
 Adjust values in the polyrhythmic structure above.
 #+begin_src sclang :results none
-  k[0].set(\nlevel, 0);
+  k[1].set(\nlevel, 0);
   //k[0].set(\pulse, 1, \nlevel, 0.0, \freq, 400, \freq2, 200, \trifreq, 300);
 #+end_src
 
@@ -854,7 +854,7 @@ define the busses
 **** player
 #+name: play_disp_snare_4
 #+begin_src sclang :results none
-  ~reg_snare = Swynth.new("snaredisp4", [\dur, 30, \out, 0, \pos, 2, \disp, 0, \pulse, 500, \gain, 20, \vol, 5] );
+  ~reg_snare = Synth.new("snaredisp4", [\dur, 30, \out, 0, \pos, 2, \disp, 0, \pulse, 500, \gain, 20, \vol, 5] );
   //       ~reg_snare.free;
 #+end_src
 

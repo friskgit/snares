@@ -38,10 +38,6 @@ delC = per : *(0.75);
 imp_delA = hit(per) : de.sdelay(192000, 64, delA);
 imp_delB = hit(per) : de.sdelay(192000, 64, delB);
 imp_delC = hit(per) : de.sdelay(192000, 64, delC);
-//imp = os.impulse;
-// divisor = 0.25;
-// snares(d) = imp : de.sdelay(192000, 64, (per : *(divisor * d))) : component("generic_snarefs.dsp");
-// process = par(i, 4, snares(i+1));
 
 process = ((hit(per) : component("generic_snarefs.dsp")[accent = 2;]),
 	   (imp_delA : component("generic_snarefs.dsp")),
