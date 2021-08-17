@@ -878,8 +878,9 @@ Function for generating the lines for the panning modulation using azimuth, elev
 
 _3 Setting spatialization_
 
-Loads necesary auxilliary functions and copies over the positions according to the ~spat_array~ argument. If provided it should be an array (length equal to the number of spat channels) of arrays, each of which is an array with [azimuth, elevation, distance and spread]. It calls ~~updatePanning~ before exiting. The function takes one arguments:
+Loads necesary auxilliary functions and copies over the positions according to the ~spat_array~ argument. If provided it should be an array (length equal to the number of spat channels) of arrays, each of which is an array with [pos(azimuth, elevation), distance and spread]. It calls ~~updatePanning~ before exiting. The function takes two arguments:
 - ~spat_array~: An array2d of arrays with he indexes in the ~~allRings~ array to be copied over, the distancs and the spread.
+- ~duration~: The time for the transformation.
 #+name: set_spatialization
 #+begin_src sclang :results none :noweb yes  :tangle harmony.sc
   ~setSpatPositions = { arg spat_array, duration = 10;
@@ -1105,14 +1106,224 @@ Plot tree
 #+begin_src sclang :results none
   ~audioBusses[1].scope;
 #+end_src
-
+*** scheme functions
 #+name: spat_list
-#+begin_src scheme :var mult=0.01 :noweb yes :results output
+#+begin_src scheme :var mult=0.01 :noweb yes :results value
   <<sequenced_array>>
   (map (lambda (x)
-	 (format #t "~a, " (truncate (* x 14))))
-	    (seq-array-sin 0 21 (list)))
+         (format #t "~a, " (truncate (* x 14))))
+       (seq-array-sin 0 21 (list)))
 #+end_src
+
+#+begin_src scheme :var mult=0.01 :noweb yes :results output
+  (seq-array 0 21 '())
+#+end_src
+
+#+begin_src scheme :results value
+  (define hello
+  (lambda (name)
+    (string-append "Hello " name)))
+  (hello "Steve")
+#+end_src
+
+#+begin_src scheme :results value
+  ((lambda (i n x)
+     (car x)) 0 9 '(1 2 3))
+#+end_src
+
+#+RESULTS:
+
+**** list creation functions
+Use ~select-seq-array~ as a utility function to be able to select function programmatically. All seg-array-* are normalized.
+#+name: sequenced_array
+#+begin_src scheme :results value
+  (define pi 3.141592654)
+  
+  (define seq-array
+    (lambda (i n x)
+      (if (= i n)
+          x
+          (seq-array (+ i 1) n
+                     (append x (list (/ i (- n 1.0))))))))
+  
+  (define seq-array-reciprocal
+    (lambda (i n x)
+      (if (= i n)
+          x
+          (seq-array-reciprocal (+ i 1) n
+                                (append x (list
+                                           (/ 1 (+ 1.0 i))))))))
+  
+  (define seq-array-exponential
+    (lambda (i n x)
+      (if (= i n)
+          x
+          (seq-array-exponential (+ i 1) n
+                                 (append x (list
+                                            (/ (expt 2 i) (expt 2 (- n 1.0)))))))))
+  
+  (define seq-array-log
+    (lambda (i n x)
+      (if (= i n)
+          x
+          (seq-array-log (+ i 1) n
+                         (append x (list (/ (log (+ i 1)) (log n))))))))
+  
+  (define seq-array-sin
+    (lambda (i n x)
+      (if (= i n)
+          x
+          (seq-array-sin (+ i 1) n
+                         (append x (list (sin (* (/ i n) pi))))))))
+  
+  (define seq-array-cos
+    (lambda (i n x)
+      (if (= i n)
+          x
+          (seq-array-cos (+ i 1) n
+                         (append x (list (cos (* (/ i n) (/ pi 2)))))))))
+  
+  (define select-seq-array
+    (lambda (i n x j)
+      (cond ((= j 0) (seq-array i n x))
+            ((= j 1) (seq-array-reciprocal i n x))
+            ((= j 2) (seq-array-exponential i n x))
+            ((= j 3) (seq-array-log i n x))
+            ((= j 4) (seq-array-sin i n x))
+            ((= j 5) (seq-array-cos i n x)))))
+  (select-seq-array 0 9 '() 1)
+#+end_src
+
+#+RESULTS: sequenced_array
+
+value_sequence example call for the ~seq-array~ function, creating a list of sequence arrays:
+#+begin_src scheme :noweb yes :results value
+  <<sequenced_array>>
+  (seq-array 0 20 (list))
+#+end_src
+
+#+RESULTS:
+| 0.0 | 0.05263157894736842 | 0.10526315789473684 | 0.15789473684210525 | 0.21052631578947367 | 0.2631578947368421 | 0.3157894736842105 | 0.3684210526315789 | 0.42105263157894735 | 0.47368421052631576 | 0.5263157894736842 | 0.5789473684210527 | 0.631578947368421 | 0.6842105263157895 | 0.7368421052631579 | 0.7894736842105263 | 0.8421052631578947 | 0.8947368421052632 | 0.9473684210526315 | 1.0 |
+
+***** shift list
+Shift items in a list and resturn a list of lists, all items shifted by one.
+
+Functions:
+  - duplicate-shift /rows list newlist/: take a list a duplicated it while shifting it one step to the right.
+  - make-shift-list /rows list . flag/: utility function that calls duplicate-list. If ~flag~ is supplied with a value of 1 a non-shifted list is generated.
+    #+name: shift_list
+    #+begin_src scheme
+      (define duplicate-shift
+        (lambda (n lst newlst)
+          (cond ((= 0 n) newlst)
+                ((duplicate-shift (- n 1) 
+                                  (append (cdr lst) (list (car lst)))
+                                  (append newlst (list (append (cdr lst) (list (car lst))))))))))
+      
+      (define make-shift-list
+        (lambda (rows lst . flag)
+          (let ((flag (if (pair? flag) (car flag) 0)))
+            (cond ((= flag 1) (duplicate-shift rows lst (list lst)))
+                  ((= flag 0) (make-list rows lst))))))
+    #+end_src
+
+    Example use of [[*shift list][shift list]] using [[*value sequence][value sequence]]. The latter creates an array of numbers that is duplicated and shifted to the right
+    #+begin_src scheme :noweb yes
+      <<sequenced_array>>
+      <<shift_list>>
+      (make-shift-list 5 (seq-array 0 3 (list)) 1)
+    #+end_src
+
+    #+RESULTS:
+    | 0.0 | 0.5 | 1.0 |
+    | 0.5 | 1.0 | 0.0 |
+    | 1.0 | 0.0 | 0.5 |
+    | 0.0 | 0.5 | 1.0 |
+    | 0.5 | 1.0 | 0.0 |
+    | 1.0 | 0.0 | 0.5 |
+    | 0.0 | 0.5 | 1.0 |
+    | 0.5 | 1.0 | 0.0 |
+    | 1.0 | 0.0 | 0.5 |
+    | 0.0 | 0.5 | 1.0 |
+    | 0.5 | 1.0 | 0.0 |
+
+    Example use of shift list and sine mapping, not relying on ~value_sequence~.
+    #+begin_src scheme :noweb yes
+      (define lst (iota 5))
+      <<shift_list>>
+      (duplicate-shift 3 (map (lambda (x) (sin (* 0.1 x))) lst) (list (list)))
+    #+end_src
+
+    #+RESULTS:
+    |---------------------+---------------------+--------------------+---------------------+---------------------|
+    | 0.09983341664682815 | 0.19866933079506122 | 0.2955202066613396 |  0.3894183423086505 |                 0.0 |
+    | 0.19866933079506122 |  0.2955202066613396 | 0.3894183423086505 |                 0.0 | 0.09983341664682815 |
+    |  0.2955202066613396 |  0.3894183423086505 |                0.0 | 0.09983341664682815 | 0.19866933079506122 |
+
+***** write data file for spatialisation
+:PROPERTIES:
+:header-args: :results output raw :exports code :noweb yes :wrap "src sclang"
+:END:
+
+#+begin_src scheme :var size=10 :results output :noweb yes
+  <<sequenced_array>>
+  (use-modules (ice-9 format))
+  (define spread (seq-array 0 size '()))
+  (define distance  (seq-array-sin 0 size '()))
+  (define azel  (seq-array-exponential 0 size '()))
+  (format #t "~a" "[")
+  (map (lambda (ae dist spr)
+         (format #t "[~d, ~f, ~f], " (round (* size ae)) dist spr))
+       spread distance azel)
+  (format #t "~a" "]")
+#+end_src
+
+#+RESULTS:
+#+begin_SRC sclang
+[[0.0, 0.0, 0.001953125], [1.0, 0.30901699441396047, 0.00390625], [2.0, 0.587785252358846, 0.0078125], [3.0, 0.8090169944472815, 0.015625], [4.0, 0.951056516345858, 0.03125], [6.0, 1.0, 0.0625], [7.0, 0.9510565162190971, 0.125], [8.0, 0.8090169942061681, 0.25], [9.0, 0.5877852520269814, 0.5], [10.0, 0.3090169940238303, 1.0], ]
+#+end_SRC
+
+
+
+***** unused
+#+begin_src scheme
+  <<shift_list>>
+  
+  (define seq-array
+    (lambda (i n x)
+      (if (= i n)
+          x
+          (seq-array (+ i 1) n
+                     (append x (list
+                                (/ 1 (+ 1.0 i))))))))
+  
+  (define shifted-seq (duplicate-shift 10 (seq-array 0 10 (list)) (list (seq-array 0 10 (list)))))
+  
+  (define repeats
+    (lambda (n lgth items x)
+      (if (= n items)
+          x
+          (repeats (+ n 1) lgth items
+                   (append x (list
+                              (format #f "Pseq([~{~a, ~}], inf)"
+                                      (list-ref shifted-seq n))))))))
+#+end_src
+
+#+RESULTS:
+
+Generate a list of increasing values, 0-lgth
+#+name: value_list
+#+begin_src scheme :var lgth=10
+  (define valuelist
+    (lambda (i n x)
+      (if (= i n)
+          x
+          (valuelist (+ i 1) n (append x (list (format #f "Pseq([~d], inf)" (+ i 1))))))))
+  (valuelist 0 lgth (list))
+#+end_src
+
+#+RESULTS: value_list
+| Pseq([1], inf) | Pseq([2], inf) | Pseq([3], inf) | Pseq([4], inf) | Pseq([5], inf) | Pseq([6], inf) | Pseq([7], inf) | Pseq([8], inf) | Pseq([9], inf) | Pseq([10], inf) |
 
 **** test with Synthdef
  #+begin_src sclang :results none
@@ -1216,3 +1427,4 @@ Fill the ~~spatializations~ array with random indexes.
 	 });
   }).play;
 #+end_src
+
