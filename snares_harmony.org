@@ -57,7 +57,7 @@ Set JackRouter to be the interface on Linux
      #+name: global_variables
      #+begin_src sclang :results none
        /* Which space? */
-       ~space = 1;
+       ~space = 0;
        /* Fundamental frequency */
        ~fundamental = 1;
        /* The general level of loggging */
@@ -378,7 +378,7 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
 #+begin_src sclang :results none :noweb yes :tangle harmony.sc
   (
   var select, task,
-  mode = \dual,
+  mode = \harmony,
   ampMode = \full,
   synthesis = \snares;
   
@@ -484,8 +484,7 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 #+begin_src sclang :results none :noweb yes
   <<interpolate_busses>>
   <<pulse_modulation>>
-  //  ~interpolatePulse.value(~modulateSpeed.value(0.9, 2, 300, \change, [3,5]));
-  ~modulateSpeed.value(2, 0.1, 512, \harmonic, [3,5]);
+  ~modulateSpeed.value(2, 0.1, 60, \changeHarm, [2,3]);
 #+end_src
 
 Create an array of arrays, each with a start, end and dur parameter.
@@ -499,18 +498,20 @@ Create an array of arrays, each with a start, end and dur parameter.
           switch(mode,
             \inharmonic, { mod_map[i,1] = ~frequencyBus[i].getSynchronous * mult; },	
             \change, { mod_map[i,1] = end; },
-            \harmonic, { mod_map[i,1] = mod_map[i,0] * mult * (i + 1); },
-            \ratio, { if(i == 0,
-                  { mod_map[i,1] = ratio[0] * mult; },
-                  { mod_map[i,1] = ratio[1] * mult; });
+            \changeHarm, { mod_map[i, 1] = mod_map[i, 0] * mult; },
+            \harmonic, { mod_map[i,1] = end * (i + 1); },
+            \ratio, { if(i % 2 == 0,
+                  { mod_map[i,1] = ratio[0] * end; },
+                  { mod_map[i,1] = ratio[1] * end; });
             },
             \altratio, {
                   lower = ~frequencyBus[0].getSynchronous;
-                  if(i == 0,
+                  if(i % 2 == 0,
                     { 
                           mod_map[i,1] = lower * ratio[0];},
                     { /*rel = ratio[1] / ratio[0]; */
-                          mod_map[i,1] = lower * ratio[1]; });
+                          mod_map[i,1] = lower * ratio[1];
+                    });
             };
           );
           mod_map[i,2] = dur;
@@ -518,11 +519,10 @@ Create an array of arrays, each with a start, end and dur parameter.
     mod_map.postln;
     ~interpolatePulse.value(mod_map);
   };
-  
 #+end_src
 
 Interpolate all busses. Call this from [[pulse_interpolate_array][pulse_interpolate_array]], that creates an array of values for pulse modulation and interpolation or from the [[pulse_presets][pulse_presets]]. The function takes one argument: an array with start, end and duration.
-- ~map~: An array with start, end and duration values.
+- ~map~: An array with start, end and duration values,  [ start, end, duration ]
 #+name: interpolate_busses
 #+begin_src sclang :results none  :tangle harmony.sc
   ~interpolatePulse = { arg map;
@@ -533,10 +533,7 @@ Interpolate all busses. Call this from [[pulse_interpolate_array][pulse_interpol
             }, { });
           {Out.kr(~frequencyBus[i], Line.kr(obj[0], obj[1], obj[2], doneAction: 2))}.play(addAction: \addToHead);
     });
-    //  map;
   };
-  /* Interpolate all busses by the same value */
-  // ~interpolatePulse.value(10, 1, 10);
 #+end_src
 
 #+begin_src sclang :results none
@@ -575,8 +572,8 @@ Set synth parameters
 Interpolate one pulse bus.
 #+name: interpolate_pulse
 #+begin_src sclang :results none  :tangle harmony.sc
-  ~interpolatePulseSingle = { arg int, bus, astart, aend, dur;
-	 {Out.kr(bus, Line.kr(astart, aend, dur, doneAction: 2))}.play(addAction: \addToHead);
+  ~interpolatePulseSingle = { arg int, bus, start, end, dur;
+    {Out.kr(bus, Line.kr(start, end, dur, doneAction: 2))}.play(addAction: \addToHead);
   };
   ~interpolatePulseSingle.value(0, ~frequencyBus[0], 10, 1, 10);
 #+end_src
@@ -1107,31 +1104,58 @@ Plot tree
   ~audioBusses[1].scope;
 #+end_src
 *** scheme functions
-#+name: spat_list
-#+begin_src scheme :var mult=0.01 :noweb yes :results value
-  <<sequenced_array>>
-  (map (lambda (x)
-         (format #t "~a, " (truncate (* x 14))))
-       (seq-array-sin 0 21 (list)))
-#+end_src
-
-#+begin_src scheme :var mult=0.01 :noweb yes :results output
-  (seq-array 0 21 '())
-#+end_src
-
-#+begin_src scheme :results value
-  (define hello
-  (lambda (name)
-    (string-append "Hello " name)))
-  (hello "Steve")
-#+end_src
-
-#+begin_src scheme :results value
-  ((lambda (i n x)
-     (car x)) 0 9 '(1 2 3))
+#+begin_src scheme
+  (map (lambda (x) (modulo x 2)) (iota 20))
 #+end_src
 
 #+RESULTS:
+| 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 |
+
+**** write data file for spatialisation
+:PROPERTIES:
+:header-args: :results output raw :exports code :noweb yes :wrap "src sclang"
+:END:
+
+#+begin_src scheme :var size=14 array_size=4 spread_mult=50 :results output :noweb yes
+  <<sequenced_array>>
+  (use-modules (ice-9 format))
+  (define azel (iota size))
+  (define distance  (seq-array-log 0 size '()))
+  (define spread  (seq-array-cos 0 size '()))
+  (format #t "~a" "~setSpatPositions.value([")
+  (map (lambda (ae dist spr)
+         (format #t "[~d, ~f, ~f], " (modulo ae array_size) dist (* spr spread_mult)))
+       azel distance spread)
+  (format #t "~a" "])")
+#+end_src
+
+
+#+RESULTS:
+#+begin_src sclang
+~setSpatPositions.value([[0, 0.0, 50.0], [1, 0.26264953503719357, 49.68561049458011], [2, 0.4162896638657993, 48.746395608765184], [3, 0.5252990700743871, 47.194166514692576], [0, 0.6098533345119623, 45.04844339384966], [1, 0.6789391989029928, 42.336209959465606], [2, 0.7373504649628064, 39.09157412066121], [3, 0.7879486051115806, 35.35533905570162], [0, 0.8325793277315986, 31.17449008835507], [1, 0.872502869549156, 26.601603820184707], [2, 0.9086181061280522, 21.694186949278194], [3, 0.9415887339401864, 16.513953090152892], [0, 0.9719187714029215, 11.126046689245964], [1, 1.0, 5.598223795702611], ])
+#+end_src
+
+size=14 array_size=4
+(define azel (iota size))
+(define distance  (seq-array-cos 0 size '()))
+(define spread  (seq-array-sin 0 size '()))
+#+name: spat_minor_spread
+#+begin_src sclang
+~setSpatPositions.value([[0, 1.0, 0.0], [1, 0.9937122098916022, 0.22252093398488024], [2, 0.9749279121753036, 0.4338837391703557], [3, 0.9438833302938515, 0.6234898019274576], [0, 0.9009688678769932, 0.781831482541104], [1, 0.8467241991893122, 0.9009688679659842], [2, 0.7818314824132242, 0.9749279122209434], [3, 0.7071067811140325, 1.0], [0, 0.6234898017671014, 0.9749279121296639], [1, 0.5320320764036941, 0.900968867788002], [2, 0.43388373898556387, 0.7818314822853442], [3, 0.3302790618030578, 0.6234898016067452], [0, 0.22252093378491927, 0.4338837388007723], [1, 0.11196447591405223, 0.22252093358495822], ])
+#+end_src
+
+size=14 array_size=4
+(define azel (iota size))
+(define distance  (seq-array-log 0 size '()))
+(define spread  (seq-array-sin 0 size '()))
+#+name: 
+#+begin_src sclang
+  ~setSpatPositions.value([[0, 0.0, 0.0], [1, 0.26264953503719357, 0.22252093398488024], [2, 0.4162896638657993, 0.4338837391703557], [3, 0.5252990700743871, 0.6234898019274576], [0, 0.6098533345119623, 0.781831482541104], [1, 0.6789391989029928, 0.9009688679659842], [2, 0.7373504649628064, 0.9749279122209434], [3, 0.7879486051115806, 1.0], [0, 0.8325793277315986, 0.9749279121296639], [1, 0.872502869549156, 0.900968867788002], [2, 0.9086181061280522, 0.7818314822853442], [3, 0.9415887339401864, 0.6234898016067452], [0, 0.9719187714029215, 0.4338837388007723], [1, 1.0, 0.22252093358495822], ])
+#+end_src
+
+#+RESULTS:
+#+begin_src sclang
+#+end_src
 
 **** list creation functions
 Use ~select-seq-array~ as a utility function to be able to select function programmatically. All seg-array-* are normalized.
@@ -1195,15 +1219,13 @@ Use ~select-seq-array~ as a utility function to be able to select function progr
 #+end_src
 
 #+RESULTS: sequenced_array
+| 1.0 | 0.5 | 0.3333333333333333 | 0.25 | 0.2 | 0.16666666666666666 | 0.14285714285714285 | 0.125 | 0.1111111111111111 |
 
 value_sequence example call for the ~seq-array~ function, creating a list of sequence arrays:
 #+begin_src scheme :noweb yes :results value
   <<sequenced_array>>
-  (seq-array 0 20 (list))
+  (seq-array 0 2 (list))
 #+end_src
-
-#+RESULTS:
-| 0.0 | 0.05263157894736842 | 0.10526315789473684 | 0.15789473684210525 | 0.21052631578947367 | 0.2631578947368421 | 0.3157894736842105 | 0.3684210526315789 | 0.42105263157894735 | 0.47368421052631576 | 0.5263157894736842 | 0.5789473684210527 | 0.631578947368421 | 0.6842105263157895 | 0.7368421052631579 | 0.7894736842105263 | 0.8421052631578947 | 0.8947368421052632 | 0.9473684210526315 | 1.0 |
 
 ***** shift list
 Shift items in a list and resturn a list of lists, all items shifted by one.
@@ -1260,31 +1282,6 @@ Functions:
     | 0.19866933079506122 |  0.2955202066613396 | 0.3894183423086505 |                 0.0 | 0.09983341664682815 |
     |  0.2955202066613396 |  0.3894183423086505 |                0.0 | 0.09983341664682815 | 0.19866933079506122 |
 
-***** write data file for spatialisation
-:PROPERTIES:
-:header-args: :results output raw :exports code :noweb yes :wrap "src sclang"
-:END:
-
-#+begin_src scheme :var size=10 :results output :noweb yes
-  <<sequenced_array>>
-  (use-modules (ice-9 format))
-  (define spread (seq-array 0 size '()))
-  (define distance  (seq-array-sin 0 size '()))
-  (define azel  (seq-array-exponential 0 size '()))
-  (format #t "~a" "[")
-  (map (lambda (ae dist spr)
-         (format #t "[~d, ~f, ~f], " (round (* size ae)) dist spr))
-       spread distance azel)
-  (format #t "~a" "]")
-#+end_src
-
-#+RESULTS:
-#+begin_SRC sclang
-[[0.0, 0.0, 0.001953125], [1.0, 0.30901699441396047, 0.00390625], [2.0, 0.587785252358846, 0.0078125], [3.0, 0.8090169944472815, 0.015625], [4.0, 0.951056516345858, 0.03125], [6.0, 1.0, 0.0625], [7.0, 0.9510565162190971, 0.125], [8.0, 0.8090169942061681, 0.25], [9.0, 0.5877852520269814, 0.5], [10.0, 0.3090169940238303, 1.0], ]
-#+end_SRC
-
-
-
 ***** unused
 #+begin_src scheme
   <<shift_list>>
@@ -1325,24 +1322,64 @@ Generate a list of increasing values, 0-lgth
 #+RESULTS: value_list
 | Pseq([1], inf) | Pseq([2], inf) | Pseq([3], inf) | Pseq([4], inf) | Pseq([5], inf) | Pseq([6], inf) | Pseq([7], inf) | Pseq([8], inf) | Pseq([9], inf) | Pseq([10], inf) |
 
-**** test with Synthdef
- #+begin_src sclang :results none
-	Synth.new(\vbap_panning, [\bus, ~audioBusses[0], \spkr_buffer, ~spkrBuffer.bufnum, \azimuth, 0, \elevation, 0, \spread, 0], addAction: \addToTail);
- #+end_src
+**** pulse modulation
+Create a list of starting and ending positions.
 
- #+begin_src sclang :results none
-	SynthDef(\vbap_panning, { var input, snd, bus;
-	  bus = \bus.kr;
-	  input = In.ar(bus);
-	  snd = VBAP.ar(29,
-		input,
-		\spkr_buffer.ir,
-		\azimuth.kr(0),
-		\elevation.kr(0),
-		\spread.kr(0));
-	  Out.ar(0, snd);
-	}).add;
- #+end_src
+Plot harmony-end-reciprocal with:
+#+begin_src gnuplot :var data=data-table :file output.png
+set xrange [0: 20]
+plot 100 * 1 / (x+1) * 40
+#+end_src
+[[file:harmony_end_reciprocal.png]]
+
+#+begin_src scheme :var size=20 fundamental=100 r=0.5 :results value
+  (use-modules (srfi srfi-1))
+  
+  (define harmony-start
+    (lambda (n x)
+      (if (= n size)
+          x
+          (harmony-start (1+ n) (append x (list (* fundamental (1+ n))))))))
+  
+  (define harmony-end-reciprocal
+    (lambda (n x)
+      (if (= n size)
+          x
+          (harmony-end-reciprocal (1+ n) (append x (list (* (* fundamental (/ 1 (1+ n))) 40)))))))
+  
+  (zip  (harmony-start 0 '()) (reverse (harmony-end-reciprocal 0 '())) (make-list size 10))
+#+end_src
+
+#+RESULTS:
+|  100 | 200     | 10 |
+|  200 | 4000/19 | 10 |
+|  300 | 2000/9  | 10 |
+|  400 | 4000/17 | 10 |
+|  500 | 250     | 10 |
+|  600 | 800/3   | 10 |
+|  700 | 2000/7  | 10 |
+|  800 | 4000/13 | 10 |
+|  900 | 1000/3  | 10 |
+| 1000 | 4000/11 | 10 |
+| 1100 | 400     | 10 |
+| 1200 | 4000/9  | 10 |
+| 1300 | 500     | 10 |
+| 1400 | 4000/7  | 10 |
+| 1500 | 2000/3  | 10 |
+| 1600 | 800     | 10 |
+| 1700 | 1000    | 10 |
+| 1800 | 4000/3  | 10 |
+| 1900 | 2000    | 10 |
+| 2000 | 4000    | 10 |
+
+#+begin_src scheme :results value
+  (use-modules (srfi srfi-1))
+(reverse '(1 2 3))
+#+end_src
+
+#+RESULTS:
+| 3 | 2 | 1 |
+
 
 *** free busses
 #+name: free_busses
