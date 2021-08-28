@@ -388,6 +388,7 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
   ~fundamental = 2;
   
   switch(mode,
+    /* 15 partials */
     \harmony, {
           select = [3,5,7,9,11,13,15,17,19,21,23,25,27,29,31];
           ~spatPositions = [0,1,5,6,3,2,7,4,9,11,8,10,12,13,14];
@@ -484,7 +485,7 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 #+begin_src sclang :results none :noweb yes
   <<interpolate_busses>>
   <<pulse_modulation>>
-  ~modulateSpeed.value(2, 0.1, 60, \changeHarm, [2,3]);
+  ~modulateSpeed.value(2, 20, 60, \ratio, [9,8]);
 #+end_src
 
 Create an array of arrays, each with a start, end and dur parameter.
@@ -494,44 +495,66 @@ Create an array of arrays, each with a start, end and dur parameter.
     var mod_map = Array2D.new(~spatNdefs.size, 3), lower = 0;
     ~spatNdefs.size.postln;
     mod_map.rowsDo({ arg obj, i;
-          mod_map[i,0] = ~frequencyBus[i].getSynchronous;
-          switch(mode,
-            \inharmonic, { mod_map[i,1] = ~frequencyBus[i].getSynchronous * mult; },	
-            \change, { mod_map[i,1] = end; },
-            \changeHarm, { mod_map[i, 1] = mod_map[i, 0] * mult; },
-            \harmonic, { mod_map[i,1] = end * (i + 1); },
-            \ratio, { if(i % 2 == 0,
-                  { mod_map[i,1] = ratio[0] * end; },
-                  { mod_map[i,1] = ratio[1] * end; });
-            },
-            \altratio, {
-                  lower = ~frequencyBus[0].getSynchronous;
-                  if(i % 2 == 0,
-                    { 
-                          mod_map[i,1] = lower * ratio[0];},
-                    { /*rel = ratio[1] / ratio[0]; */
-                          mod_map[i,1] = lower * ratio[1];
-                    });
-            };
-          );
-          mod_map[i,2] = dur;
+          // Make sure there are not more rows than objects.
+          if(i < ~frequencyBus.size, {
+            mod_map[i,0] = ~frequencyBus[i].getSynchronous;
+            switch(mode,
+                  \inharmonic, { mod_map[i,1] = ~frequencyBus[i].getSynchronous * mult; },	
+                  \change, { mod_map[i,1] = end; },
+                  \changeHarm, { mod_map[i, 1] = mod_map[i, 0] * mult; },
+                  \harmonic, { mod_map[i,1] = end * (i + 1); },
+                  \ratio, { if(i % 2 == 0,
+                    { mod_map[i,1] = ratio[0] * end; },
+                    { mod_map[i,1] = ratio[1] * end; });
+                  },
+                  \altratio, {
+                    lower = ~frequencyBus[0].getSynchronous;
+                    if(i % 2 == 0,
+                          { 
+                            mod_map[i,1] = lower * ratio[0];},
+                          { /*rel = ratio[1] / ratio[0]; */
+                            mod_map[i,1] = lower * ratio[1];
+                          });
+                  };
+            );
+            mod_map[i,2] = dur;
+          });
     });
     mod_map.postln;
     ~interpolatePulse.value(mod_map);
   };
 #+end_src
 
+#+begin_src sclang :results none
+  ~interpolatePulse.value(Array2D.fromArray(2, 2, [10, 5, 9, 8]));
+  //  a = Array2D.fromArray(2, 2, [1, 5, 1, 8]);
+  //a.rowAt(0).size.postln;
+#+end_src
 Interpolate all busses. Call this from [[pulse_interpolate_array][pulse_interpolate_array]], that creates an array of values for pulse modulation and interpolation or from the [[pulse_presets][pulse_presets]]. The function takes one argument: an array with start, end and duration.
 - ~map~: An array with start, end and duration values,  [ start, end, duration ]
 #+name: interpolate_busses
 #+begin_src sclang :results none  :tangle harmony.sc
   ~interpolatePulse = { arg map;
+    var startFrq = 1, endFrq = 1, dur = 1;
+    map.postln;
     map.rowsDo({ arg obj, i;
+          if(map.rowAt(0).size == 2,
+            {
+                  startFrq = ~frequencyBus[i].getSynchronous;
+                  endFrq = obj[0];
+                  dur = obj[1];
+            },
+            {
+                  startFrq = obj[0];
+                  endFrq = obj[1];
+                  dur = obj[2];
+  
+            });
           if(~logging > 1,
             { 
-                  "Starting envelope for item ".post; i.post; " from ".post; obj[0].post; " to ".post; obj[1].post; " in ".post; obj[2].post; " seconds.".postln;						
+                  "Starting envelope for item ".post; i.post; " from ".post; startFrq.post; " to ".post; endFrq.post; " in ".post; dur.post; " seconds.".postln;						
             }, { });
-          {Out.kr(~frequencyBus[i], Line.kr(obj[0], obj[1], obj[2], doneAction: 2))}.play(addAction: \addToHead);
+          {Out.kr(~frequencyBus[i], Line.kr(startFrq, endFrq, dur, doneAction: 2))}.play(addAction: \addToHead);
     });
   };
 #+end_src
@@ -554,7 +577,7 @@ Gradually increase parameter in one synth.
 	 });
 	 interpolate.play;
   };
-  speeder.value(0, (200..100), 0.05, \freq);
+  speeder.value(14, (200..100), 0.05, \freq);
 #+end_src
 
 Set synth parameters
@@ -565,6 +588,7 @@ Set synth parameters
   }
 #+end_src
 
+Set one synths parameter x.
 #+begin_src sclang :results none
 ~setSynth.value(1, \gain, 1);
 #+end_src
@@ -586,7 +610,7 @@ Create an array and interpolate the pulse frequence of the instruments. The arra
   ~pulsePresets = { arg preset = 1;
     switch(preset,	
           1, {
-            ~interpolatePulse.value(Array2D.fromArray(2, 3, [100, 10, 5, 200, 20, 8]));
+            ~interpolatePulse.value(Array2D.fromArray(2, 3, [10, 1, 5, 20, 1, 8]));
           },
           2, {
             ~interpolatePulse.value(Array2D.fromArray(2, 3, [12, 15, 20, 20, 20, 2]));
@@ -622,11 +646,11 @@ Create an array and interpolate the pulse frequence of the instruments. The arra
           };	
     ) // switch
   };
-  ~pulsePresets.value(1);
+//  ~pulsePresets.value(1);
 #+end_src
 
 #+begin_src sclang :results none
-  Array2D.fromArray(2, 3, [100, 10, 5, 200, 20, 8]).postln;
+  Array2D.fromArray(3, 3, [100, 10, 5, 200, 20, 8, 1,2,3]).postln;
 #+end_src
 Set and get a bus' value:
 #+begin_src sclang :results none
@@ -795,7 +819,7 @@ Set all synths parameter to a value.
 	  "Setting ".post; parameter.post; " to ".post; value.postln;
 	 });
   };
-  ~updateSynths.value(\freq, 50);
+  ~updateSynths.value(\freq, 320);
 #+end_src
 
 Set all spatNdefs parameter to a value (Doesn't work)
@@ -871,9 +895,13 @@ Function for generating the lines for the panning modulation using azimuth, elev
 
 #+begin_src sclang :results none
   // { Poll.kr(Impulse.kr(10), In.kr(~controlBus[0]), \test) }.play(s);
-  ~controlBus[0].getnSynchronous(3)[0].postln;
-  ~controlBus[0].getnSynchronous(3)[1].postln;
-  ~controlBus[0].getnSynchronous(3)[2].postln;
+  var getIt;
+  getIt = { arg instance = 0;
+    ~controlBus[instance].getnSynchronous(3)[0].postln;
+    ~controlBus[instance].getnSynchronous(3)[1].postln;
+    ~controlBus[instance].getnSynchronous(3)[2].postln;
+  };
+  getIt.value(14);
 #+end_src
 
 _3 Setting spatialization_
@@ -925,6 +953,8 @@ Loads necesary auxilliary functions and copies over the positions according to t
   // ~setSpatPositions.value();
 #+end_src
 
+Fade in.
+#+name: spat_fade_in
 #+begin_src sclang :results none
 ~setSpatPositions.value([ [ 5, 0.001, 0.1 ], [ 6, 0.001, 0.1 ], [ 0, 0.01, 0.1 ], [ 13, 0.70112240314484, 91 ], [ 4, 0.029506921768188, 9 ], [ 12, 0.64996898174286, 74 ], [ 6, 0.36793804168701, 15 ], [ 12, 0.62310302257538, 40 ], [ 1, 0.3138290643692, 56 ], [ 2, 0.23481667041779, 55 ], [ 8, 0.34279143810272, 72 ], [ 3, 0.21060848236084, 59 ], [ 6, 0.90231537818909, 9 ], [ 3, 0.96117198467255, 5 ], [ 4, 0.26086962223053, 64 ] ], 10);
 #+end_src
@@ -972,7 +1002,7 @@ Bring forward
     [ 4, 1, 1 ],
     [ 10, 1, 1 ],
     [ 12, 1, 1 ] ],
-    30);
+    10);
 #+end_src
 
 Mix forward
@@ -995,6 +1025,13 @@ Mix forward
     30);
 #+end_src
 
+Init
+#+begin_src sclang :results none
+  ~setSpatPositions.value([
+    [ 0, 1, 1 ] ],
+    10);
+#+end_src
+
 #+begin_src sclang :results none
   var setMe = 0.5;
   ~reverbSendNdefs[0].set(\revScaleI, setMe);
@@ -1006,7 +1043,9 @@ Mix forward
 #+name: init_spatialization
 #+begin_src sclang :results none :noweb yes
   <<set_spatialization>>
+  <<spat_function>>
   ~setSpatPositions.value();
+  ~setSpatialization.value(\sine, 10);
 #+end_src
 #+begin_src sclang :results none
   ~spatializations.at(0).size.postln;
@@ -1018,8 +1057,9 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
   ~setSpatialization.value(\distanceI, 10);
 #+end_src
 
+#+name: set_sine
 #+begin_src sclang :results none
-  ~setSpatialization.value(\frontTop, 20);
+  ~setSpatialization.value(\frontTop, 30);
 #+end_src
 
 #+begin_src sclang :results none
@@ -1033,13 +1073,13 @@ Never set the spread to less then 0.1.
 #+begin_src sclang :results none
   ~setSpatialization = { arg preset, time;
     switch(preset,
-          \single, { ~setSpatPositions.value([[1, 0, 90], [8, 0, 0.1]]); },
+          \single, { ~setSpatPositions.value([[1, 1, 0.1], [8, 1, 0.1]]); },
           \simple, { ~setSpatPositions.value([[0, 0.6, 0.1], [1, 0.6, 0 ]]); },
           \distanceI, { ~setSpatPositions.value([[0, 0.0, 0.0], [1, 0.0, 0.0]]); },
           \distanceO, { ~setSpatPositions.value([[0, 1, 50.0], [1, 1, 0.0]]); },
           \nther, { ~setSpatPositions.value([[3, 0.1, 0.0], [0, 0.6, 0.0]]); },
           \sine, { ~setSpatPositions.value([[0.0, 0.1, 0.0], [2.0, 0.2, 0.0], [4.0, 0.3, 0.0], [6.0, 0.4, 0.0], [7.0, 0.3, 0.0], [9.0, 0.3, 0.0], [10.0, 0.2, 0.0], [12.0, 0.1, 0.0], [13.0, 0.1, 0.0], [13.0 , 0.1, 0.0], [ 13.0, 0.1, 0.0], [ 13.0, 0.1, 0.0], [ 3.0, 0.1, 0.0], [13.0 , 0.1, 0.0], [12.0, 0.1, 0.0], [10.0, 0.1, 0.0], [9.0 , 0.1, 0.0], [7.0, 0.1, 0.0], [6.0, 0.1, 0.0], [4.0, 0.1, 0.0], [2.0, 0.1, 0.0]]); },
-          \frontTop, { ~setSpatPositions.value([[2, 1, 0.0], [5, 1, 0.0], [9, 0.3, 0.0], [12, 0.3, 0.0],[9, 0.3, 0.0],[12, 0.3, 0.0],[9, 0.3, 0.0],[12, 0.3, 0.0],[8, 0.3, 0.0],[9, 0.3, 0.0]]); };
+          \frontTop, { ~setSpatPositions.value([[2, 1, 0.0], [5, 1, 0.0], [9, 0.3, 0.0], [12, 0.3, 0.0],[9, 0.3, 0.0],[12, 0.3, 0.0],[9, 0.3, 0.0],[12, 0.3, 0.0],[2, 0.3, 0.0],[5, 0.3, 0.0], [9, 0.3, 0.0], [12, 0.3, 0.0], [2, 0.3, 0.0], [9, 0.3, 0.0]]); };
     )};
 #+end_src
 
@@ -1324,86 +1364,125 @@ Generate a list of increasing values, 0-lgth
 | Pseq([1], inf) | Pseq([2], inf) | Pseq([3], inf) | Pseq([4], inf) | Pseq([5], inf) | Pseq([6], inf) | Pseq([7], inf) | Pseq([8], inf) | Pseq([9], inf) | Pseq([10], inf) |
 
 **** pulse modulation
-Create a list of starting and ending positions.
+Function to create an array of arrays for pulse modulation using the sclang function [[interpolate_busses][interpolate_busses]]. The first three scheme functions generate the lists of frequency start value (~harmony-start~), end value (~harmony-end-reciprocal~) and interpolation time (~make-timer-log~) respectively. Alternate functions can be constructed for different effects.
 
-Plot harmony-end-reciprocal with:
-#+begin_src gnuplot :var data=data-table :file output.png
-set xrange [0: 20]
-plot 100 * 1 / (x+1) * 40
-#+end_src
-
-[[file:harmony_end_reciprocal.png]]
-
-Plot ~make-timer-log~ with
-#+begin_src gnuplot
-set xrange [0: 20]
-plot (log (x+1)) / log(20)
-#+end_src
-
-[[file:make-timer-log.png]]
-**** pulse modulation factory
-
-#+begin_src scheme :var size=20 fundamental=100 r=0.5 multiplier=20 :results value code
-  ;; code :wrap "src scheme"
-    (use-modules (srfi srfi-1))
-  
-    (define harmony-start
-      (lambda (n x)
-        (if (= n size)
-            x
-            (harmony-start (1+ n) (append x (list (* fundamental (1+ n))))))))
-  
-    (define harmony-end-reciprocal
-      (lambda (n x)
-        (if (= n size)
-            x
-            (harmony-end-reciprocal (1+ n) (append x (list (* (* fundamental (/ 1 (1+ n))) 40)))))))
-  
-    (define make-timer-log
-      (lambda (n x m)
-        (if (= n size)
-            x
-            (make-timer-log (1+ n) (append x (list (* (/ (log (+ n 1)) (log size))) multiplier)) multiplier ))))
-  
-    ;; (zip (harmony-start 0 '()) (reverse (harmony-end-reciprocal 0 '())) (make-timer-log 0 '() 20))
-  
-    (define combine-lists
-      (lambda (one two three x)
-        (if (null? one)
-            x
-            (combine-lists (cdr one) (cdr two) (cdr three) (append x (list (car one) (car two) (car three)))))))
-  
-    (combine-lists
-      (harmony-start 0 '())
-      (reverse (harmony-end-reciprocal 0 '()))
-      (make-timer-log 0 '() 20)
-      '())
+The actual distribution for ~harmony-end-reciprocal~ can be plotted with:
+#+begin_src gnuplot :file output.png
+  set xrange [0: 20]
+  plot 100 * 1 / (x+1) * 40
 #+end_src
 
 #+RESULTS:
-#+begin_src scheme
-(100 200 0.0 200 4000/19 20 300 2000/9 0.23137821315975918 400 4000/17 20 500 250 0.36672579134208466 600 800/3 20 700 2000/7 0.46275642631951835 800 4000/13 20 900 1000/3 0.5372435736804817 1000 4000/11 20 1100 400 0.5981040045018439 1200 4000/9 20 1300 500 0.6495607655709434 1400 4000/7 20 1500 2000/3 0.6941346394792774 1600 800 20 1700 1000 0.7334515826841693 1800 4000/3 20 1900 2000 0.768621786840241 2000 4000 20)
-#+end_src
+[[file:output.png]]
 
-
-#+begin_src scheme
-(if (null? '()) 3 4)
+And similarily for ~make-timer-log~:
+#+begin_src gnuplot :var multi=14 :file timer-log.png
+  set xrange [0: 20]
+  plot (log (x+1)) / log(multi)
 #+end_src
 
 #+RESULTS:
-: 3
+[[file:timer-log.png]]
 
-#+begin_src scheme :var size=20 fundamental=100 r=0.5 multiplier=20 :results value
-    (define harmony-start
-      (lambda (n x)
-        (if (= n size)
-            x
-            (harmony-start (1+ n) (append x (list (* fundamental (1+ n))))))))
+#+begin_src scheme :var size=20 fundamental=50 r=0.5 multiplier=30 :results output code :wrap "src sclang"
+  (use-modules (ice-9 format))
+  
+  (define interpolate "~interpolatePulse.value(Array2D.fromArray(")
+  (define interpolate_end "]));")
+  
+  (define harmony-start
+    (lambda (n x)
+      (if (= n size)
+          x
+          (harmony-start (1+ n) (append x (list (* fundamental (1+ n))))))))
+  
+  (define harmony-end-reciprocal
+    (lambda (n x)
+      (if (= n size)
+          x
+          (harmony-end-reciprocal (1+ n) (append x (list (* (* fundamental (/ 1 (1+ n))) 40)))))))
+  
+  (define make-timer-log
+    (lambda (n x m)
+      (if (= n size)
+          x
+          (make-timer-log (1+ n) (append x (list (* (/ (log (+ n 1)) (log size))) multiplier)) multiplier ))))
+  
+  (define combine-lists
+    (lambda (one two three x)
+      (if (null? one)
+          x
+          (combine-lists (cdr one) (cdr two) (cdr three)
+                         (append x (list (car one) (car two) (car three)))))))
+  
+  (define (format-array lst)
+    (display interpolate)
+    (format #t "~a, 3, [" size)
+    (map (lambda (x) (format #t "~a, " x)) lst)
+    (display interpolate_end))
+  
+  (format-array 
+   (combine-lists
     (harmony-start 0 '())
+    (reverse (harmony-end-reciprocal 0 '()))
+    (make-timer-log 0 '() 20)
+    '()))
 #+end_src
 
 #+RESULTS:
-| 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900 | 1000 | 1100 | 1200 | 1300 | 1400 | 1500 | 1600 | 1700 | 1800 | 1900 | 2000 |
+#+begin_src sclang
+~interpolatePulse.value(Array2D.fromArray(20, 3, [50, 100, 0.0, 100, 2000/19, 30, 150, 1000/9, 0.23137821315975918, 200, 2000/17, 30, 250, 125, 0.36672579134208466, 300, 400/3, 30, 350, 1000/7, 0.46275642631951835, 400, 2000/13, 30, 450, 500/3, 0.5372435736804817, 500, 2000/11, 30, 550, 200, 0.5981040045018439, 600, 2000/9, 30, 650, 250, 0.6495607655709434, 700, 2000/7, 30, 750, 1000/3, 0.6941346394792774, 800, 400, 30, 850, 500, 0.7334515826841693, 900, 2000/3, 30, 950, 1000, 0.768621786840241, 1000, 2000, 30, ]));
+#+end_src
+
+#+begin_src scheme :var size=14 fundamental=5 r=0.5 multiplier=20 :results output code :wrap "src sclang"
+  (use-modules (ice-9 format))
+  
+  (define interpolate "~interpolatePulse.value(Array2D.fromArray(")
+  (define interpolate_end "]));")
+  
+  (define harmony-start
+    (lambda (n x)
+      (if (= n size)
+          x
+          (harmony-start (1+ n) (append x (list (* fundamental (1+ n))))))))
+  
+  (define harmony-end-reciprocal
+    (lambda (n x)
+      (if (= n size)
+          x
+          (harmony-end-reciprocal (1+ n) (append x (list (* (* fundamental (/ 1 (1+ n))) 40)))))))
+  
+  (define make-timer-log
+    (lambda (n x)
+      (if (= n size)
+          x
+          (make-timer-log (1+ n) (append x (list (+ (* (/ (log (+ n 1)) (log size)) multiplier) 2)))))))
+  
+  (define combine-lists
+    (lambda (one two x)
+      (if (null? one)
+          x
+          (combine-lists (cdr one) (cdr two)
+                         (append x (list (car one) (car two)))))))
+  
+  (define (format-array lst)
+    (display interpolate)
+    (format #t "~a, 2, [" size)
+    (map (lambda (x) (format #t "~a, " x)) lst)
+    (display interpolate_end))
+  
+  (format-array 
+   (combine-lists
+    (reverse (harmony-end-reciprocal 0 '()))
+    (make-timer-log 0 '())
+    '()))
+#+end_src
+
+#+RESULTS:
+#+begin_src sclang
+  ~setSpatialization.value(\sine, 30);
+  ~interpolatePulse.value(Array2D.fromArray(14, 2, [100/7, 2.0, 200/13, 7.252990700743871, 50/3, 10.325793277315986, 200/11, 12.505981401487743, 20, 14.197066690239247, 200/9, 15.578783978059857, 25, 16.747009299256128, 200/7, 17.75897210223161, 100/3, 18.651586554631972, 40, 19.45005739098312, 50, 20.172362122561044, 200/3, 20.83177467880373, 100, 21.43837542805843, 200, 22.0, ]));
+#+end_src
 
 *** free busses
 #+name: free_busses
