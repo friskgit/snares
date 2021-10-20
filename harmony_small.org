@@ -1,0 +1,60 @@
+#+STARTUP: indent overview hidestars
+#+SELECT_TAGS: export
+#+EXCLUDE_TAGS: noexport
+
+#+name: modulate_spat_synth
+#+begin_src sclang :results none
+  ~buss = Bus.control(s, 1);
+ 
+  SynthDef(\interpolator, {
+    Out.kr(~buss, Line.kr(\start.ir, \end.ir, \dur.ir, doneAction: 2););
+  }).add;
+#+end_src
+
+#+name: inter_pan_old
+#+begin_src sclang :results none
+  //var mod1, mod2, mod3, mod4;
+  //  p = { arg bus, astart, aend, estart, eend, dstart, dend, sstart, send, dur;
+  //  var bus = 0, astart = 0, aend = 1, estart, eend, dstart, dend, sstart, send, dur = 10;
+  
+  b = s.makeBundle(false, {
+    ~mod1 = Synth.new(\interpolator, [\bus, 0, \start, 0, \end, 1, \dur, 10], addAction: \addToHead);
+    NodeWatcher.register(~mod1);
+  });
+  s.listSendBundle(nil, b);
+#+end_src
+
+#+name: inter_pan
+#+begin_src sclang :results none
+  ~interPan = { arg bus, astart, aend, estart, eend, dstart, dend, sstart, send, dur;
+    // if(~logging > 1,
+    // 	{
+    // 	  "Azimuth from ".post; astart.post; " to ".post; aend.postln;
+    // 	  "Elevation from ".post; estart.post; " to ".post; eend.postln;
+    // 	  "Distance from ".post; dstart.post; " to ".post; dend.postln;
+    // 	  "Spread from ".post; sstart.post; " to ".post; send.postln;	   
+    // 	}, { });
+    ~mod1 = Synth.new(\interpolator, [\bus, bus, \start, astart, \end, aend, \dur, dur], addAction: \addToHead);
+    ~mod2 = Synth.new(\interpolator, [\bus, bus + 1, \start, estart, \end, eend, \dur, dur], addAction: \addToHead);
+    ~mod3 = Synth.new(\interpolator, [\bus, bus + 2, \start, dstart, \end, dend, \dur, dur], addAction: \addToHead);
+    ~mod4 = Synth.new(\interpolator, [\bus, bus + 3, \start, sstart, \end, send, \dur, dur], addAction: \addToHead);
+  };
+#+end_src
+
+#+begin_src sclang :results none
+  ~interPan.value(0, 0, 1, 0, 1, 0, 1, 0, 1, 10);
+  ~buss.debugScope;
+#+end_src
+
+#+begin_src sclang :results none
+  ~mod1.free;
+  ~mod2.free;
+  ~mod3.free;
+  ~mod4.free;
+#+end_src
+#+begin_src sclang :results none
+  m = Synth.new(\interpolator, [\bus, 0, \start, 0, \end, 1, \dur, 10], addAction: \addToHead);
+#+end_src
+#+begin_src sclang :results none :noweb yes
+s.queryAllNodes;
+#+end_src
