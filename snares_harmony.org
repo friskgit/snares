@@ -805,7 +805,173 @@ Set one synths parameter x.
 ~setSynth.value(1, \gain, 1);
 #+end_src
 
-** spatialization
+** ambisonics
+
+#+begin_src sclang :results none
+  /* setup channels and busses */
+  var revMap;
+  ~spatNdefsAmbi = Array.new(~audioBusses.size);
+  ~reverbSendNdefs = Array.new(~audioBusses.size);
+  ~reverbBus = Array.new(~audioBusses.size);
+  ~controlBus = Array.new(~audioBusses.size);
+  ~reverbSendBus = Bus.audio(s, 1);
+  revMap = \sin.asWarp;
+  
+  /* setup ambisonics */
+  ~order = 3;
+  ~hoaNumChannels = (~order+1).pow(2);
+  ~decoderNumChannels = 8;
+  //s.scope(~hoaNumChannels);
+  
+  /* for each audio bus, setup an HOAencoder */
+  ~audioBusses.do({ arg bus, i;
+    o = "reverbBus" ++ i.asString.asSymbol;
+    m = "ch" ++ i.asString.asSymbol;
+    n = Bus.control(s, 3); // azi, ele, distance
+    ~controlBus.add(n);
+  
+    // Create the input bus and the encoder
+    ~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
+    //~hoaSignal.play;
+  
+    // hoaSignal.source och hoaSignal.add verkar fungera lika bra.
+    ~hoaSignal[0] = { HOAEncoder.ar(~order, In.ar(bus, 1), \azpana.kr(-3.14), \elpana.kr(0), \gaina.kr(0), plane_spherical:1) };
+    ~hoaSignal.fadeTime = 0.1;
+  
+    if(~space == 0,
+          {
+            ~spatNdefs.add(
+                  Ndef.new(m, { arg src, azi = 0, ele = 0, spr = 0, dist = 0;
+                    src = In.ar(bus);
+                    azi = In.kr(n.index).poll(3);
+                    ele = In.kr(n.index + 1);
+                    dist = LinLin.kr( In.kr(n.index + 2).cubed, 0, 1, 0.0001, 1);
+                    spr = LinLin.kr( In.kr(n.index + 3), 0, 100, 1, 100);
+                    src = src * dist;
+                    VBAP.ar(29, src, ~spkrBuffer.bufnum, azi, ele, spr)});
+            );
+          },
+          {
+            ~spatNdefs.add(
+                  Ndef.new(m, { arg src, azi = 0, ele = 0, dist = 0;
+                    src = In.ar(bus);
+                    azi = In.kr(n);
+                    ele = In.kr(n.index + 1);
+                    dist = LinLin.kr( In.kr(n.index + 2).cubed, 0, 1, 0.0001, 1);
+                    HOAEncoder.ar(~order, In.ar(bus, 1), azi, ele, dist, plane_spherical:1)
+                  });
+            );
+          });  
+#+end_src
+*** Example with control
+    #+call: player()
+    #+call: encode()
+    #+call: connect()
+    #+call: cleanup()
+    Sets the environment variables (~~order~, ~~hoaNumChannels~, ~~decodeNumChannels~), then, creates the encoder and the decoder.
+    Two encoders in parallel feeding to the same decoder. 
+    Automation for the panning is controlled by ~~azimuthA~ and ~~azimuthB~ that are connected to the encoders.
+    #+name: encode
+    #+begin_src sclang :results none :noweb yes
+      (
+      // Settings
+      ~order = 3;
+      ~hoaNumChannels = (~order+1).pow(2);
+      ~decoderNumChannels = 8;
+      //s.scope(~hoaNumChannels);
+
+      // Create the input bus and the encoder
+      ~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
+      //~hoaSignal.play;
+
+      // hoaSignal.source och hoaSignal.add verkar fungera lika bra.
+      ~hoaSignal[0] = { HOAEncoder.ar(~order, In.ar(17, 1), \azpana.kr(-3.14), \elpana.kr(0), \gaina.kr(0), plane_spherical:1) };
+      ~hoaSignal[1] = { HOAEncoder.ar(~order, In.ar(19, 1), \azpanb.kr(-3.14), \elpanb.kr(0),  plane_spherical:1) };
+      ~hoaSignal.fadeTime = 0.1;
+
+      // Panning automation
+      // Create a new panner NodeProxy
+      ~azimuthA = NodeProxy.control(s, 1);
+      ~azimuthB = NodeProxy.control(s, 1);
+
+      // Set its source to a control signal
+      ~azimuthA.source = { SinOsc.kr(0.1, 0, 0.9pi, 0); };
+      ~azimuthB.source = { SinOsc.kr(2, 0, 0.5pi, 0); };
+
+      // Call .set on the object you want to control given the parameter and the control proxy as arguments
+      ~hoaSignal.set(\azpana, ~azimuthA);
+      ~hoaSignal.set(\elpanb, ~azimuthB);
+      ~azimuthA.play;
+      ~azimuthB.play;
+
+      // Decoder
+      ~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
+      ~decoder.source = {
+	  var in; in = \in.ar(0!~hoaNumChannels);
+	  in.add(0);
+	  KMH108AE3h3pNormal6.ar(*in);
+      };
+      ~decoder.fadeTime = 1;
+      )
+    #+end_src
+     
+    Start a meter
+    #+begin_src sclang :results none
+      s.meter
+    #+end_src
+
+    Connect the encoder with the decoder
+    Signal, encoded and decoded, but not mapped. Use this.
+    #+name: connect
+    #+begin_src sclang :results none
+      (
+      ~decoder.play(0, ~decoderNumChannels, vol: 1.0);
+      ~hoaSignal <>> ~decoder;
+      )
+    #+end_src
+
+    Clear the instances
+    #+name: cleanup
+    #+begin_src sclang :results none
+      ~hoaSignal.clear;
+      ~azimuthA.clear;
+      ~decoder.clear;
+    #+end_src
+
+    Control the panning position A
+    #+begin_src sclang :results none
+      ~hoaSignal.set(\azpana, 3.14);
+      ~hoaSignal.set(\elpana, 3.14);
+      ~hoaSignal.set(\azpanb, 3.14);
+      ~hoaSignal.set(\elpanb, 3.14);
+    #+end_src
+
+    Control the panning position B
+    #+begin_src sclang :results none
+      ~hoaSignal.set(\azpana, 0);
+      ~hoaSignal.set(\elpana, 0);
+      ~hoaSignal.set(\azpanb, 0);
+      ~hoaSignal.set(\elpanb, 0);
+    #+end_src
+
+    Control the panning position C
+    #+begin_src sclang :results none
+      ~hoaSignal.set(\azpana, -3.14);
+      ~hoaSignal.set(\elpana, -3.14);
+      ~hoaSignal.set(\azpanb, -3.14);
+      ~hoaSignal.set(\elpanb, -3.14);
+    #+end_src
+
+    Control the panning position D
+    #+begin_src sclang :results none
+      ~hoaSignal.set(\azpana, 1.25);
+      ~hoaSignal.set(\elpana, 1.25);
+      ~hoaSignal.set(\azpanb, 1.25);
+      ~hoaSignal.set(\elpanb, 1.25);
+    #+end_src
+
+
+** spatialization VBAP
 Spatialisation angles for three rings in triangles.
 
 _2. Load this_
@@ -867,7 +1033,8 @@ The functions controlling panning are here: [[inter_pan][inter_pan]].
     );
     Ndef(m).fadeTime(1);
     Ndef(m).play(addAction: \addToTail);
-    Ndef(o).play(addAction: \addToTail);});
+    Ndef(o).play(addAction: \addToTail);
+  });
   <<inter_pan>>
   <<update_panning>>
   <<reset_freqs>>
@@ -970,7 +1137,6 @@ Loads necesary auxilliary functions and copies over the positions according to t
 #+name: set_spatialization
 #+begin_src sclang :results none :noweb yes  :tangle harmony.sc
   <<free_spat_busses>>
-  
   ~setSpatPositions = { arg spat_array, duration = 10;
     "The spat array".postln;
     " ".postln;
@@ -1396,6 +1562,7 @@ Plot tree
   ~audioBusses[1].scope;
 #+end_src
 ** scheme functions
+*** stuff
 #+begin_src scheme
   (map (lambda (x) (modulo x 2)) (iota 10))
 #+end_src
@@ -1415,12 +1582,26 @@ Plot tree
 :header-args: :results output raw :exports code :noweb yes :wrap "src sclang"
 :END:
 
-#+begin_src scheme :var size=1 array_size=1 spread_mult=5 :results output :noweb yes
+This functions creates a call to the supercollider function ~setSpatPositions~ with values for:
+1. azimuth/elevation, defined as a VBAP position in the Klangkupolen dome. This poisitions are reduced to 14 centre positions in each of the triangles created by two adjacent rings of speakers.
+2. The distance parameter
+3. The spread paramter
+
+Each array in the array corresponds to one note in the chord.
+   
+Parameters:
+- ~size~: The size of the array
+- ~array_size~: The size of the speaker array (if ~size~ > ~array_size~, size will wrap around this parameter).
+- ~spread_mult~: The multiplier for the ~spread~ parameter (unity).
+- ~dist_func~: Which function to use for the distance paramter.
+- ~spread_func~: Which function to use for the spread parameter.
+#+name: run_spatialization_method
+#+begin_src scheme :var size=5 array_size=2 spread_mult=100 dist_func=4 spread_func=2 :noweb yes
   <<sequenced_array>>
   (use-modules (ice-9 format))
   (define azel (iota size))
-  (define distance (seq-array-exponential 0 size '()))
-  (define spread  (seq-array-sin 0 size '()))
+  (define distance (select-seq-array 0 size '() dist_func))
+  (define spread  (select-seq-array 0 size '() spread_func))
   (format #t "~a" "~setSpatPositions.value([")
   (map (lambda (ae dist spr)
          (format #t "[~d, ~f, ~f], " (modulo ae array_size) dist (* spr spread_mult)))
@@ -1428,11 +1609,31 @@ Plot tree
   (format #t "~a" "], 5)")
 #+end_src
 
+**** spatialisation array
+:PROPERTIES:
+:header-args: :results output raw :var dist=1 :exports code :noweb yes :wrap "src sclang"
+:END:
+Evaluate this line with corresponding arguments (see [[*write data file for spatialisation][Documentation]]) and then the plot for the same functions below.
+#+call: run_spatialization_method(dist_func=3, spread_func=4)
 
 #+RESULTS:
 #+begin_src sclang
-~setSpatPositions.value([[0, 1.0, 0.0], ], 5)
+~setSpatPositions.value([[0, 0.0, 0.0], [1, 0.43067655807339306, 58.7785252358846], [0, 0.6826061944859854, 95.1056516345858], [1, 0.8613531161467861, 95.10565162190971], [0, 1.0, 58.77852520269814], ], 5)
 #+end_src
+
+***** plot
+:PROPERTIES:
+:header-args: :results output
+:END:
+#+call: plot_array[:file output_array_dist.png](flag=0)
+
+#+RESULTS:
+[[file:output_array_dist.png]]
+
+#+call: plot_array[:file output_array_spread.png](flag=1)
+
+#+RESULTS:
+[[file:output_array_spread.png]]
 
 size=14
 array_size = 14
@@ -1520,6 +1721,7 @@ size=14 array_size=4
 #+begin_src sclang
 #+end_src
 
+
 *** list creation functions
 Use ~select-seq-array~ as a utility function to be able to select function programmatically. All seg-array-* are normalized.
 #+name: sequenced_array
@@ -1570,6 +1772,8 @@ Use ~select-seq-array~ as a utility function to be able to select function progr
           (seq-array-cos (+ i 1) n
                          (append x (list (cos (* (/ i n) (/ pi 2)))))))))
   
+  (define seq-array-constant 0)
+  
   (define select-seq-array
     (lambda (i n x j)
       (cond ((= j 0) (seq-array i n x))
@@ -1578,20 +1782,46 @@ Use ~select-seq-array~ as a utility function to be able to select function progr
             ((= j 3) (seq-array-log i n x))
             ((= j 4) (seq-array-sin i n x))
             ((= j 5) (seq-array-cos i n x)))))
-  (select-seq-array 0 9 '() 1)
+  
+  (select-seq-array 0 5 '() 2)
 #+end_src
 
-#+RESULTS: sequenced_array
-| 1.0 | 0.5 | 0.3333333333333333 | 0.25 | 0.2 | 0.16666666666666666 | 0.14285714285714285 | 0.125 | 0.1111111111111111 |
+Plot the functions above using the index of the function called. 
+#+name: plot_array
+#+begin_src gnuplot :var len=20 flag=6 :file output_array.png
+  set xrange [0: 20]
+  if(flag==0) {
+      plot x
+  }
+  if(flag==1) {
+      plot abs(x-len)
+      }
+  if(flag==2) {
+      plot 2**x / 2**(len-1)
+  }
+  if(flag==3) {
+      plot (log (x+1)) / log(len)
+  }
+  if(flag==4) {
+      plot sin((x/len)*pi/2)
+  }
+  if(flag==5) {
+      plot cos((x/len)*pi/2)
+  }
+  if(flag==6) {
+      plot 1
+  }
+  
+#+end_src
+
+#+RESULTS: plot-array
+[[file:output_array.png]]
 
 value_sequence example call for the ~seq-array~ function, creating a list of sequence arrays:
 #+begin_src scheme :noweb yes :results value
   <<sequenced_array>>
   (seq-array-reciprocal 0 10 (list))
 #+end_src
-
-#+RESULTS:
-| 1.0 | 0.5 | 0.3333333333333333 | 0.25 | 0.2 | 0.16666666666666666 | 0.14285714285714285 | 0.125 | 0.1111111111111111 | 0.1 |
 
 **** shift list
 Shift items in a list and resturn a list of lists, all items shifted by one.
@@ -1619,21 +1849,15 @@ Functions:
     #+begin_src scheme :noweb yes
       <<sequenced_array>>
       <<shift_list>>
-      (make-shift-list 5 (seq-array 0 3 (list)) 1)
+      (make-shift-list 4 (seq-array 0 5 (list)) 1)
     #+end_src
 
     #+RESULTS:
-    | 0.0 | 0.5 | 1.0 |
-    | 0.5 | 1.0 | 0.0 |
-    | 1.0 | 0.0 | 0.5 |
-    | 0.0 | 0.5 | 1.0 |
-    | 0.5 | 1.0 | 0.0 |
-    | 1.0 | 0.0 | 0.5 |
-    | 0.0 | 0.5 | 1.0 |
-    | 0.5 | 1.0 | 0.0 |
-    | 1.0 | 0.0 | 0.5 |
-    | 0.0 | 0.5 | 1.0 |
-    | 0.5 | 1.0 | 0.0 |
+    |  0.0 | 0.25 |  0.5 | 0.75 |  1.0 |
+    | 0.25 |  0.5 | 0.75 |  1.0 |  0.0 |
+    |  0.5 | 0.75 |  1.0 |  0.0 | 0.25 |
+    | 0.75 |  1.0 |  0.0 | 0.25 |  0.5 |
+    |  1.0 |  0.0 | 0.25 |  0.5 | 0.75 |
 
     Example use of shift list and sine mapping, not relying on ~value_sequence~.
     #+begin_src scheme :noweb yes
@@ -1692,9 +1916,9 @@ Generate a list of increasing values, 0-lgth
 Function to create an array of arrays for pulse modulation using the sclang function [[interpolate_busses][interpolate_busses]]. The first three scheme functions generate the lists of frequency start value (~harmony-start~), end value (~harmony-end-reciprocal~) and interpolation time (~make-timer-log~) respectively. Alternate functions can be constructed for different effects.
 
 The actual distribution for ~harmony-end-reciprocal~ can be plotted with:
-#+begin_src gnuplot :file output.png
+#+begin_src gnuplot :file output.png 
   set xrange [0: 20]
-  plot 100 * 1 / (x+1) * 40
+      plot 100 * 1 / (x+1) * 40
 #+end_src
 
 #+RESULTS:
@@ -1865,7 +2089,6 @@ setSpatPositions.value([1, 2, 3, 4, 5, 6, ])
 #+end_src
 
 #+RESULTS:
-
 ** free busses
 #+name: free_busses
 #+begin_src sclang :results none
