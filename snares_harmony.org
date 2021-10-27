@@ -93,9 +93,9 @@ Global variables and semaphhores
   /* Which space? */
   ~space = 0;
   /* Fundamental frequency */
-  ~fundamental = 100;
+  ~fundamental = 10;
   /* Mode of synthesis */
-  ~mode = \single;
+  ~mode = \odd;
   /* Amplitude mode */
   ~ampMode = \full;
   /* The general level of loggging */
@@ -103,6 +103,11 @@ Global variables and semaphhores
   /* Spatialisation positions */
   ~allRings = [[335.963312, 23.800417, 1.0, 0.0], [21.279257, 23.800417, 1.0, 0.0], [55.741675, 23.800417, 1.0, 0.0], [101.49442, 23.800417, 1.0, 0.0], [147.91193, 23.800417, 1.0, 0.0], [192.17987, 23.800417, 1.0, 0.0], [ 236.216, 23.800417, 1.0, 0.0], [280.112269, 23.800417, 1.0, 0.0], [ 0.247203, 56.476405, 1.0, 0.0], [69.013292, 56.476405, 1.0, 0.0], [158.89992, 56.476405, 1.0, 0.0], [245.34646, 56.476405, 1.0, 0.0], [270, 86.424489, 1.0, 0.0], [90, 86.424489, 1.0, 0.0], [0, 90, 1.0, 0.0]];
   /* Separator */
+  
+  /* setup ambisonics */
+  ~order = 3;
+  ~hoaNumChannels = (~order+1).pow(2);
+  ~decoderNumChannels = 29;  
   
   /* Semaphore for spatialisation modulation and synths */
   ~modSem1 = 0;
@@ -530,7 +535,7 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 #+begin_src sclang :results none :noweb yes
   <<interpolate_busses>>
   <<pulse_modulation>>
-  ~modulateSpeed.value(3, 20, 2, \inharmonic, [5,7]);
+  ~modulateSpeed.value(4, 10, 0.1, \ratio, [7,9]);
 #+end_src
 
 #+begin_src sclang :results none
@@ -555,7 +560,7 @@ Create an array of arrays, each with a start, end and dur parameter.
 #+name: pulse_modulation
 #+begin_src sclang :results none
   ~modulateSpeed = { arg mult = 2, dur = 2, end = 100, mode = \multi, ratio = [2,3];
-    var mod_map = Array2D.new(~spatNdefs.size, 3), lower = 0;
+    var mod_map = Array2D.new(~audioBusses.size, 3), lower = 0;
     ~spatNdefs.size.postln;
     mod_map.rowsDo({ arg obj, i;
           // Make sure there are not more rows than objects.
@@ -806,22 +811,16 @@ Set one synths parameter x.
 #+end_src
 
 ** ambisonics
-
+#+name: spat_setup_encoder
 #+begin_src sclang :results none
   /* setup channels and busses */
   var revMap;
-  ~spatNdefsAmbi = Array.new(~audioBusses.size);
+  ~proxyBusAmbi = NodeProxy.new(s, \audio, ~hoaNumChannels);
   ~reverbSendNdefs = Array.new(~audioBusses.size);
   ~reverbBus = Array.new(~audioBusses.size);
   ~controlBus = Array.new(~audioBusses.size);
   ~reverbSendBus = Bus.audio(s, 1);
   revMap = \sin.asWarp;
-  
-  /* setup ambisonics */
-  ~order = 3;
-  ~hoaNumChannels = (~order+1).pow(2);
-  ~decoderNumChannels = 8;
-  //s.scope(~hoaNumChannels);
   
   /* for each audio bus, setup an HOAencoder */
   ~audioBusses.do({ arg bus, i;
@@ -829,147 +828,77 @@ Set one synths parameter x.
     m = "ch" ++ i.asString.asSymbol;
     n = Bus.control(s, 3); // azi, ele, distance
     ~controlBus.add(n);
-  
-    // Create the input bus and the encoder
-    ~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
-    //~hoaSignal.play;
-  
-    // hoaSignal.source och hoaSignal.add verkar fungera lika bra.
-    ~hoaSignal[0] = { HOAEncoder.ar(~order, In.ar(bus, 1), \azpana.kr(-3.14), \elpana.kr(0), \gaina.kr(0), plane_spherical:1) };
-    ~hoaSignal.fadeTime = 0.1;
-  
-    if(~space == 0,
-          {
-            ~spatNdefs.add(
-                  Ndef.new(m, { arg src, azi = 0, ele = 0, spr = 0, dist = 0;
-                    src = In.ar(bus);
-                    azi = In.kr(n.index).poll(3);
-                    ele = In.kr(n.index + 1);
-                    dist = LinLin.kr( In.kr(n.index + 2).cubed, 0, 1, 0.0001, 1);
-                    spr = LinLin.kr( In.kr(n.index + 3), 0, 100, 1, 100);
-                    src = src * dist;
-                    VBAP.ar(29, src, ~spkrBuffer.bufnum, azi, ele, spr)});
-            );
-          },
-          {
-            ~spatNdefs.add(
-                  Ndef.new(m, { arg src, azi = 0, ele = 0, dist = 0;
-                    src = In.ar(bus);
-                    azi = In.kr(n);
-                    ele = In.kr(n.index + 1);
-                    dist = LinLin.kr( In.kr(n.index + 2).cubed, 0, 1, 0.0001, 1);
-                    HOAEncoder.ar(~order, In.ar(bus, 1), azi, ele, dist, plane_spherical:1)
-                  });
-            );
-          });  
+    ~proxyBusAmbi[i] = {HOAEncoder.ar(~order, In.ar(bus, 1), In.kr(n), In.kr(n.index + 1), 1, 0, In.kr(n.index + 2)) };
+  });
 #+end_src
-*** Example with control
-    #+call: player()
-    #+call: encode()
-    #+call: connect()
-    #+call: cleanup()
-    Sets the environment variables (~~order~, ~~hoaNumChannels~, ~~decodeNumChannels~), then, creates the encoder and the decoder.
-    Two encoders in parallel feeding to the same decoder. 
-    Automation for the panning is controlled by ~~azimuthA~ and ~~azimuthB~ that are connected to the encoders.
-    #+name: encode
-    #+begin_src sclang :results none :noweb yes
-      (
-      // Settings
-      ~order = 3;
-      ~hoaNumChannels = (~order+1).pow(2);
-      ~decoderNumChannels = 8;
-      //s.scope(~hoaNumChannels);
 
-      // Create the input bus and the encoder
-      ~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
-      //~hoaSignal.play;
+#+begin_src sclang :results none
+  ~controlBus[0].setn([0.5pi, 0.1pi, 0]);
+  ~controlBus[1].setn([-0.5pi, 0.1pi, 0]);
+  ~controlBus[0].setn([90, 23, 1]);
+  ~controlBus[0].setn([0, 23, 1]);
+  ~controlBus[0].getSynchronous(0);
+#+end_src
 
-      // hoaSignal.source och hoaSignal.add verkar fungera lika bra.
-      ~hoaSignal[0] = { HOAEncoder.ar(~order, In.ar(17, 1), \azpana.kr(-3.14), \elpana.kr(0), \gaina.kr(0), plane_spherical:1) };
-      ~hoaSignal[1] = { HOAEncoder.ar(~order, In.ar(19, 1), \azpanb.kr(-3.14), \elpanb.kr(0),  plane_spherical:1) };
-      ~hoaSignal.fadeTime = 0.1;
+#+begin_src sclang :results none
+  var size, az, el, caz, cel;
+  size = ~audioBusses.size;
+  az = (pi*2) / (size/2);
+  el = (pi / 2) / size;
+  size.do({ arg i;
+    caz = az * i;
+    cel = (el * i) - 0.2;
+    ~controlBus[i].setn([caz, cel, 0]);
+  });
+#+end_src
 
-      // Panning automation
-      // Create a new panner NodeProxy
-      ~azimuthA = NodeProxy.control(s, 1);
-      ~azimuthB = NodeProxy.control(s, 1);
+#+begin_src sclang :results none
+  (
+  var a, x;
+  a = Pfunc({  }, { \reset.postln });
+  x = a.asStream;
+  x.nextN(20).postln;
+  x.reset;
+  )
+#+end_src
 
-      // Set its source to a control signal
-      ~azimuthA.source = { SinOsc.kr(0.1, 0, 0.9pi, 0); };
-      ~azimuthB.source = { SinOsc.kr(2, 0, 0.5pi, 0); };
+#+begin_src sclang :results none
+  x = Pfunc({ |inval|
+    var az, el;
+    el = 0;
+    az = (pi / 16) * (1..32).choose;
+    ~controlBus[inval-1].setn([az, el, 0]) }).asStream;
+  (1..~audioBusses.size).do {
+  |i| x.next(i);
+  };
+  //  b = x.nextN(5, (:0..));
+#+end_src
 
-      // Call .set on the object you want to control given the parameter and the control proxy as arguments
-      ~hoaSignal.set(\azpana, ~azimuthA);
-      ~hoaSignal.set(\elpanb, ~azimuthB);
-      ~azimuthA.play;
-      ~azimuthB.play;
+#+name: spat_setup_decoder
+#+begin_src sclang :results none
+  ~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
+  ~decoder.source = {
+    var in; in = \in.ar(0!~hoaNumChannels);
+    in.add(6);
+    KMHLSDome3h3pNormal6.ar(*in);
+  };
+  ~decoder.fadeTime = 1;
+#+end_src
 
-      // Decoder
-      ~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
-      ~decoder.source = {
-	  var in; in = \in.ar(0!~hoaNumChannels);
-	  in.add(0);
-	  KMH108AE3h3pNormal6.ar(*in);
-      };
-      ~decoder.fadeTime = 1;
-      )
-    #+end_src
-     
-    Start a meter
-    #+begin_src sclang :results none
-      s.meter
-    #+end_src
+#+name: connect
+#+begin_src sclang :results none :noweb yes
+//  <<spat_setup_encoder>>
+//  <<spat_setup_decoder>>
+  (
+  ~decoder.play(0, ~decoderNumChannels, vol: 1.0);
+  ~proxyBusAmbi <>> ~decoder;
+  )
+#+end_src
 
-    Connect the encoder with the decoder
-    Signal, encoded and decoded, but not mapped. Use this.
-    #+name: connect
-    #+begin_src sclang :results none
-      (
-      ~decoder.play(0, ~decoderNumChannels, vol: 1.0);
-      ~hoaSignal <>> ~decoder;
-      )
-    #+end_src
-
-    Clear the instances
-    #+name: cleanup
-    #+begin_src sclang :results none
-      ~hoaSignal.clear;
-      ~azimuthA.clear;
-      ~decoder.clear;
-    #+end_src
-
-    Control the panning position A
-    #+begin_src sclang :results none
-      ~hoaSignal.set(\azpana, 3.14);
-      ~hoaSignal.set(\elpana, 3.14);
-      ~hoaSignal.set(\azpanb, 3.14);
-      ~hoaSignal.set(\elpanb, 3.14);
-    #+end_src
-
-    Control the panning position B
-    #+begin_src sclang :results none
-      ~hoaSignal.set(\azpana, 0);
-      ~hoaSignal.set(\elpana, 0);
-      ~hoaSignal.set(\azpanb, 0);
-      ~hoaSignal.set(\elpanb, 0);
-    #+end_src
-
-    Control the panning position C
-    #+begin_src sclang :results none
-      ~hoaSignal.set(\azpana, -3.14);
-      ~hoaSignal.set(\elpana, -3.14);
-      ~hoaSignal.set(\azpanb, -3.14);
-      ~hoaSignal.set(\elpanb, -3.14);
-    #+end_src
-
-    Control the panning position D
-    #+begin_src sclang :results none
-      ~hoaSignal.set(\azpana, 1.25);
-      ~hoaSignal.set(\elpana, 1.25);
-      ~hoaSignal.set(\azpanb, 1.25);
-      ~hoaSignal.set(\elpanb, 1.25);
-    #+end_src
-
+#+begin_src sclang :results none
+  ~spaceNdefsAmbi.size.postln;
+  ~audioBusses.size.postln;
+#+end_src
 
 ** spatialization VBAP
 Spatialisation angles for three rings in triangles.
@@ -1021,7 +950,7 @@ The functions controlling panning are here: [[inter_pan][inter_pan]].
             );
           });  
     /* Using the same control for the reverb send level, as for the distance parameter
-          in the spatialization control.
+          in the spatialization control (which equals n.index + 2)
     ,*/
     ~reverbSendNdefs.add(
           Ndef(o, {
@@ -1535,6 +1464,7 @@ Free all busses and stop execution
 #+name: free_all
 #+begin_src sclang :results none :noweb yes
   <<free_busses>>
+  ~decoder.clear;
   Ndef(\reverbBus).clear;
   Ndef(\reverb).clear;
   CmdPeriod.run;
@@ -2115,6 +2045,7 @@ setSpatPositions.value([1, 2, 3, 4, 5, 6, ])
   
   ~freeNdefs = {
     Ndef.clear(0);
+    ~spatNdefsAmbi.clear;
   };
   ~freeNdefs.value();
 #+end_src
