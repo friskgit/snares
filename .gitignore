@@ -1,3 +1,7 @@
+*.wav*
+*.png
+*.html
+*.org_archive
 faust/snare/bin/*
 faust/snare/cpp
 *~
@@ -5,3 +9,4 @@ faust/snare/cpp
 /generic_pbind.scm
 /sclang_output.sc
 /snares_session.RPP-bak
+/audio

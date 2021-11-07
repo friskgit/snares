@@ -31,6 +31,7 @@ Set the parameters in [[generate_harmonics][generate_harmonics]] for the synthes
 #+call: global_variables()
 #+call: generate_harmonics()
 #+call: make_vbap()
+#+call: ambi_connect()
 #+call: init_spatialization()
 #+call: load_reverb()
 #+call: show_meter()
@@ -93,11 +94,11 @@ Global variables and semaphhores
   /* Which space? */
   ~space = 0;
   /* Fundamental frequency */
-  ~fundamental = 10;
+  ~fundamental = 100;
   /* Mode of synthesis */
   ~mode = \odd;
   /* Amplitude mode */
-  ~ampMode = \full;
+  ~ampMode = \linear;
   /* The general level of loggging */
   ~logging = 2;
   /* Spatialisation positions */
@@ -183,6 +184,7 @@ Main snare synth. The pulse parameter is controlled by the ~pulse_bus~
     trifreq = pulse * 3,
     nlevel = LinLin.kr(pulse / 120, 0, 1, 0.1, 0.001) * \noiseScale.kr(1.0);
     snd = ISnarePhase.ar(pulse, \amp.kr(0.5), \attack.ir(0.00001), \fsweep.kr(0), \nattack.kr(0.001), nlevel, \nrel.kr(0.1), frq1, frq2, \rel.kr(0.1), trifreq);
+    Out.ar(31, snd * \gain.kr(0.5));
     Out.ar(\out.kr(0), snd * \gain.kr(0.5));
   }).add;
 #+end_src
@@ -269,8 +271,10 @@ Called by [[*generate harmonics][generate harmonics]].
                     fbus = Bus.control(s, 1);
                     fbus.value(harmonics[i]);		
                     ~frequencyBus.add(fbus);
+                    ~frequencyBus[i].set(harmonics[i]);    
                     ~originalFrequencies.add(harmonics[i]);
                     "pulse: ".post; harmonics[i].postln;
+  
                     ~separator.value.postln;    
                     "".postln;
                     switch(synthMode,
@@ -535,24 +539,24 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 #+begin_src sclang :results none :noweb yes
   <<interpolate_busses>>
   <<pulse_modulation>>
-  ~modulateSpeed.value(4, 10, 0.1, \ratio, [7,9]);
+  ~modulateSpeed.value(0.01, 10, 0.1, \change, [7,9]);
 #+end_src
 
 #+begin_src sclang :results none
   var frontDry = { |time = 10|
-    ~modulateSpeed.value(0.5, time, 0.5, \ratio, [7,8]);
-    ~setSpatPositions.value([[1, 1, 0.1], [0, 1, 0.1]], time);
+    ~modulateSpeed.value(0.5, time, 0.5, \ratio, [7,5]);
+    ~setSpatPositions.value([[1, 1, 90], [0, 1, 90]], time);
   };
   frontDry.value(30);
 #+end_src
 
 #+begin_src sclang :results none
-  ~modulateSpeed.value(0.5, 20, 0.5, \ratio, [7,8]);
+  ~modulateSpeed.value(0.5, 10, 0.5, \ratio, [2,3]);
   ~setSpatPositions.value([[4, 1, 0.1], [5, 1, 0.1]], 10);
 #+end_src
 
 #+begin_src sclang :results none
-  ~modulateSpeed.value(0.5, 40, 0.5, \ratio, [70,80]);
+  ~modulateSpeed.value(0.5, 10, 0.5, \ratio, [7,8]);
   ~setSpatPositions.value([[1, 0.05, 50], [9, 0.5, 50]], 40);
 #+end_src
 
@@ -561,7 +565,6 @@ Create an array of arrays, each with a start, end and dur parameter.
 #+begin_src sclang :results none
   ~modulateSpeed = { arg mult = 2, dur = 2, end = 100, mode = \multi, ratio = [2,3];
     var mod_map = Array2D.new(~audioBusses.size, 3), lower = 0;
-    ~spatNdefs.size.postln;
     mod_map.rowsDo({ arg obj, i;
           // Make sure there are not more rows than objects.
           if(i < ~frequencyBus.size, {
@@ -598,6 +601,7 @@ Create an array of arrays, each with a start, end and dur parameter.
   //  a = Array2D.fromArray(2, 2, [1, 5, 1, 8]);
   //a.rowAt(0).size.postln;
 #+end_src
+
 Interpolate all busses. Call this from [[pulse_interpolate_array][pulse_interpolate_array]], that creates an array of values for pulse modulation and interpolation or from the [[pulse_presets][pulse_presets]]. The function takes one argument: an array with start, end and duration.
 - ~map~: An array with start, end and duration values,  [ start, end, duration ]
 - ~scaleTime~: Scale the time with this value.
@@ -629,13 +633,14 @@ Interpolate all busses. Call this from [[pulse_interpolate_array][pulse_interpol
 #+end_src
 
 #+begin_src sclang :results none
-  ~frequencyBus[0].getSynchronous.postln;
+  ~frequencyBus[1].getSynchronous.postln;
 //  ~synth[0].get(\noiseScale, 0);
 #+end_src
 
 #+begin_src sclang :results none
-  ~frequencyBus[1].set(5);
+  ~frequencyBus[0].set(1);
 #+end_src
+
 Interpolate one pulse bus.
 #+name: interpolate_pulse
 #+begin_src sclang :results none  :tangle harmony.sc
@@ -705,7 +710,7 @@ a.postln
 #+end_src
 Set and get a bus' value:
 #+begin_src sclang :results none
-  ~frequencyBus[0].getSynchronous.postln;
+  ~frequencyBus[14].getSynchronous.postln;
 #+end_src
 
 Reset original pulse frequencies.
@@ -840,6 +845,8 @@ Set one synths parameter x.
   ~controlBus[0].getSynchronous(0);
 #+end_src
 
+Call this to set each ~~audioBus~ to a fraction of the space.
+#+name: ambi_equal_spread
 #+begin_src sclang :results none
   var size, az, el, caz, cel;
   size = ~audioBusses.size;
@@ -848,32 +855,30 @@ Set one synths parameter x.
   size.do({ arg i;
     caz = az * i;
     cel = (el * i) - 0.2;
-    ~controlBus[i].setn([caz, cel, 0]);
+    ~updatePanningAmbiSingle.value(i, caz, cel, 0, 20) 
+//    ~controlBus[i].setn([caz, cel, 0]);
   });
 #+end_src
 
-#+begin_src sclang :results none
-  (
-  var a, x;
-  a = Pfunc({  }, { \reset.postln });
-  x = a.asStream;
-  x.nextN(20).postln;
-  x.reset;
-  )
-#+end_src
-
+Using Pfunc to set the spatialisation randomly
+BROKEN
+#+name: 
 #+begin_src sclang :results none
   x = Pfunc({ |inval|
-    var az, el;
+    var az, el, bus;
     el = 0;
     az = (pi / 16) * (1..32).choose;
-    ~controlBus[inval-1].setn([az, el, 0]) }).asStream;
+    bus = ~controlBus[inval].index;
+    ~updatePanningAmbiSingle.value(inval-1, az, el, 0, 10) }).asStream;
   (1..~audioBusses.size).do {
   |i| x.next(i);
   };
-  //  b = x.nextN(5, (:0..));
 #+end_src
 
+
+#+begin_src sclang :results none
+  Pn((dur: 2, freq:8000)).play;
+#+end_src
 #+name: spat_setup_decoder
 #+begin_src sclang :results none
   ~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
@@ -885,10 +890,10 @@ Set one synths parameter x.
   ~decoder.fadeTime = 1;
 #+end_src
 
-#+name: connect
+#+name: ambi_connect
 #+begin_src sclang :results none :noweb yes
-//  <<spat_setup_encoder>>
-//  <<spat_setup_decoder>>
+  <<spat_setup_encoder>>
+  <<spat_setup_decoder>>
   (
   ~decoder.play(0, ~decoderNumChannels, vol: 1.0);
   ~proxyBusAmbi <>> ~decoder;
@@ -896,8 +901,96 @@ Set one synths parameter x.
 #+end_src
 
 #+begin_src sclang :results none
+~frequencyBus[1].getn.postln
+#+end_src
+#+begin_src sclang :results none
   ~spaceNdefsAmbi.size.postln;
   ~audioBusses.size.postln;
+#+end_src
+
+Function for generating the lines for the panning modulation using azimuth, elevation and distance. It's being called from [[update_panning_ambi][update_panning_ambi]].
+#+name: inter_pan_ambi
+#+begin_src sclang :results none :tangle harmony.sc :noweb yes
+  <<modulate_spat_synth>>
+  ~interPanAmbi = { arg bus, astart, aend, estart, eend, dstart, dend, dur;
+    var mod1, mod2, mod3, bus1, bus2, bus3;
+    bus1 = bus.index;
+    bus2 = bus.index + 1;
+    bus3 = bus.index + 2;
+    /* Mod 1 */
+    ~mod1 = Synth.new(\interpolator, [\bus, bus1, \start, astart, \end, aend, \dur, dur], addAction: \addToHead);
+    /* Mod 2 */
+    ~mod2 = Synth.new(\interpolator, [\bus, bus2, \start, estart, \end, eend, \dur, dur], addAction: \addToHead);
+    /* Mod 3 */
+    ~mod3 = Synth.new(\interpolator, [\bus, bus3, \start, dstart, \end, dend, \dur, dur], addAction: \addToHead);
+    if(~logging > 1,
+          {
+            "Values for channel ".post; bus.index.postln;
+            "Azimuth from ".post; astart.post; " to ".post; aend.postln;
+            "Elevation from ".post; estart.post; " to ".post; eend.postln;
+            "Distance from ".post; dstart.post; " to ".post; dend.postln;
+            " ".postln;   
+          }, { });
+  };
+  //  s.queryAllNodes;
+#+end_src
+
+~update_panning_ambi_single~ is called to update panning positions of one channel in the ~spatNdefs~ array. The actual modulation happens in [[inter_pan_ambi][inter_pan_ambi]]. The function takes four arguments:
+- ~duration~: The interpolation time.
+- ~azimuth~: Angle
+- ~elevation~
+- ~distance~
+#+name: update_panning_ambi_single
+#+begin_src sclang :results none :tangle harmony.sc :noweb yes
+  ~updatePanningAmbiSingle = { arg busIndex, aend, eend, dend, duration;
+    var astart, estart, dstart;
+    astart = ~controlBus[busIndex].getnSynchronous(3)[0];
+    estart = ~controlBus[busIndex].getnSynchronous(3)[1];
+    dstart = ~controlBus[busIndex].getnSynchronous(3)[2];
+    ~interPanAmbi.value(~controlBus[busIndex], astart, aend, estart, eend, dstart, dend, duration);
+  }; //end of function
+#+end_src
+
+~update_panning_ambi~ is called to update panning positions of the channels in the ~spatNdefs~ array. The actual modulation happens in [[inter_pan_ambi][inter_pan_ambi]]. The function takes four arguments:
+- ~azimuth~: Angle
+- ~elevation~
+- ~distance~
+- ~duration~: The interpolation time.
+#+name: update_panning_ambi
+#+begin_src sclang :results none :tangle harmony.sc :noweb yes
+  ~updatePanningAmbi = { arg aend, eend, dend, duration;
+    ~audioBusses.do({ arg channel, i;
+          var astart, estart, dstart;
+          astart = ~controlBus[i].getnSynchronous(3)[0];
+          estart = ~controlBus[i].getnSynchronous(3)[1];
+          dstart = ~controlBus[i].getnSynchronous(3)[2];
+          if((aend-astart) > (360-aend+astart),
+            {aend = (aend - 360);
+            },
+            { });   
+          ~interPanAmbi.value(~controlBus[i], astart, aend, estart, eend, dstart, dend, duration);
+    }); // end of spatNdefs.do
+  }; //end of function
+#+end_src
+
+Settings for ~~updatePanningAmbi~
+#+name: update_panning_ambi_ctrl
+#+begin_src sclang :results none
+  var atr = { |angle|
+    angle * (pi/180);
+  };
+  ~firstRingElevation = atr.value(13);
+  ~secondRingElevation = atr.value(35);
+  ~thirdRingElevation = atr.value(69);
+#+end_src
+
+Set panning according to trajectories in ~~allRings~.
+#+begin_src sclang :results none :noweb yes
+  <<update_panning_ambi_ctrl>>
+  ~allRings.do({ arg elem, i;
+    atr.value(elem[0]).postln;
+    ~updatePanningAmbi.value(atr.value(elem[0]), atr.value(elem[1]), atr.value(elem[2]), 30);
+  });
 #+end_src
 
 ** spatialization VBAP
@@ -1396,7 +1489,7 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
 
 #+name: set_sine
 #+begin_src sclang :results none
-  ~setSpatialization.value(\sine, 10);
+  ~setSpatialization.value(\frontTop, 10);
 #+end_src
 
 #+begin_src sclang :results none
@@ -1741,11 +1834,36 @@ Plot the functions above using the index of the function called.
   if(flag==6) {
       plot 1
   }
-  
 #+end_src
 
 #+RESULTS: plot-array
 [[file:output_array.png]]
+
+#+begin_src gnuplot :file integral.png
+  # set terminal pngcairo  transparent enhanced font "arial,10" fontscale 1.0 size 600, 400 
+set key fixed right bottom vertical Right noreverse enhanced autotitle nobox
+set samples 50, 50
+set style data lines
+set xrange [ * : * ] noreverse writeback
+set x2range [ * : * ] noreverse writeback
+set yrange [ * : * ] noreverse writeback
+set y2range [ * : * ] noreverse writeback
+set zrange [ * : * ] noreverse writeback
+set cbrange [ * : * ] noreverse writeback
+set rrange [ * : * ] noreverse writeback
+integral_f(x) = (x>0)?int1a(x,x/ceil(x/delta)):-int1b(x,-x/ceil(-x/delta))
+int1a(x,d) = (x<=d*.1) ? 0 : (int1a(x-d,d)+(f(x-d)+4*f(x-d*.5)+f(x))*d/6.)
+int1b(x,d) = (x>=-d*.1) ? 0 : (int1b(x+d,d)+(f(x+d)+4*f(x+d*.5)+f(x))*d/6.)
+f(x) = exp(-x**2)
+integral2_f(x,y) = (x<y)?int2(x,y,(y-x)/ceil((y-x)/delta)):                         -int2(y,x,(x-y)/ceil((x-y)/delta))
+int2(x,y,d) = (x>y-d*.5) ? 0 : (int2(x+d,y,d) + (f(x)+4*f(x+d*.5)+f(x+d))*d/6.)
+NO_ANIMATION = 1
+delta = 0.2
+plot [-5:5] f(x) title "f(x)=exp(-x**2)",   2/sqrt(pi)*integral_f(x) title "erf(x)=2/sqrt(pi)*integral_f(x)"
+#+end_src
+
+#+RESULTS:
+[[file:integral.png]]
 
 value_sequence example call for the ~seq-array~ function, creating a list of sequence arrays:
 #+begin_src scheme :noweb yes :results value
