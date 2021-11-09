@@ -1,0 +1,128 @@
+#+name: Snares rising
+#+STARTUP: indent overview hidestars
+
+* Scale
+
+#+name: snares_pitches
+| index | ratio | ratio |      cent |   beating (Hz) |      beating (Hz) |       bpm |       ms | frequency |
+|       |       |       |           | to fundamental | between x and x-1 |           |          |           |
+|-------+-------+-------+-----------+----------------+-------------------+-----------+----------+-----------|
+|     1 |     1 |     1 |    0.0000 |       261.6000 |           0.00000 |    0.0000 | 1000.000 | 261.60000 |
+|     2 |    81 |    80 |   21.5063 |         3.2700 |           3.22995 |  193.7970 |  309.602 | 264.87000 |
+|     3 |   128 |   125 |   41.0591 |         3.0084 |           2.90190 |  174.1140 |  344.602 | 267.87844 |
+|     4 |    27 |    25 |  133.2380 |        14.6496 |          13.24780 |  794.8680 |   75.484 | 282.52807 |
+|     5 |     9 |     8 |  203.9100 |        11.7719 |           9.68983 |  581.3898 |  103.201 | 294.30000 |
+|     6 |     5 |     4 |  386.3130 |        32.6999 |          23.25560 | 1395.3360 |   43.000 | 326.99987 |
+|     7 |    81 |    64 |  407.8200 |         4.0876 |           2.58395 |  155.0370 |  387.004 | 331.08750 |
+|     8 |    40 |    27 |  680.4480 |        56.4679 |          30.11918 | 1807.1508 |   33.201 | 387.55540 |
+|     9 |     3 |     2 |  701.9550 |         4.8446 |           2.18021 |  130.8126 |  458.671 | 392.40000 |
+|    10 |    16 |     9 |  996.0900 |        72.6667 |          27.25270 | 1635.1620 |   36.694 | 465.06667 |
+|    11 |    15 |     8 | 1088.2700 |        25.4337 |           7.63074 |  457.8444 |  131.049 | 490.50036 |
+|    12 |     2 |     1 | 1200.0000 |        32.6996 |           8.72086 |  523.2516 |  114.668 | 523.20000 |
+|-------+-------+-------+-----------+----------------+-------------------+-----------+----------+-----------|
+#+TBLFM: $4=$0;%0.4f::$5=$9-@-1$9;%0.4f::$6=$0;%0.5f::$7=$6*60;%0.4f::$8=1000 / $6;%0.3f::$9=@3$9*2**($4/1200);%0.5f
+
+#+name: sc_print_scale
+#+begin_src scheme :var cents=snares_pitches[4:15,3] :results output raw :exports code :noweb yes :wrap "src sclang"
+  (format #t "~a" "Tuning.new(#[")
+  (map
+   (lambda (x)
+     (format #t "~a, " (/ x 100))) cents)
+  (format #t "~a" "]);")
+#+end_src
+
+#+RESULTS: sc_print_scale
+#+begin_src sclang
+Tuning.new(#[0, 0.215063, 0.410591, 1.33238, 2.0391, 3.86313, 4.0782, 6.80448, 7.019550000000001, 9.9609, 10.8827, 12.0, ]);
+#+end_src
+
+Write the file "test.sc" with the output of ~sc_print_scale~.
+#+begin_src sclang :noweb yes :tangle "test.sc"
+  <<sc_print_scale()>>
+#+end_src
+
+Example of scale played by simple Pbind.
+#+begin_src sclang
+var tuning, scale;
+
+tuning = Tuning.new(#[0, 0.215063, 0.410591, 1.33238, 2.0391, 3.86313, 4.0782, 6.80448, 7.019550000000001, 9.9609, 10.8827 ]);
+scale = Scale.new(#[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 11, tuning, name: \snarePitch);
+
+scale.degreeToRatio(2,1).postln;
+scale.degreeToFreq(4, 48.midicps, 1).postln;
+
+Pbind(\note, Pavaroh (
+    Pseq([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, \rest], 2), scale
+    ),
+    \dur, 2
+).play;
+#+end_src
+
+#+name: sc_set_tempo
+#+begin_src scheme :var bpm=snares_pitches[5:15,6] :results output raw :exports code :noweb yes :wrap "src sclang"
+  (format #t "~a" "var tempos = [")
+    (map
+     (lambda (x)
+       (format #t "~a, " (/ x 60))) bpm)
+  (format #t "~a" "];")
+  (format #t "~a" "\nt = TempoClock.new;")
+  (format #t "~a" "\nt.tempo_(p[0]);")
+#+end_src
+
+#+RESULTS: sc_set_tempo
+#+begin_src sclang
+var tempos = [3.22995, 2.9019, 13.247800000000002, 9.68983, 23.2556, 2.58395, 30.119179999999997, 2.18021, 27.2527, 7.63074, 8.72086, ];
+t = TempoClock.new;
+t.tempo_(p[0]);
+#+end_src
+
+#+begin_src sclang :results none
+  var tempos = [3.22995, 2.9019, 13.247800000000002, 9.68983, 23.2556, 2.58395, 30.119179999999997, 2.18021, 27.2527, 7.63074, 8.72086, ];
+  var originalTempo = 60;
+
+  r = Routine {
+    tempos.size.do({ arg i;
+          m = tempos[i].postln;
+          TempoClock.tempo = m;
+          originalTempo = m;
+          10.wait;
+    });
+  }.play;
+
+  Pbind(
+    \instrument, \bsnare,
+    \impfreq, 0,
+    \length, 0.2,
+    \osc1, 80,
+    \osc2, 50,
+    \trifreq, 70,
+    \fltfrq, Pseq([100, 200, 300, 400, 500, 600, 700, 800], inf) + 200,
+    \fltq, Pseq((1..7), inf),
+    \release, 0.9,
+    \dur, 4,
+    \time, Pkey(\dur) / Pfunc { thisThread.clock.tempo },
+    \rate, Pfunc { thisThread.clock.tempo }
+  ).play;
+#+end_src
+#+begin_src sclang :results none
+
+#+end_src
+
+
+* Demo
+
+#+begin_src scheme :results output
+  (map (lambda (x) (modulo x 2)) (iota 10))
+#+end_src
+
+#+RESULTS:
+#+begin_src scheme
+  (0 0.215063 0.410591 1.33238 2.0391 3.86313 4.0782 6.80448 7.019550000000001 9.9609 10.8827 12.0)
+#+end_src
+
+#+begin_src scheme :results output
+  (format #t "~a" "Hej")
+#+end_src
+
+#+RESULTS:
+: Hej

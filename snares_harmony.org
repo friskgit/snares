@@ -1586,19 +1586,17 @@ Plot tree
 #+end_src
 ** scheme functions
 *** stuff
-#+begin_src scheme
+#+begin_src scheme :results output raw
   (map (lambda (x) (modulo x 2)) (iota 10))
 #+end_src
 
 #+RESULTS:
-| 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 | 0 | 1 |
 
-#+begin_src scheme
+#+begin_src scheme :results output raw
   (reverse '(1 2 3))
 #+end_src
 
 #+RESULTS:
-| 3 | 2 | 1 |
 
 *** write data file for spatialisation
 :PROPERTIES:
@@ -1631,6 +1629,12 @@ Parameters:
        azel distance spread)
   (format #t "~a" "], 5)")
 #+end_src
+
+#+RESULTS: run_spatialization_method
+#+begin_src sclang
+~setSpatPositions.value([[0, 0.0, 6.25], [1, 0.587785252358846, 12.5], [0, 0.951056516345858, 25.0], [1, 0.9510565162190971, 50.0], [0, 0.5877852520269814, 100.0], ], 5)
+#+end_src
+
 
 **** spatialisation array
 :PROPERTIES:
@@ -1808,6 +1812,8 @@ Use ~select-seq-array~ as a utility function to be able to select function progr
   
   (select-seq-array 0 5 '() 2)
 #+end_src
+
+#+RESULTS: sequenced_array
 
 Plot the functions above using the index of the function called. 
 #+name: plot_array
