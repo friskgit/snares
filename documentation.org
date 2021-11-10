@@ -80,14 +80,19 @@ t.tempo_(p[0]);
   var tempos = [3.22995, 2.9019, 13.247800000000002, 9.68983, 23.2556, 2.58395, 30.119179999999997, 2.18021, 27.2527, 7.63074, 8.72086, ];
   var originalTempo = 60;
 
+  t = TempoClock(1);
+  u = TempoClock(1);
+
   r = Routine {
     tempos.size.do({ arg i;
           m = tempos[i].postln;
-          TempoClock.tempo = m;
+          u.tempo = m;
           originalTempo = m;
-          10.wait;
+          1.wait;
     });
-  }.play;
+  };
+
+  t.play(r, 1);
 
   Pbind(
     \instrument, \bsnare,
@@ -99,10 +104,11 @@ t.tempo_(p[0]);
     \fltfrq, Pseq([100, 200, 300, 400, 500, 600, 700, 800], inf) + 200,
     \fltq, Pseq((1..7), inf),
     \release, 0.9,
-    \dur, 4,
-    \time, Pkey(\dur) / Pfunc { thisThread.clock.tempo },
-    \rate, Pfunc { thisThread.clock.tempo }
-  ).play;
+    \dur, 0.1,
+    \time, Pkey(\dur) / t.tempo;
+    //    \time, Pkey(\dur) / Pfunc { thisThread.clock.tempo },
+    //    \rate, Pfunc { thisThread.clock.tempo }
+  ).play(t);
 #+end_src
 #+begin_src sclang :results none
 
