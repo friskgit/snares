@@ -528,8 +528,7 @@ For the positions, these are fetched from [[file:documentation.org::generate_sca
     currentSize = 0,
     bus;
 
-    /* Holds the busses */
-    ~audioBusses = Array.new(maxSize);
+   
     /* Holds the synths */
     ~synths = Array.new(maxSize);
     /* Holds the spat positions for each note, imported from ~allRings */
@@ -549,7 +548,7 @@ For the positions, these are fetched from [[file:documentation.org::generate_sca
 
     if(currentSize < maxSize,
           {
-            ~audioBus.put(currentSize, Control.bus(s, 1));
+            ~audioBusses.put(currentSize, Control.bus(s, 1));
             synth.set(\bus, ~audioBus[currentSize]);   
             ~synths.put(currentSize, synth);
             currentSize = currentSize + 1;
@@ -557,6 +556,22 @@ For the positions, these are fetched from [[file:documentation.org::generate_sca
           { "Current bus is full".postln;});
   }
 //  ~addGenericSynth(0,0);
+#+end_src
+
+#+begin_src sclang :results none
+  ~initializeAudioBusses = { 
+    ~audioBusses = Array.new(~scaleSpats.size);
+    for(0, ~scaleSpats.size, { arg i;
+          ~audioBusses[i].add("hej");
+          ~audioBusses[i].postln;
+          //          i.postln;
+    });
+  };
+  //  ~initializeAudioBusses.value();
+#+end_src
+
+#+begin_src sclang :results none
+  ~initializeAudioBusses.value();
 #+end_src
 
 #+begin_src sclang :results none

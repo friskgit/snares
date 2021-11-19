@@ -505,54 +505,47 @@ A second version of the dispersed snare above
 
 **** break beat
 
-#+begin_src sclang :results none :noweb yes
-  <<play_break_snare>>
-#+end_src
-#+begin_src sclang :results none
-  ~doubleSpeed.value(1);
-#+end_src
-
 Use this to start the synth for break beats.
 #+name: play_break_snare
 #+begin_src sclang :results none :noweb yes
   <<break_snare>>
-  ~playBreakSnare = { |noise=0.0001, length=40, release=0.05, start=1|
-    ~breakBeatA = Synth.new("breakSnare", [\impf, start, \freq, 50, \freq2, 110, \trifrq, 50, \noiselvl, noise, \length, length, \rel, release, \nrel, 0.05, \out, 0, \gain, 1] );
+  ~playBreakSnare = { |start=1, bus, noise=0.0001, length=40, release=0.05|
+    Synth.new("breakSnare", [\impf, start, \freq, 50, \freq2, 110, \trifrq, 50, \noiselvl, noise, \length, length, \rel, release, \nrel, 0.05, \out, bus, \gain, 1] );
   };
 #+end_src
 
 Call this function to double the impulse speed and alter the parameters of the [[snare_break][snare_break]] synth.
 #+name: double_pace
 #+begin_src sclang :results none
-  ~doubleSpeed = { |divisor=0|
+  ~doubleSpeed = { |synth, divisor=0|
     var fractions = [1.0, 1.0125, 1.024, 1.08, 1.125, 1.25, 1.2656, 1.4815, 1.5, 1.7778, 1.875, 2.0 ],
     breakpoint = 50;
     "called".postln;
-    ~breakBeatA.get(\impf, {arg val;
+    synth.get(\impf, {arg val;
           var newVal = val,
           newFreq,
           newFreq2,
           relDivisor = 0.8,	
           newNoise;
           if(newVal > 6, {
-            ~breakBeatA.get(\noiselvl, {arg nse;
+            synth.get(\noiselvl, {arg nse;
                   newNoise = nse * 0.5;
-                  ~breakBeatA.set(\noiselvl, newNoise);
+                  synth.set(\noiselvl, newNoise);
                   "New noise level is ".post;
                   newNoise.postln;		
             });
           });
-          ~breakBeatA.get(\rel, {arg rel;
-            ~breakBeatA.set(\rel, rel * relDivisor);
+          synth.get(\rel, {arg rel;
+            synth.set(\rel, rel * relDivisor);
             "New release is ".post;
             (rel * relDivisor).postln;	  
           });	  
           if(newVal > breakpoint, { newFreq = newVal });
           if(newVal > (breakpoint * 2), { newFreq2 = newVal * 0.5 });
           newVal = (val*2) * fractions[divisor];
-          ~breakBeatA.set(\impf, newVal);
-          ~breakBeatA.set(\freq, newFreq);
-          ~breakBeatA.set(\freq2, newFreq2);
+          synth.set(\impf, newVal);
+          synth.set(\freq, newFreq);
+          synth.set(\freq2, newFreq2);
           "New impulse frequency is ".post;
           newVal.postln;
     });
@@ -560,14 +553,18 @@ Call this function to double the impulse speed and alter the parameters of the [
 #+end_src
 
 #+begin_src sclang :results none :noweb yes
+  var synthA, synthB;
   <<double_pace>>
-  
+  ~initializeAudioBusses.value();
+  synthA = ~playBreakSnare.value(2, ~audioBusses[0].index);
+  synthB = ~playBreakSnare.value(3, ~audioBusses[1].index);
   r = Routine({
     var delta;
     loop {
           delta = 5;
           delta.yield;
-          ~doubleSpeed.value(6);
+          ~doubleSpeed.value(synthA, 0);
+          ~doubleSpeed.value(synthB, 0);
     }
   });
   TempoClock.default.sched(0, r);
