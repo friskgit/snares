@@ -81,9 +81,9 @@ Global variables and semaphhores
   /* Which space? */
   ~space = 0;
   /* Fundamental frequency */
-  ~fundamental = 294.3; 
+  ~fundamental = 340.0; 
   /* Mode of synthesis */
-  ~mode = \harmony;
+  ~mode = \dual;
   /* Amplitude mode */
   ~ampMode = \linear;
   /* The general level of loggging */
@@ -179,14 +179,14 @@ Main snare synth. The pulse parameter is controlled by the ~pulse_bus~
 
 #+begin_src sclang :results none
   b = Bus.control(s,1).set(10);
-  c = Synth.new(\p_snare, [\freq, [100, 200]]);
+  c = Synth.new(\p_snare, [\freq, [20, 40]]);
   c.map(\pulse, b);
-  b.set(810);
+  b.set(400);
   b.get.postln;
 #+end_src
 
 #+begin_src sclang :results none
-~synths[0].set(\noiseScale, 0);
+~synths[1].set(\pulse, 400);
 #+end_src
 
 #+begin_src sclang :results none
@@ -522,13 +522,20 @@ For the positions, these are fetched from [[file:documentation.org::generate_sca
 #+begin_src sclang :results none
   ~addGenericSynth = { var synth, index = 0;
 
-    var select,
-    task,
+    var task,
     mode = ~mode,
-    maxSize = ~scaleSpats.size  ;
+    maxSize = ~scaleSpats.size,
+    currentSize = 0,
+    bus;
+
+    /* Holds the busses */
+    ~audioBusses = Array.new(maxSize);
+    /* Holds the synths */
+    ~synths = Array.new(maxSize);
+    /* Holds the spat positions for each note, imported from ~allRings */
+    ~spatializations = Array.new(~spatPositions.size);
 
     switch(mode,
-
           \linear, {
             ~spatPositions = Array.iota(~scaleSpats.size);
             "Linear mode".postln;		
@@ -539,15 +546,30 @@ For the positions, these are fetched from [[file:documentation.org::generate_sca
             "Linear mode".postln;
             "Full mode".postln;		
           }); // switch mode
-    /* Holds the busses */
-    ~audioBusses = Array.new(maxSize);
-    /* Holds the synths */
-    ~synths = Array.new(maxSize);
-    /* Holds the spat positions for each note, imported from ~allRings */
-    ~spatializations = Array.new(~spatPositions.size);
+
+    if(currentSize < maxSize,
+          {
+            ~audioBus.put(currentSize, Control.bus(s, 1));
+            synth.set(\bus, ~audioBus[currentSize]);   
+            ~synths.put(currentSize, synth);
+            currentSize = currentSize + 1;
+          },
+          { "Current bus is full".postln;});
   }
+//  ~addGenericSynth(0,0);
 #+end_src
 
+#+begin_src sclang :results none
+  a = [0,1];
+  b = List.newUsing(a);
+  b.grow(1);
+  b.add(2);
+  b.asArray.postln;
+  //  a = b.array;
+  c = 1;
+  c = c+1;
+  c.postln;
+#+end_src
 ** pulse modulation
 Build an array of arguments for the interpolation of the pulse frequence of the instruments. This is always relative to the current pulse frequency. Arguments are:
 - ~mult~ multiplier for each iteration in the array
@@ -560,7 +582,7 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 #+begin_src sclang :results none :noweb yes
   <<interpolate_busses>>
   <<pulse_modulation>>
-  ~modulateSpeed.value(0.01, 10, 0.1, \change, [7,9]);
+  ~modulateSpeed.value(2, 10, 500, \change, [2,3]);
 #+end_src
 
 #+begin_src sclang :results none
@@ -654,12 +676,12 @@ Interpolate all busses. Call this from [[pulse_interpolate_array][pulse_interpol
 #+end_src
 
 #+begin_src sclang :results none
-  ~frequencyBus[1].getSynchronous.postln;
+  ~frequencyBus[0].getSynchronous.postln;
 //  ~synth[0].get(\noiseScale, 0);
 #+end_src
 
 #+begin_src sclang :results none
-  ~frequencyBus[0].set(1);
+  ~frequencyBus[1].set(200);
 #+end_src
 
 Interpolate one pulse bus.
@@ -1394,7 +1416,7 @@ Fade in 15 channels
 
 Bring forward in two angles
 #+begin_src sclang :results none
-  ~setSpatPositions.value([ [ 4, 1, 1 ], [ 5, 1, 1 ] ], 2);
+  ~setSpatPositions.value([ [ 0, 1, 1 ], [ 1, 1, 1 ] ], 2);
 
 #+end_src
 
