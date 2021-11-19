@@ -72,29 +72,32 @@ $6;%0.3f::$9=@3$9*2**($4/1200);%0.5f
 |     5 |           |  1 | 11 |  6 |
 |-------+-----------+----+----+----|
 
-#+begin_src scheme :var angles=snares_pitches[3:13,9] :results output raw :exports code
+#+name: generate_scale_positions
+#+begin_src scheme :var angles=snares_pitches[3:13,9] :results output raw :exports code :wrap "src sclang"
   (format #t "~a" "[")
   (map
      (lambda (x)
-       (format #t "~a, " x)) angles)
+       (format #t "[~a, 0], " x)) angles)
   (format #t "~a" "]")
 #+end_src
 
-#+RESULTS:
-[0.0, 6.45, 12.32, 39.97, 61.17, 115.89, 122.35, 204.13, 210.59, 298.83, 326.48, ]
+#+RESULTS: generate_scale_positions
+#+begin_src sclang
+[[0.0, 0], [6.45, 0], [12.32, 0], [39.97, 0], [61.17, 0], [115.89, 0], [122.35, 0], [204.13, 0], [210.59, 0], [298.83, 0], [326.48, 0], ]
+#+end_src
 
 #+name: sc_print_freq
-#+begin_src scheme :var freq=snares_pitches[3:13,9] :results output raw :exports code :wrap "src sclang"
+#+begin_src scheme :var freq=snares_pitches[4:15,8] :results output raw :exports code :wrap "src sclang"
   (format #t "~a" "[")
     (map
        (lambda (x)
-         (format #t "[~a, 0], " x)) freq)
+         (format #t "~a, " x)) freq)
     (format #t "~a" "]")
 #+end_src
 
 #+RESULTS: sc_print_freq
 #+begin_src sclang
-[[0.0, 0], [6.45, 0], [12.32, 0], [39.97, 0], [61.17, 0], [115.89, 0], [122.35, 0], [204.13, 0], [210.59, 0], [298.83, 0], [326.48, 0], ]
+[264.87, 267.87844, 282.52807, 294.3, 326.99987, 331.0875, 387.5554, 392.4, 465.06667, 490.50036, 523.2, ]
 #+end_src
 
 #+name: sc_print_scale

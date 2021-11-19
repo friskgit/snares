@@ -23,7 +23,6 @@ Ratios are plotted against the possible positions in space. See also [[https://e
 #+ATTR_HTML: :width 400
 [[file:org/images/General_comments/2021-10-07_14-38-43_DSC_1208.JPG]]
 
-
 * harmonic spat synth
 _1. Start here_
 Set the parameters in [[generate_harmonics][generate_harmonics]] for the synthesis.
@@ -91,13 +90,14 @@ Global variables and semaphhores
   ~logging = 2;
   /* Spatialisation positions */
   ~allRings = [[335.963312, 23.800417, 1.0, 0.0], [21.279257, 23.800417, 1.0, 0.0], [55.741675, 23.800417, 1.0, 0.0], [101.49442, 23.800417, 1.0, 0.0], [147.91193, 23.800417, 1.0, 0.0], [192.17987, 23.800417, 1.0, 0.0], [ 236.216, 23.800417, 1.0, 0.0], [280.112269, 23.800417, 1.0, 0.0], [ 0.247203, 56.476405, 1.0, 0.0], [69.013292, 56.476405, 1.0, 0.0], [158.89992, 56.476405, 1.0, 0.0], [245.34646, 56.476405, 1.0, 0.0], [270, 86.424489, 1.0, 0.0], [90, 86.424489, 1.0, 0.0], [0, 90, 1.0, 0.0]];
-  /* Separator */
-  
+  /* Harmonic spatialisation settings */
+  ~scaleSpats = [[0.0, 0], [6.45, 0], [12.32, 0], [39.97, 0], [61.17, 0], [115.89, 0], [122.35, 0], [204.13, 0], [210.59, 0], [298.83, 0], [326.48, 0]];
+
   /* setup ambisonics */
   ~order = 3;
   ~hoaNumChannels = (~order+1).pow(2);
   ~decoderNumChannels = 29;  
-  
+
   /* Semaphore for spatialisation modulation and synths */
   ~modSem1 = 0;
   ~modSem2 = 0;
@@ -107,7 +107,7 @@ Global variables and semaphhores
   ~mod2 = 0;
   ~mod3 = 0;
   ~mod4 = 0;
-  
+
   /* Separator */
   ~separator = "-----------------------------------";
   "Global variables loaded.".postln;
@@ -514,6 +514,39 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
   )
 #+end_src
 End of /generate_harmonics/
+
+** example synth
+Generic synth wrapper to generate audio for the spatialisation. This will need to initatilze the ~~audioBusses~ and ~~synths~ arrays. A ~synth~ plays to a specific ~audioBus~. The ~~spatialisations~ array holds the azimuth/elevation pairs for a set of positions.
+
+For the positions, these are fetched from [[file:documentation.org::generate_scale_positions][this code snippet]].
+#+begin_src sclang :results none
+  ~addGenericSynth = { var synth, index = 0;
+
+    var select,
+    task,
+    mode = ~mode,
+    maxSize = ~scaleSpats.size  ;
+
+    switch(mode,
+
+          \linear, {
+            ~spatPositions = Array.iota(~scaleSpats.size);
+            "Linear mode".postln;		
+          },
+          /* Unused */
+          \odd, {
+            ~spatPositions = Array.iota(~scaleSpats.size);
+            "Linear mode".postln;
+            "Full mode".postln;		
+          }); // switch mode
+    /* Holds the busses */
+    ~audioBusses = Array.new(maxSize);
+    /* Holds the synths */
+    ~synths = Array.new(maxSize);
+    /* Holds the spat positions for each note, imported from ~allRings */
+    ~spatializations = Array.new(~spatPositions.size);
+  }
+#+end_src
 
 ** pulse modulation
 Build an array of arguments for the interpolation of the pulse frequence of the instruments. This is always relative to the current pulse frequency. Arguments are:
