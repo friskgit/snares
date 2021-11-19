@@ -58,7 +58,7 @@ noiselv = synthgrp(hslider("noise lvl", 0.1, 0, 1.5, 0.0001));
 n(x) = no.multinoise(8) : par(i, 8, _ * env(x) * noiselv);
 
 // Reduce to stereo
-nse(x) = n(x) :> _ * noiseenv(x) ;
+nse(x) = n(x) :> _ * noiseenv(x) : *(amp);
 
 // filt = fi.resonbp(frq, q, gain)
 // with {
@@ -81,4 +81,4 @@ cmpl_mul(in1,in2,in3,in4) = in1*(in3), in2*(in4) ;
 volume(s) = s : *(amp) : *(accent);
 trimod = tri1, tri1 : (filters, cmpl_osc) : cmpl_mul <: +,- ;
 oscs(x) = osc1, osc2 : par(i, 2, _* env(x));
-process(x) = trimod : par(i, 2, _ * env(x)), oscs(x) :> _+nse(x) ,_+nse(x) :> _ : x,volume(_) ;
+process(x) = trimod : par(i, 2, _ * env(x)), oscs(x) :> _+nse(x) ,_+nse(x) :> _ ; //x,volume(_) ;

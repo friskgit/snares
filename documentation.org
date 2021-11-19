@@ -1,26 +1,101 @@
 #+name: Snares rising
 #+STARTUP: indent overview hidestars
 
+* Form
+** Section A
+Spatialisation based on the angles in [[spat_angles_A][spat_angles_A]].
+- Simple snare (no noise) that playes tempo 65.4 (the beating of index 6 and 7 in the scale), ratio according to index in table [[snares_pitches][snares_pitches]]:
+  - index 1 plays ~t1/1~ at position 0 degrees, increases its speed by 2 (index 12)
+  - index 2 plays ~t81/80~ at position 6.45 degrees, increases its speed by 15/8 (index 11)
+  - ...
+  - index 7 playes ~t81/64~ at position 122.35 degrees, increases its speed by 5/4 (index 6)
+
+- The time between each entry is relative to the time of the beating in seconds.
+- For each increase in speed each voice's elevation increases by 7 degrees and its volume is decreased by ~1/(n/d)~ eventually faded out.
+  
+#+name: spat_angles_A
+#+begin_src scheme :var x=snares_pitches[3:13,9]
+  x
+#+end_src
+
+#+RESULTS: spat_angles_A
+| 0.0 | 6.45 | 12.32 | 39.97 | 61.17 | 115.89 | 122.35 | 204.13 | 210.59 | 298.83 | 326.48 |
+
+** Section B
+Harmonic modulations of the modes proposed by the scale. Harmonic notes spatialised according to:
+- each partial in the note is spatialised individually
+- each note has an intial high elevation (>45 degrees)
+- each note breaks down and each partial is gradually slowed down while the elevation moves towards -90
+
+The beating of two single pitches (one snare) is picked up by a bassdrum, continuously changing speed as the pitches are altered. the
 * Scale
 
 #+name: snares_pitches
-| index | ratio | ratio |      cent |   beating (Hz) |      beating (Hz) |       bpm |       ms | frequency |
-|       |       |       |           | to fundamental | between x and x-1 |           |          |           |
-|-------+-------+-------+-----------+----------------+-------------------+-----------+----------+-----------|
-|     1 |     1 |     1 |    0.0000 |       261.6000 |           0.00000 |    0.0000 | 1000.000 | 261.60000 |
-|     2 |    81 |    80 |   21.5063 |         3.2700 |           3.22995 |  193.7970 |  309.602 | 264.87000 |
-|     3 |   128 |   125 |   41.0591 |         3.0084 |           2.90190 |  174.1140 |  344.602 | 267.87844 |
-|     4 |    27 |    25 |  133.2380 |        14.6496 |          13.24780 |  794.8680 |   75.484 | 282.52807 |
-|     5 |     9 |     8 |  203.9100 |        11.7719 |           9.68983 |  581.3898 |  103.201 | 294.30000 |
-|     6 |     5 |     4 |  386.3130 |        32.6999 |          23.25560 | 1395.3360 |   43.000 | 326.99987 |
-|     7 |    81 |    64 |  407.8200 |         4.0876 |           2.58395 |  155.0370 |  387.004 | 331.08750 |
-|     8 |    40 |    27 |  680.4480 |        56.4679 |          30.11918 | 1807.1508 |   33.201 | 387.55540 |
-|     9 |     3 |     2 |  701.9550 |         4.8446 |           2.18021 |  130.8126 |  458.671 | 392.40000 |
-|    10 |    16 |     9 |  996.0900 |        72.6667 |          27.25270 | 1635.1620 |   36.694 | 465.06667 |
-|    11 |    15 |     8 | 1088.2700 |        25.4337 |           7.63074 |  457.8444 |  131.049 | 490.50036 |
-|    12 |     2 |     1 | 1200.0000 |        32.6996 |           8.72086 |  523.2516 |  114.668 | 523.20000 |
-|-------+-------+-------+-----------+----------------+-------------------+-----------+----------+-----------|
-#+TBLFM: $4=$0;%0.4f::$5=$9-@-1$9;%0.4f::$6=$0;%0.5f::$7=$6*60;%0.4f::$8=1000 / $6;%0.3f::$9=@3$9*2**($4/1200);%0.5f
+| index | ratio | ratio |      cent |   beating (Hz) |      beating (Hz) |       bpm |      ms | frequency |   spat |
+|   (i) |   (n) |   (d) |       (c) | to fundamental | between x and x-1 |       (T) |     (m) |       (f) |    (s) |
+|-------+-------+-------+-----------+----------------+-------------------+-----------+---------+-----------+--------|
+|     0 |     1 |     1 |    0.0000 |       261.6000 |           0.00000 |    0.0000 | 1000.00 | 261.60000 |   0.00 |
+|     1 |    81 |    80 |   21.5063 |         3.2700 |           3.22995 |  193.7970 |  309.60 | 264.87000 |   6.45 |
+|     2 |   128 |   125 |   41.0591 |         3.0084 |           2.90190 |  174.1140 |  344.60 | 267.87844 |  12.32 |
+|     3 |    27 |    25 |  133.2380 |        14.6496 |          13.24780 |  794.8680 |   75.48 | 282.52807 |  39.97 |
+|     4 |     9 |     8 |  203.9100 |        11.7719 |           9.68983 |  581.3898 |  103.20 | 294.30000 |  61.17 |
+|     5 |     5 |     4 |  386.3130 |        32.6999 |          23.25560 | 1395.3360 |   43.00 | 326.99987 | 115.89 |
+|     6 |    81 |    64 |  407.8200 |         4.0876 |           2.58395 |  155.0370 |  387.00 | 331.08750 | 122.35 |
+|     7 |    40 |    27 |  680.4480 |        56.4679 |          30.11918 | 1807.1508 |   33.20 | 387.55540 | 204.13 |
+|     8 |     3 |     2 |  701.9550 |         4.8446 |           2.18021 |  130.8126 |  458.67 | 392.40000 | 210.59 |
+|     9 |    16 |     9 |  996.0900 |        72.6667 |          27.25270 | 1635.1620 |   36.69 | 465.06667 | 298.83 |
+|    10 |    15 |     8 | 1088.2700 |        25.4337 |           7.63074 |  457.8444 |  131.05 | 490.50036 | 326.48 |
+|    11 |     2 |     1 | 1200.0000 |        32.6996 |           8.72086 |  523.2516 |  114.67 | 523.20000 | 360.00 |
+|-------+-------+-------+-----------+----------------+-------------------+-----------+---------+-----------+--------|
+#+TBLFM: $4=$0;%0.4f::$5=$9-@-1$9;%0.4f::$6=$0;%0.5f::$7=$6*60;%0.4f::$8=1000 / $6;%0.2f::$10=(($4 / 1200) * 360);%0.2f
+$6;%0.3f::$9=@3$9*2**($4/1200);%0.5f
+
+#+name: snares_harmony
+| index | character | p1 | p2 | p3 |
+|-------+-----------+----+----+----|
+|     0 |           |  2 |  5 | -3 |
+|     1 |           | 13 |  7 | 10 |
+|     2 |           |  0 |  6 |  8 |
+|     3 |           | 11 |  6 |  4 |
+|     4 |           | -2 |  4 |  8 |
+|     5 |           |  1 | 10 |  7 |
+|     6 |           |  0 |  4 |  6 |
+|     7 |           |  3 |  5 | 10 |
+|     8 |           |  0 |  4 |  5 |
+|     9 |           |  3 |  5 | 12 |
+|    10 | tonic     |  2 |  4 |  9 |
+|-------+-----------+----+----+----|
+|     1 |           |  1 |  6 | 10 |
+|     2 |           | 11 |  8 |  5 |
+|     3 |           |  0 |  4 |  8 |
+|     4 |           | 13 |  7 | 10 |
+|     5 |           |  1 | 11 |  6 |
+|-------+-----------+----+----+----|
+
+#+begin_src scheme :var angles=snares_pitches[3:13,9] :results output raw :exports code
+  (format #t "~a" "[")
+  (map
+     (lambda (x)
+       (format #t "~a, " x)) angles)
+  (format #t "~a" "]")
+#+end_src
+
+#+RESULTS:
+[0.0, 6.45, 12.32, 39.97, 61.17, 115.89, 122.35, 204.13, 210.59, 298.83, 326.48, ]
+
+#+name: sc_print_freq
+#+begin_src scheme :var freq=snares_pitches[3:13,9] :results output raw :exports code :wrap "src sclang"
+  (format #t "~a" "[")
+    (map
+       (lambda (x)
+         (format #t "[~a, 0], " x)) freq)
+    (format #t "~a" "]")
+#+end_src
+
+#+RESULTS: sc_print_freq
+#+begin_src sclang
+[[0.0, 0], [6.45, 0], [12.32, 0], [39.97, 0], [61.17, 0], [115.89, 0], [122.35, 0], [204.13, 0], [210.59, 0], [298.83, 0], [326.48, 0], ]
+#+end_src
 
 #+name: sc_print_scale
 #+begin_src scheme :var cents=snares_pitches[4:15,3] :results output raw :exports code :noweb yes :wrap "src sclang"
@@ -43,19 +118,33 @@ Write the file "test.sc" with the output of ~sc_print_scale~.
 
 Example of scale played by simple Pbind.
 #+begin_src sclang
-var tuning, scale;
+  var tuning, scale;
 
-tuning = Tuning.new(#[0, 0.215063, 0.410591, 1.33238, 2.0391, 3.86313, 4.0782, 6.80448, 7.019550000000001, 9.9609, 10.8827 ]);
-scale = Scale.new(#[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 11, tuning, name: \snarePitch);
+  tuning = Tuning.new(#[0, 0.215063, 0.410591, 1.33238, 2.0391, 3.86313, 4.0782, 6.80448, 7.019550000000001, 9.9609, 10.8827 ]);
+  scale = Scale.new(#[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 11, tuning, name: \snarePitch);
 
-scale.degreeToRatio(2,1).postln;
-scale.degreeToFreq(4, 48.midicps, 1).postln;
+  scale.degreeToRatio(2,1).postln;
+  scale.degreeToFreq(4, 48.midicps, 1).postln;
 
-Pbind(\note, Pavaroh (
-    Pseq([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, \rest], 2), scale
-    ),
-    \dur, 2
-).play;
+  Pbind(\note, Pavaroh (
+    Pseq([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 1), scale
+  ),
+    \dur, 0.5
+  ).play;
+#+end_src
+
+Here is a similar example using the scale but transforming the scale instances to frequencies.
+#+begin_src sclang
+  var tuning, scale;
+
+  tuning = Tuning.new(#[0, 0.215063, 0.410591, 1.33238, 2.0391, 3.86313, 4.0782, 6.80448, 7.019550000000001, 9.9609, 10.8827 ]);
+  scale = Scale.new(#[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 11, tuning, name: \snarePitch);
+
+  Pbind(
+    \note, Pavaroh (Pseq([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, \rest], 2), scale),
+    \freq, Pfunc({|ev| midicps(ev.note + 60)}),
+    \dur, 1
+  ).play;
 #+end_src
 
 #+name: sc_set_tempo
@@ -76,44 +165,42 @@ t = TempoClock.new;
 t.tempo_(p[0]);
 #+end_src
 
+Example for how to use the array of tempos to control the playback of a bass drum.
 #+begin_src sclang :results none
   var tempos = [3.22995, 2.9019, 13.247800000000002, 9.68983, 23.2556, 2.58395, 30.119179999999997, 2.18021, 27.2527, 7.63074, 8.72086, ];
-  var originalTempo = 60;
+  var beats = 3;
+  /* The TempoClock that controls the Pbind. */  
+  var tclock = TempoClock.tempo = 1;
 
-  t = TempoClock(1);
-  u = TempoClock(1);
+  /* The tempo clock that controls the Routine */
+  t = TempoClock.new.sched(0, r);
+  t.tempo = 2;
 
+  /* Changes the tempo based on the value of ~temops~ */
   r = Routine {
     tempos.size.do({ arg i;
-          m = tempos[i].postln;
-          u.tempo = m;
-          originalTempo = m;
-          1.wait;
+          m = tempos[i];
+          m.postln;
+          tclock.tempo_(m);
+          2.wait;
     });
   };
 
-  t.play(r, 1);
-
   Pbind(
     \instrument, \bsnare,
-    \impfreq, 0,
+    \impfreq, 1,
     \length, 0.2,
-    \osc1, 80,
-    \osc2, 50,
-    \trifreq, 70,
-    \fltfrq, Pseq([100, 200, 300, 400, 500, 600, 700, 800], inf) + 200,
-    \fltq, Pseq((1..7), inf),
+    \osc1, Prand((0..20), inf) + 70,
+    \osc2, Prand((20..2), inf) + 40,
+    \trifreq, Pseq((60..40), inf) * 10, 
+    \fltfrq, Pseq((3..12), inf) * 100,
+    \fltq, Pseq((1..12), inf),
     \release, 0.9,
-    \dur, 0.1,
-    \time, Pkey(\dur) / t.tempo;
-    //    \time, Pkey(\dur) / Pfunc { thisThread.clock.tempo },
-    //    \rate, Pfunc { thisThread.clock.tempo }
-  ).play(t);
+    \dur, beats,
+    \time, Pkey(\dur) / Pfunc { thisThread.clock.tempo },
+    \rate, Pfunc { thisThread.clock.tempo }
+  ).play;
 #+end_src
-#+begin_src sclang :results none
-
-#+end_src
-
 
 * Demo
 

@@ -23,6 +23,7 @@ Ratios are plotted against the possible positions in space. See also [[https://e
 #+ATTR_HTML: :width 400
 [[file:org/images/General_comments/2021-10-07_14-38-43_DSC_1208.JPG]]
 
+
 * harmonic spat synth
 _1. Start here_
 Set the parameters in [[generate_harmonics][generate_harmonics]] for the synthesis.
@@ -38,19 +39,6 @@ Set the parameters in [[generate_harmonics][generate_harmonics]] for the synthes
 #+call: free_all()
 #+call: reboot()
 
-#+begin_src sclang :results none
-  ( // change the bounds to become vertical
-  w = Window.new.front;
-  c = NumberBox(w, Rect(20, 20, 150, 20));
-  a = Slider(w, Rect(200, 60, 20, 150))
-  .value_(0.5)
-  .action_({
-    c.value_(a.value)
-  });
-  a.value_(1);
-  a.action.value;
-  )
-#+end_src
 ** boot audio
 Set JackRouter to be the interface on Linux
 #+name: boot_jack
@@ -94,9 +82,9 @@ Global variables and semaphhores
   /* Which space? */
   ~space = 0;
   /* Fundamental frequency */
-  ~fundamental = 100;
+  ~fundamental = 294.3; 
   /* Mode of synthesis */
-  ~mode = \odd;
+  ~mode = \harmony;
   /* Amplitude mode */
   ~ampMode = \linear;
   /* The general level of loggging */
@@ -455,7 +443,7 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
   synthesis = \snares;
   <<global_variables>>
   <<harmonics>>
-  
+
   switch(mode,
     /* 15 partials */
     \harmony, {
@@ -483,7 +471,7 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
           ~spatPositions = [0,1];
           "Dual mode".postln;	
     }); // switch mode
-  
+
   if(~logging > 1,
     {
           "Length of select array is ".post; select.size.postln;
@@ -492,7 +480,7 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
           " ".postln;
     },
     { }); //if clause
-  
+
   /* Holds the busses */
   ~audioBusses = Array.new(select.size);
   /* Holds the synths */
@@ -501,7 +489,7 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
   ~originalFrequencies = Array.new(select.size);
   /* Holds the spat positions for each note, imported from ~allRings */
   ~spatializations = Array.new(~spatPositions.size);
-  
+
   if(select.size == ~spatPositions.size,
     {
           if(~allRings.size >= ~spatPositions.size,
@@ -517,10 +505,10 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
             }, { }); // if clause
     },
     { "'sel' and 'spat' have unequal number of elements".postln; }); // if clause
-  
+
   /* Call the harmonics function and play it.*/
   task =
-  
+
   ~harmonicsFactory.value(~fundamental, select, 0.1, \linear, \snare, 0.3);
   task.play;
   )
@@ -1022,7 +1010,7 @@ The functions controlling panning are here: [[inter_pan][inter_pan]].
             ~spatNdefs.add(
                   Ndef.new(m, { arg src, azi = 0, ele = 0, spr = 0, dist = 0;
                     src = In.ar(bus);
-                    azi = In.kr(n.index).poll(3);
+                    azi = In.kr(n.index);
                     ele = In.kr(n.index + 1);
                     dist = LinLin.kr( In.kr(n.index + 2).cubed, 0, 1, 0.0001, 1);
                     spr = LinLin.kr( In.kr(n.index + 3), 0, 100, 1, 100);
@@ -1373,7 +1361,7 @@ Fade in 15 channels
 
 Bring forward in two angles
 #+begin_src sclang :results none
-  ~setSpatPositions.value([ [ 0, 1, 1 ], [ 9, 1, 1 ] ], 20);
+  ~setSpatPositions.value([ [ 4, 1, 1 ], [ 5, 1, 1 ] ], 2);
 
 #+end_src
 
@@ -1427,11 +1415,11 @@ In the distance
 Bring forward
 #+begin_src sclang :results none
   ~setSpatPositions.value([
-    [ 0, 1, 1 ],
-    [ 4, 1, 1 ],
-    [ 10, 1, 1 ],
-    [ 12, 1, 1 ] ],
-    10);
+    [ 5, 1, 1 ],
+    [ 2, 1, 1 ],
+    [ 15, 1, 1 ],
+    [ 14, 1, 1 ] ],
+    2);
 #+end_src
 
 Mix forward
@@ -1489,7 +1477,7 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
 
 #+name: set_sine
 #+begin_src sclang :results none
-  ~setSpatialization.value(\frontTop, 10);
+  ~setSpatialization.value(\single, 2);
 #+end_src
 
 #+begin_src sclang :results none
@@ -1512,7 +1500,7 @@ Never set the spread to less then 0.1.
 #+begin_src sclang :results none
   ~setSpatialization = { arg preset, time;
     switch(preset,
-          \single, { ~setSpatPositions.value([[1, 1, 0.1], [8, 1, 0.1]]); },
+          \single, { ~setSpatPositions.value([[0, 1, 0.1], [1, 1, 0.1]]); },
           \simple, { ~setSpatPositions.value([[0, 0.6, 0.1], [1, 0.6, 0 ]]); },
           \distanceI, { ~setSpatPositions.value([[0, 0.0, 0.0], [1, 0.0, 0.0]]); },
           \distanceO, { ~setSpatPositions.value([[0, 1, 50.0], [1, 1, 0.0]]); },
@@ -2228,3 +2216,16 @@ Fill the ~~spatializations~ array with random indexes.
   }).play;
 #+end_src
 
+#+begin_src sclang :results none
+  ( // change the bounds to become vertical
+  w = Window.new.front;
+  c = NumberBox(w, Rect(20, 20, 150, 20));
+  a = Slider(w, Rect(200, 60, 20, 150))
+  .value_(0.5)
+  .action_({
+    c.value_(a.value)
+  });
+  a.value_(1);
+  a.action.value;
+  )
+#+end_src

@@ -1,4 +1,4 @@
-// -*- compile-command: "cd .. && make jack src=i_snare_phase_disp.dsp && cd -"; -*-&& cd -"; -*-
+// -*- compile-command: "cd .. && make sc src=i_snare_phase_disp.dsp && cd -"; -*-&& cd -"; -*-
 
 declare version " 0.1 ";
 declare author " Henrik Frisk " ;
@@ -44,9 +44,4 @@ process = impsp, ((imp : component("generic_snarefs.dsp")),
 	   (imp_delA : component("generic_snarefs.dsp")),
 	   (imp_delB : component("generic_snarefs.dsp")),
 	   (imp_delC : component("generic_snarefs.dsp")) :> _ ) : component("disperse.dsp")[channels = 29;];
-
-// process = imp : component("generic_snarefs.dsp")[accent = 2;] : component("disperse.dsp")[channels = 29;],
-// 	  imp_delA : component("generic_snarefs.dsp") : component("disperse.dsp")[channels = 29;],
-// 	  imp_delB : component("generic_snarefs.dsp") : component("disperse.dsp")[channels = 29;],
-// 	  imp_delC : component("generic_snarefs.dsp") : component("disperse.dsp")[channels = 29;];
 
