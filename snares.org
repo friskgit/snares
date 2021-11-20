@@ -510,7 +510,7 @@ Use this to start the synth for break beats.
 #+begin_src sclang :results none :noweb yes
   <<break_snare>>
   ~playBreakSnare = { |start=1, bus, noise=0.0001, length=40, release=0.05|
-    Synth.new("breakSnare", [\impf, start, \freq, 50, \freq2, 110, \trifrq, 50, \noiselvl, noise, \length, length, \rel, release, \nrel, 0.05, \out, bus, \gain, 1] );
+    Synth.new("breakSnare", [\impf, start, \freq, 50, \freq2, 110, \trifrq, 50, \noiselvl, noise, \length, length, \rel, release, \nrel, 0.05, \out, 30, \gain, 1] );
   };
 #+end_src
 
@@ -520,7 +520,6 @@ Call this function to double the impulse speed and alter the parameters of the [
   ~doubleSpeed = { |synth, divisor=0|
     var fractions = [1.0, 1.0125, 1.024, 1.08, 1.125, 1.25, 1.2656, 1.4815, 1.5, 1.7778, 1.875, 2.0 ],
     breakpoint = 50;
-    "called".postln;
     synth.get(\impf, {arg val;
           var newVal = val,
           newFreq,
@@ -552,12 +551,27 @@ Call this function to double the impulse speed and alter the parameters of the [
   };
 #+end_src
 
+Free busses!
+#+call: free_busses()
+
+Clear the old ~~audioBusses~ array and make a new.
+#+name: new_audio_bus
 #+begin_src sclang :results none :noweb yes
-  var synthA, synthB;
+  // <<free_busses>>
+  ~audioBusses = nil;
+  ~audioBusses = Array.new(12);
+#+end_src
+
+#+begin_src sclang :results none
+~audioBusses[0].scope;
+#+end_src
+#+begin_src sclang :results none :noweb yes
+  var synthA, synthB, index, aBusses;
   <<double_pace>>
-  ~initializeAudioBusses.value();
-  synthA = ~playBreakSnare.value(2, ~audioBusses[0].index);
-  synthB = ~playBreakSnare.value(3, ~audioBusses[1].index);
+  <<add_audio_bus>>
+  /* Instantiate the ~audioBus array in snares_harmony */
+  aBusses = ~addAudioBusses.value(~audioBusses, 1);
+  synthA = ~playBreakSnare.value(2, aBusses[0].index);
   r = Routine({
     var delta;
     loop {
@@ -568,26 +582,72 @@ Call this function to double the impulse speed and alter the parameters of the [
     }
   });
   TempoClock.default.sched(0, r);
+  ~audioBusses = aBusses;
 #+end_src
 
+#+begin_src sclang :results none
+  <<vbap_speaker_array>>
+#+end_src
+#+begin_src sclang :results none
+  {
+    VBAP.ar(29, In.ar(30, 1), ~spkrBuffer.bufnum, 90, 0, 10);
+  }.play;
+#+end_src
 #+begin_src sclang :results none
   r.stop;
 #+end_src
 
-Routine to double the speed on the snare beat.
-#+begin_src sclang :results none :noweb yes
-  var ratio = 81/80;
-  <<play_break_snare>>
-  r = Routine({
-    var delta;
-    loop {
-          delta = 5;
-          delta.yield;
-          ~breakBeatA.get(\impf, {arg val; ~breakBeatA.set(\impf, (val*2)*ratio)});
-          ~breakBeatA.get(\impf, {arg val; val.postln});
-    }
+**** VBAP
+#+begin_src sclang :results none
+~audioBusses.size.postln;
+#+end_src
+#+name: make_vbap
+#+begin_src sclang :results none :noweb yes :tangle harmony.sc
+  var revMap;
+
+  <<vbap_speaker_array>>
+  ~spatNdefs = Array.new(~audioBusses.size);
+  ~reverbSendNdefs = Array.new(~audioBusses.size);
+  ~reverbBus = Array.new(~audioBusses.size);
+  ~controlBus = Array.new(~audioBusses.size);
+  ~reverbSendBus = Bus.audio(s, 1);
+  revMap = \sin.asWarp;
+  ~audioBusses.do({ arg bus, i;
+    o = "reverbBus" ++ i.asString.asSymbol;
+    m = "ch" ++ i.asString.asSymbol;
+    n = Bus.control(s, 4);
+    ~controlBus.add(n);
+    ~spatNdefs.add(
+          Ndef.new(m, { arg src, azi = 0, ele = 0, spr = 0, dist = 0;
+            src = In.ar(bus, 1);
+            azi = In.kr(n.index);
+            ele = In.kr(n.index + 1);
+            dist = LinLin.kr( In.kr(n.index + 2).cubed, 0, 1, 0.0001, 1);
+            spr = LinLin.kr( In.kr(n.index + 3), 0, 100, 1, 100);
+            src = src * dist;
+            VBAP.ar(29, src, ~spkrBuffer.bufnum, azi, ele, spr)});
+    );
+    /*
+          Using the same control for the reverb send level, as for the distance parameter in the spatialization control (which equals n.index + 2)
+    ,*/
+    Ndef(m).fadeTime(1);
+    Ndef(m).play(addAction: \addToTail);
+    //    Ndef(o).play(addAction: \addToTail);
   });
-  TempoClock.default.sched(0, r);
+#+end_src
+***** spkrBuffer settings
+The argument to ~VBAPSpeakerarray~ is ~3~ for 3D and an array of arrays of angle/elevation pairs:
+#+name: vbap_speaker_array
+#+begin_src sclang :results none :tangle harmony.sc
+  ~spkrArray = VBAPSpeakerArray.new(3, [[ -34.689614 , 12.910417 ], [ -13.383763 , 12.910417 ], [ 10.440725 , 12.910417 ], [ 32.117788 , 12.910417 ],
+    [ 55.741675 , 12.910417 ], [ 78.207673 , 12.910417 ], [ 101.49442 , 12.910417 ], [ 124.85167 , 12.910417 ],
+    [ 147.91193 , 12.910417 ], [ 169.17789 , 12.910417 ], [ -167.82013 , 12.910417 ], [ -145.63454 , 12.910417 ],
+    [ -123.784 , 12.910417 ], [ -102.64182 , 12.910417 ], [ -79.887731 , 12.910417 ], [ -57.926139 , 12.910417 ],
+    [ -22.349553 , 34.696822 ], [ 22.843958 , 34.696822 ], [ 69.013292 , 34.696822 ], [ 115.56544 , 34.696822 ],
+    [ 158.89992 , 34.696822 ], [ -158.89763 , 34.696822 ], [ -114.65354 , 34.696822 ], [ -68.170128 , 34.696822 ],
+    [ -45 , 69.185799 ], [ 45 , 69.185799 ], [ 135 , 69.185799 ], [ -135 , 69.185799 ], [ 0 , 90 ]]);
+  ~spkrArray.speakers[1].dump;
+  ~spkrBuffer = Buffer.loadCollection(s, ~spkrArray.getSetsAndMatrices);
 #+end_src
 
 **** player
@@ -4420,21 +4480,6 @@ Plot tree
 : Entering a new prompt.  Type `,bt' for a backtrace or `,q' to continue.
 : scheme@(guile-user) [1]> 
 
-***** spkrBuffer settings
-The argument to ~VBAPSpeakerarray~ is ~3~ for 3D and an array of arrays of angle/elevation pairs:
-#+name: vbap_speaker_array
-#+begin_src sclang :results none :tangle harmony.sc
-  ~spkrArray = VBAPSpeakerArray.new(3, [[ -34.689614 , 12.910417 ], [ -13.383763 , 12.910417 ], [ 10.440725 , 12.910417 ], [ 32.117788 , 12.910417 ],
-    [ 55.741675 , 12.910417 ], [ 78.207673 , 12.910417 ], [ 101.49442 , 12.910417 ], [ 124.85167 , 12.910417 ],
-    [ 147.91193 , 12.910417 ], [ 169.17789 , 12.910417 ], [ -167.82013 , 12.910417 ], [ -145.63454 , 12.910417 ],
-    [ -123.784 , 12.910417 ], [ -102.64182 , 12.910417 ], [ -79.887731 , 12.910417 ], [ -57.926139 , 12.910417 ],
-    [ -22.349553 , 34.696822 ], [ 22.843958 , 34.696822 ], [ 69.013292 , 34.696822 ], [ 115.56544 , 34.696822 ],
-    [ 158.89992 , 34.696822 ], [ -158.89763 , 34.696822 ], [ -114.65354 , 34.696822 ], [ -68.170128 , 34.696822 ],
-    [ -45 , 69.185799 ], [ 45 , 69.185799 ], [ 135 , 69.185799 ], [ -135 , 69.185799 ], [ 0 , 90 ]]);
-  ~spkrArray.speakers[1].dump;
-  ~spkrBuffer = Buffer.loadCollection(s, ~spkrArray.getSetsAndMatrices);
-#+end_src
-
 ***** test with Synthdef
 #+begin_src sclang :results none
   Synth.new(\vbap_panning, [\bus, ~audioBusses[0], \spkr_buffer, ~spkrBuffer.bufnum, \azimuth, 0, \elevation, 0, \spread, 0], addAction: \addToTail);
@@ -4477,6 +4522,7 @@ The argument to ~VBAPSpeakerarray~ is ~3~ for 3D and an array of arrays of angle
           })
   };
   ~freeAllBusses.value();
+  ~audioBusses = nil;
 
   ~freeNdefs = {
     Ndef.clear(0);
