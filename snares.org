@@ -551,12 +551,13 @@ Call this function to double the impulse speed and alter the parameters of the [
 #+end_src
 
 Run [[double_pace][double_pace]] to increase the speed of the snare pulses.
+#+name: start_double
 #+begin_src sclang :results none :noweb yes
   var synth, index, audioBus;
   <<double_pace>>
   synth = ~synths[0];
   r = Routine({
-,    var delta;
+    var delta;
     loop {
           delta = 5;
           delta.yield;
