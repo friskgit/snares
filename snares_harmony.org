@@ -85,15 +85,15 @@ Global variables and semaphhores
   /* Which space? */
   ~space = 0;
   /* Fundamental frequency */
-  ~fundamental = 260.1; 
+  ~fundamental = 1; 
   /* Mode of synthesis */
-  ~mode = \harmony;
+  ~mode = \rhythm;
   /* Amplitude mode */
-  ~ampMode = \default;
+  ~ampMode = \full;
   /* The general level of loggging */
   ~logging = 2;
   /* The synthesis mode \sin, \break, \snare */
-  ~synthMode = \snare;
+  ~synthMode = \break;
 
   /* Spatialisation positions */
   ~allRings = [[335.963312, 23.800417, 1.0, 0.0], [21.279257, 23.800417, 1.0, 0.0], [55.741675, 23.800417, 1.0, 0.0], [101.49442, 23.800417, 1.0, 0.0], [147.91193, 23.800417, 1.0, 0.0], [192.17987, 23.800417, 1.0, 0.0], [ 236.216, 23.800417, 1.0, 0.0], [280.112269, 23.800417, 1.0, 0.0], [ 0.247203, 56.476405, 1.0, 0.0], [69.013292, 56.476405, 1.0, 0.0], [158.89992, 56.476405, 1.0, 0.0], [245.34646, 56.476405, 1.0, 0.0], [270, 86.424489, 1.0, 0.0], [90, 86.424489, 1.0, 0.0], [0, 90, 1.0, 0.0]];
@@ -112,11 +112,13 @@ Global variables and semaphhores
   "Global variables loaded.".postln;
   ~separator.postln;
 
-  ~setRunningVariables = { |fund=1, mode=\harmony, ampMode=\default, synthMode=\snare|
+  ~setRunningVariables = { |fund=1, mode=\harmony, ampMode=\default, synthMode=\snare, scaleIndex|
+
     ~fundamental = fund; 
     ~mode = mode;
     ~ampMode = ampMode;
     ~synthMode = synthMode;
+    ~scaleIndex = scaleIndex;
     "Preset loaded".postln;
     "Fundamental is ".post; ~fundamental.postln;
     "Mode is ".post; ~mode.postln;
@@ -166,8 +168,13 @@ Set the runtime values for the parameters:
 #+begin_src sclang :results none
   ~setRunningVariables.value(300, \dual, \full, \snare);
 #+end_src
-#+begin_src sclang :results none
+#+begin_src sclang :results none :noweb yes
   ~setRunningVariables.value(260.1, \harmony, \linear, \snare);
+  //  <<synth_release_harmony>>
+#+end_src
+First iteration of breakBeat
+#+begin_src sclang :results none
+  ~setRunningVariables.value(1, \rhythm, \full, \break, [1]);
 #+end_src
 
 ** synth
@@ -294,8 +301,6 @@ Called by [[*generate harmonics][generate harmonics]].
 
     /* Frequency (pulse) control using a Bus */
     ~frequencyBus = Array.new(sel.size);
-
-    "speed of snare is ".post; ~scaleIndexes[8].postln;
 
     /* Run the loop */
     t = Task({
@@ -539,12 +544,14 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
           "Dual mode".postln;	
     },
     \rhythm, {
-          select = [11];
+          select = [0];//~scaleIndex;
           synthesis = \break;
           /* For \rhythm spatPositions refers to index in the array ~scaleSpats~ */
-          ~spatPositions = [11]; 
+          ~spatPositions = [select[0]]; 
           "Rhythm mode".postln;
     }); // switch mode
+
+  "spatpos is ".post; ~spatPositions.postln;
 
   if(~logging > 1,
     {
@@ -919,8 +926,9 @@ Gradually increase parameter in all synths using [[set_all_synths][set_all_synth
   ~setSynthsInterpol.value((150..100), 0.5, \trifreq);
 #+end_src
 
+#+name: synth_release_harmony
 #+begin_src sclang :results none
-  ~setAllSynths.value(\rel, 0.1);
+  ~setAllSynths.value(\rel, 0.01);
 #+end_src
 
 Set synth parameters
@@ -1295,7 +1303,7 @@ Loads necesary auxilliary functions and copies over the positions according to t
 - ~duration~: The time for the transformation.
 #+name: set_spatialization
 #+begin_src sclang :results none :noweb yes  :tangle harmony.sc
-  <<free_spat_busses>>
+  // <<free_spat_busses>>
   ~setSpatPositions = { arg spat_array, duration = 10;
     "The spat array".postln;
     " ".postln;
@@ -1533,7 +1541,7 @@ Bring forward in one angle
 
 Bring up, forward.
 #+begin_src sclang :results none
-  ~setSpatPositions.value([ [13, 1, 90 ] ], 30);
+  ~setSpatPositions.value([ [13, 1, 90 ] ], 3);
 #+end_src
 
 #+begin_src sclang :results none :noweb yes
