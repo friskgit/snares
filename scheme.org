@@ -1,4 +1,46 @@
-#+begin_src scheme :results value
+Run this to load scheme and guile.
+Use ~(display (xxx))~ and ~:results output~ for regular blocks.
+
+#+begin_src elisp
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((scheme . t)))
+#+end_src
+
+#+name: hello-world
+#+header: :session :var message="Hello Worlddd!"
+#+begin_src scheme 
+  message
+#+end_src
+
+#+RESULTS: hello-world
+: Hello Worlddd!
+
+#+begin_src scheme :results output
+  (map (lambda (x) (modulo x 2)) (iota 10))
+#+end_src
+
+#+RESULTS:
+
+
+#+name: hello-world-racket
+#+header: :session :var my-language='Greek
+#+begin_src scheme
+(define translations
+  #hash([English . "Hello world"]
+        [French . "Bonjour le monde"]
+        [German . "Hallo Welt"]
+        [Greek . "Γειά σου, κόσμε"]
+        [Portuguese . "Olá mundo"]
+        [Spanish . "Hola mundo"]
+        [Thai . "สวัสดีชาวโลก"]))
+(hash-ref translations my-language
+            "hello world")
+#+end_src
+
+#+RESULTS: hello-world-racket
+
+#+begin_src scheme :results output
 (define a (list 1 2 3 4))
 
 (define (list-set! list k val)
@@ -9,27 +51,15 @@
 (list-set! a 2 100) 
 #+end_src
 
-#+RESULTS:
-: #<unspecified>
-
-#+begin_src scheme :results value
-(display (append '(1) 2))
+#+begin_src scheme :results output
+  (display (car(append '(1) 4)))
 #+end_src
 
-#+RESULTS:
-: #<unspecified>
-
 #+begin_src scheme :results value
-(length (make-list 20 0))
+(length (make-list 40 0))
 #+end_src
 
-#+RESULTS:
-: 20
-
 #+begin_src scheme :results value
-(car (list 1 2 3))
+(car (cdr (list 1 7 3 4)))
 #+end_src
-
-#+RESULTS:
-: 1
 

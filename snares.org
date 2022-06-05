@@ -5,7 +5,7 @@
 - [ ] Implement distance in panning with reverb
 - [ ] Glue \nlevel to \pulse
 ** audio init
-Query interfaces
+Query interfaces (only if not using jack)
 #+begin_src sclang :results none
   ServerOptions.devices;
   s.boot;
@@ -25,12 +25,12 @@ Set JackRouter to be the interface on Linux
   )
 #+end_src
 
-Query for node tree:
+Query for node tree
 #+begin_src sclang :results none
   // in post window
-  s.queryAllNodes(queryControls: false)
+  //s.queryAllNodes(queryControls: false)
   // in a gui window
-  //     s.plotTree(interval: 0.5);
+  s.plotTree(interval: 0.5);
 #+end_src
 
 #+begin_src sclang :results none
@@ -63,7 +63,7 @@ Remember to load the library ob-async prior to testing these:
 
 ~M-x load-library ob-async~
 
-On osx the directory should be: "~/Library/mcfx/convolver_presets/kmh_lilla_salen_29/"
+On osx the directory should be: "~/Library/mcfx/convolver_presets/kmh_lilla_salen_29/", better however to start this from the command line.
 
 To start jconvolver:
 #+name: jconvolver
@@ -72,28 +72,31 @@ To start jconvolver:
   jconvolver KMH_LILLA_SALEN.conf &
 #+end_src
 
-#+RESULTS: jconvolver
-: 81168f108377c0471c3a01d4197f5c74
-
+**** Connect with jack
 disconnect supercollider from main out$
-#+begin_src shell
-  for i in {1..2}; do
-      jdis -d scsynth out$i system playback_$i
+#+name: disconnect_sc
+#+begin_src shell :dir /home/henrikfr/bin/scripts
+  for i in {0..4}; do
+      ~/bin/scripts/jdis -D Super out system playback $i
   done
 #+end_src
 
+#+RESULTS:
+
 connect supercollider to jconvolver
+#+name: connect_sc-jcon-out
 #+begin_src shell :results replace
-  jcon scsyn out jcon in 16
-  jcon jcon out system play 2
+  ~/bin/scripts/jcon Super out jcon in 30
+  ~/bin/scripts/jcon jcon out system play 2
 #+end_src
 
 #+RESULTS:
 
 connect only jconvolver to jack
-#+begin_src shell 
-  jcon jcon out sys play 2
+#+begin_src shell :dir /home/henrikfr/bin/scripts
+  ~/bin/scripts/jcon jcon out sys play 2
 #+end_src
+
 
 *** connect multi to stereo
 - Odd multi output to left out
@@ -157,6 +160,12 @@ connect only jconvolver to jack
   #+end_src
 
 *** disconnect stereo
+#+begin_src shell :results replace
+  for i in {1..4}; do
+      echo $i
+  done
+#+end_src
+
 #+begin_src shell :results replace
   for i in {1..2}; do
       echo "$i"
@@ -370,11 +379,11 @@ Similar to the above, but with modulation of Impulse tempo
     times: [1, 10-5, 10-4],
     curve: \squared,
   ).plot;
-
+~snare_simple.play;
 #+end_src
 #+name: acc_long_640
 #+begin_src sclang :results none :noweb yes
-  ~reg_snare = Synth.new("snare_imp_mod", [\curve, 4,  \speedStart, 640, \speedEnd, 640 , \freq1, 200, \freq2, 210, \trifrq, 100, \noiselvl, 0.001, \nrel, 0.01, \lngth, 0.1, \length, 15, \rel, 0.005, \out, [0,1], \gain, 1, \envCurve, 10] );
+  ~reg_snare = Synth.new("snare_imp_mod", [\curve, 4,  \speedStart, 640, \speedEnd, 640 , \freq1, 200, \freq2, 210, \trifrq, 100, \noiseless, 0.001, \nrel, 0.01, \lngth, 0.1, \length, 15, \rel, 0.005, \out, [0,1], \gain, 1, \envCurve, 10] );
 #+end_src
 
 #+name: acc_long_400
@@ -450,7 +459,7 @@ Another simple routine (not good for time critical events.
 #+begin_src sclang :results none :noweb yes
   <<looping_gesture>>
   ~intro_gesture.play;
-  //	~intro_gesture.stop;
+  ~intro_gesture.stop;
 #+end_src
 
 #+name: dacc_snare
@@ -602,7 +611,7 @@ Exaple of speeding up hits using a ~Routine~
     0.2.wait;
     100.do({
           ~snare_simple.set(\impf, x);
-          x.postln;
+          x.postilion;
           x = x + 1;
           0.1.wait
     })
@@ -1670,7 +1679,7 @@ SynthDef for a modulating snare drum synth. Parameters are:
         \del_mod, 0,
         \freq_mod, Prand([0, 0], inf),
         \dur, 0.1,
-        \freq, 10,
+        \freq, 1,
         \b1, Pseq([-0.0, -4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, ], inf),
         \b2, Pseq([-4.2105263157894735, -8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, ], inf),
         \b3, Pseq([-8.421052631578947, -12.631578947368421, -16.842105263157894, -21.052631578947366, -25.263157894736842, -29.473684210526315, -33.68421052631579, -37.89473684210526, -42.10526315789473, -46.31578947368421, -50.526315789473685, -54.73684210526316, -58.94736842105263, -63.15789473684211, -67.36842105263158, -71.57894736842105, -75.78947368421052, -80.0, -0.0, -4.2105263157894735, ], inf),
@@ -3554,6 +3563,7 @@ Example: Create a accent array and print it.
 ~poly = Ppar([~nom, ~denom]).play(quant: 0, clock: ~clock);
 }
 #+end_src
+
 #+begin_src sclang :results none
   ~task.value(10, 7, 8);
 #+end_src
@@ -4383,13 +4393,6 @@ Plot tree
          (format #t "~a, " (truncate (* x 14))))
        (seq-array-sin 0 21 (list)))
 #+end_src
-
-#+RESULTS: spat_list
-: ice-9/boot-9.scm:1669:16: In procedure raise-exception:
-: Unbound variable: seq-array-sin
-: 
-: Entering a new prompt.  Type `,bt' for a backtrace or `,q' to continue.
-: scheme@(guile-user) [1]> 
 
 ***** test with Synthdef
 #+begin_src sclang :results none

@@ -1,6 +1,14 @@
 #+name: Snares rising
 #+STARTUP: indent overview hidestars
 
+* Overview
+** Files
+- [[file:snares.org][snares.org]]: Main file with most synthdefs and definitions
+- [[file:spat_examples.org][spat_examples.org]]: Definitions of VBAP and ambisonics code
+- [[file:snares_harmony.org][snares_harmony.org]]: The definitions of the main section of the first piece, with VBAP classes in it.
+- [[file:pbind_factory.org][pbind_factory.org]]: Scheme code to generate dynamic Pbinds for the various snare classes
+- [[file:scheme.org][scheme.org]]: File of scheme code, mostly simple tests
+
 * Form
 ** Section A
 Spatialisation based on the angles in [[spat_angles_A][spat_angles_A]].
@@ -14,12 +22,9 @@ Spatialisation based on the angles in [[spat_angles_A][spat_angles_A]].
 - For each increase in speed each voice's elevation increases by 7 degrees and its volume is decreased by ~1/(n/d)~ eventually faded out.
   
 #+name: spat_angles_A
-#+begin_src scheme :var x=snares_pitches[3:13,9]
+#+begin_src scheme :var x=snares_pitches[3:13,10]
   x
 #+end_src
-
-#+RESULTS: spat_angles_A
-| 0.0 | 6.45 | 12.32 | 39.97 | 61.17 | 115.89 | 122.35 | 204.13 | 210.59 | 298.83 | 326.48 |
 
 ** Section B
 Harmonic modulations of the modes proposed by the scale. Harmonic notes spatialised according to:
@@ -82,11 +87,6 @@ Get the spatialisation positions from the table.
   (format #t "~a" "]")
 #+end_src
 
-#+RESULTS: generate_scale_positions
-#+begin_src sclang
-[[0.0, 0], [6.45, 0], [12.32, 0], [39.97, 0], [61.17, 0], [115.89, 0], [122.35, 0], [204.13, 0], [210.59, 0], [298.83, 0], [326.48, 0], ]
-#+end_src
-
 Get fractions from the ratios.
 #+begin_src scheme :var fraction=snares_pitches[3:14,3] :results output raw :exports code :wrap "src sclang"
   (format #t "~a" "[")
@@ -101,7 +101,7 @@ Get fractions from the ratios.
 [1.0, 1.0125, 1.024, 1.08, 1.125, 1.25, 1.2656, 1.4815, 1.5, 1.7778, 1.875, 2.0, ]
 #+end_src
 
-#+end_src
+Get the frequencies from the table.
 #+name: sc_print_freq
 #+begin_src scheme :var freq=snares_pitches[4:15,8] :results output raw :exports code :wrap "src sclang"
   (format #t "~a" "[")
@@ -111,11 +111,7 @@ Get fractions from the ratios.
     (format #t "~a" "]")
 #+end_src
 
-#+RESULTS: sc_print_freq
-#+begin_src sclang
-[261.6, 264.87, 267.87844, 282.52807, 294.3, 326.99987, 331.0875, 387.5554, 392.4, 465.06667, 490.50036, 523.2, ]
-#+end_src
-
+Get the scale as an object of the class sc:Tuning.
 #+name: sc_print_scale
 #+begin_src scheme :var cents=snares_pitches[4:15,3] :results output raw :exports code :noweb yes :wrap "src sclang"
   (format #t "~a" "Tuning.new(#[")
@@ -125,10 +121,7 @@ Get fractions from the ratios.
   (format #t "~a" "]);")
 #+end_src
 
-#+RESULTS: sc_print_scale
-#+begin_src sclang
-Tuning.new(#[0, 0.215063, 0.410591, 1.33238, 2.0391, 3.86313, 4.0782, 6.80448, 7.019550000000001, 9.9609, 10.8827, 12.0, ]);
-#+end_src
+Print scale in cents for a Tuning instance.
 
 Write the file "test.sc" with the output of ~sc_print_scale~.
 #+begin_src sclang :noweb yes :tangle "test.sc"
@@ -177,13 +170,6 @@ Here is a similar example using the scale but transforming the scale instances t
   (format #t "~a" "\nt.tempo_(p[0]);")
 #+end_src
 
-#+RESULTS: sc_set_tempo
-#+begin_src sclang
-var tempos = [3.22995, 2.9019, 13.247800000000002, 9.68983, 23.2556, 2.58395, 30.119179999999997, 2.18021, 27.2527, 7.63074, 8.72086, ];
-t = TempoClock.new;
-t.tempo_(p[0]);
-#+end_src
-
 Example for how to use the array of tempos to control the playback of a bass drum.
 #+begin_src sclang :results none
   var tempos = [3.22995, 2.9019, 13.247800000000002, 9.68983, 23.2556, 2.58395, 30.119179999999997, 2.18021, 27.2527, 7.63074, 8.72086, ];
@@ -222,19 +208,30 @@ Example for how to use the array of tempos to control the playback of a bass dru
 #+end_src
 
 * Demo
-
 #+begin_src scheme :results output
-  (map (lambda (x) (modulo x 2)) (iota 10))
+  (car (list 1 2 3))
 #+end_src
 
 #+RESULTS:
-#+begin_src scheme
-  (0 0.215063 0.410591 1.33238 2.0391 3.86313 4.0782 6.80448 7.019550000000001 9.9609 10.8827 12.0)
-#+end_src
 
-#+begin_src scheme :results output
-  (format #t "~a" "Hej")
+#+begin_src scheme :results output 
+  (display (map (lambda (x) (modulo x 2)) (iota 10)))
 #+end_src
 
 #+RESULTS:
-: Hej
+:results:
+(0 1 0 1 0 1 0 1 0 1)
+:end:
+
+#+begin_src scheme :results output
+  (format #t "~a" "Hej då")
+#+end_src
+
+#+RESULTS:
+: Hej då
+
+
+#+begin_src sclang :results none
+  b = NodeProxy.new.play;
+  b.source = { PinkNoise.ar(0.2.dup) };
+#+end_src

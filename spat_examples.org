@@ -7,812 +7,876 @@
 * Spatialisation in SC
 ** Setup
 *** boot
-    #+name: boot_jack
-    #+begin_src sclang :results none
-      (
-      o = Server.local.options; // Get the local server's options
-      o.numOutputBusChannels = 64;
-      o.numWireBufs = 128;
-      o.memSize = 65536;
-      //     s.makeWindow;
-      s.makeGui(p);
-      s.boot;
-      )
-    #+end_src
+Use a 64 channel bus for outputs.
+- 0-28 is reserved for outputs to speakers
+- 48-51 for the subs
+- 52-62 for the spat busses
+- 63-64 for the reverb bus
+#+name: boot_jack
+#+begin_src sclang :results none
+  (
+  o = Server.local.options; // Get the local server's options
+  o.numOutputBusChannels = 64;
+  o.numWireBufs = 128;
+  o.memSize = 65536;
+  //     s.makeWindow;
+  s.makeGui(p);
+  s.boot;
+  )
+#+end_src
 *** meter
-    #+name: sc_meter
-    #+begin_src sclang :results none
-      s.meter;
-    #+end_src
+#+name: sc_meter
+#+begin_src sclang :results none
+  s.meter;
+#+end_src
    
 *** jconvolver
-    Remember to load the library ob-async prior to testing these:
+See [[file:snares.org::*jconvolver][jconvolver]]
 
-    M-x load-library ob-async
-    #+begin_src emacs-lisp :results silent
-      (load-library "ob-async")
-    #+end_src
+*** messaging back from server
+[[https://doc.sccode.org/Guides/Debugging-tips.html][See here for documentation.]]
     
-    To start jconvolver:
-    #+name: jconvolver
-    #+begin_src shell :dir /home/henrikfr/Music/spatialization/klangkupolen/gerhard/convolution_config/kmh_lilla_salen_29 :async :results silent
-      echo "Starting up jconvolver"
-      jconvolver KMH_LILLA_SALEN.conf &
-    #+end_src
+SendTrig is originally intended to send a trigger message back to the client, so the client can take further action on the server. However, it can be used to send any numeric value back to the client, which can then be printed out.
 
-    #+begin_src shell
-      echo "Hej"
-    #+end_src
+To print out the values, you need to create an OSCFunc as follows:
+#+name: osc_print
+#+begin_src sclang :results none
+  o = OSCFunc({ |msg| msg.postln }, '/msg', s.addr);
+#+end_src
 
-    #+RESULTS:
-    : Hej
-
-    Connect to SC to Jack over Jconvolver
-    #+begin_src shell :results silent
-      jcon Collider:out 1 volver:in 1 29
-      jcon jconvolver 1 playback 1 2
-    #+end_src
-
-    Connect output to system
-    #+begin_src shell :results silent
-      jcon jconvolver 1 playback 1 2
-    #+end_src
-
-    Disconnect everything
-    #+begin_src shell :results silent
-      jdis -d Super 1 jconvolver 1 29
-    #+end_src
-
-    Disconnect supercollider from main out$
-    #+begin_src shell
-      for i in {1..4}; do
-	  jdis -d Super _$i system $i
-      done
-    #+end_src
-
-    #+RESULTS:
-    | Disconnecting | port | SuperCollider:out_1 | from | system:playback_1 |
-    | Disconnecting | port | SuperCollider:out_2 | from | system:playback_2 |
-    | Disconnecting | port | SuperCollider:out_3 | from | system:playback_3 |
-    | Disconnecting | port | SuperCollider:out_4 | from | system:playback_4 |
-
-*** messaging
-    [[https://doc.sccode.org/Guides/Debugging-tips.html][See here for documentation.]]
-    
-    SendTrig is originally intended to send a trigger message back to the client, so the client can take further action on the server. However, it can be used to send any numeric value back to the client, which can then be printed out.
-
-    To print out the values, you need to create an OSCFunc as follows:
-    #+name: osc_print
-    #+begin_src sclang :results none
-      o = OSCFunc({ |msg| msg.postln }, '/msg', s.addr);
-    #+end_src
-
-    Then the message can be triggered as follows:
-    #+begin_src sclang :results none
-      SendTrig.kr(Impulse.kr(4), 0, freq);
-      #+end_src
+Then the message can be triggered as follows:
+#+begin_src sclang :results none
+  SendTrig.kr(Impulse.kr(4), 0, freq);
+#+end_src
 ** Synth
 *** synth
-    Make a simple snare for testing
-    #+name: original_snare
-    #+begin_src sclang :results none
-      (
-      ~snareSimple = SynthDef(\snare, {
-	  var snd;
-	  var env = Env([0, 1, 0], [0.0001, \length.ir(0.5)]);
-	  var imp = Impulse.ar(\impf.ir(1), 0.0, 0.5, 0);
-	  var frq1=\freq.kr(300), frq2=frq1-100;
-	  snd = OGenericSnarefs.ar(imp, 0.00001, 0.001, \noiselvl.kr(0.1), \nrel.ir(0.1), frq1, frq2, \rel.ir(0.1), \trifrq.kr(111)) * EnvGen.kr(env, doneAction: Done.freeSelf);
-	  Out.ar(\out.kr(0), snd*\gain.ir(1));
-      }).add;
-      )
-    #+end_src
+Make a simple snare for testing
+#+name: original_snare
+#+begin_src sclang :results none
+  (
+  ~snareSimple = SynthDef(\snare, {
+    var snd;
+    var env = Env([0, 1, 0], [0.0001, \length.ir(0.5)]);
+    var imp = Impulse.ar(\impf.ir(1), 0.0, 0.5, 0);
+    var frq1=\freq.kr(300), frq2=frq1-100;
+    snd = OGenericSnarefs.ar(imp, 0.00001, 0.001, \noiselvl.kr(0.1), \nrel.ir(0.1), frq1, frq2, \rel.ir(0.1), \trifrq.kr(111)) * EnvGen.kr(env, doneAction: Done.freeSelf);
+    Out.ar(\out.kr(0), snd*\gain.ir(1));
+  }).add;
+  )
+#+end_src
 
-    Play one hit on the snare above.
-      #+name: reg_snare_load
-      #+begin_src sclang :results none
-	~regSnare = Synth.new("snare", [\freq, 800, \out, 33, \gain, 1, \vol, 5] );
-      #+end_src
+Play one hit on the snare above.
+#+name: reg_snare_load
+#+begin_src sclang :results none
+  ~regSnare = Synth.new("snare", [\freq, 800, \out, 1, \gain, 1, \vol, 5] );
+#+end_src
 
-      #+begin_src sclang :noweb yes
-	<<reg_snare_load>>
-	<<sc_meter>>
-	#+end_src      
+Example: Run the one hit synth above and load the meter
+#+begin_src sclang :noweb yes
+  <<reg_snare_load>>
+  <<sc_meter>>
+#+end_src      
 
-      Regular hits
-      #+name: play
-      #+begin_src sclang :results none :noweb yes
-	~signalBus = 33;
-	~simplePlayer = Pbind(*[
-		instrument: \snare,
-		freq: 65,
-		out: ~signalBus,
-		gain: 0.1,
-		vol: 0.5,
-		dur: 0.85
-	]);
-	~simplePlayer.play;
-	~newSimplePlayer = Pbind(*[
-		instrument: \snare,
-		freq: 60,
-		out: 34,
-		gain: 1,
-		vol: 0.5,
-		dur: 2
-	]);
-	~newSimplePlayer.play;
-	~simplePlayer3 = Pbind(*[
-		instrument: \snare,
-		freq: 50,
-		out: 35,
-		gain: 0.2,
-		vol: 0.5,
-		dur: 0.3
-	]);
-	~simplePlayer3.play;
-      #+end_src
+Regular hits on busses 52, 53 and 54
+#+name: play
+#+begin_src sclang :results none :noweb yes
+  ~signalBus = 52;
+  ~simplePlayer = Pbind(*[
+    instrument: \snare,
+    freq: 65,
+    out: ~signalBus,
+    gain: 0.1,
+    vol: 0.5,
+    dur: 0.85
+  ]);
+  ~simplePlayer.play;
+  ~newSimplePlayer = Pbind(*[
+    instrument: \snare,
+    freq: 60,
+    out: 53,
+    gain: 1,
+    vol: 0.5,
+    dur: 2
+  ]);
+  ~newSimplePlayer.play;
+  ~simplePlayer3 = Pbind(*[
+    instrument: \snare,
+    freq: 50,
+    out: 54,
+    gain: 0.2,
+    vol: 0.5,
+    dur: 0.3
+  ]);
+  ~simplePlayer3.play;
+#+end_src
 
-            Regular hits
-      #+name: play
-      #+begin_src sclang :results none :noweb yes
-	~signalBus = 33;
-	~simplePlayer = Pbind(*[
-		instrument: \snare,
-		freq: 900,
-		out: ~signalBus,
-		gain: 0.1,
-		vol: 0.1,
-		dur: 0.03
-	]);
-	~simplePlayer.play;
-	~newSimplePlayer = Pbind(*[
-		instrument: \snare,
-		freq: 600,
-		out: 34,
-		gain: 0.1,
-		vol: 0.1,
-		dur: 0.02
-	]);
-	~newSimplePlayer.play;
-	~simplePlayer3 = Pbind(*[
-		instrument: \snare,
-		freq: 1200,
-		out: 35,
-		gain: 0.1,
-		vol: 0.1,
-		dur: 0.01
-	]);
-	~simplePlayer3.play;
-      #+end_src
+Regular hits
+#+name: play
+#+begin_src sclang :results none :noweb yes
+  ~signalBus = 52;
+  ~simplePlayer = Pbind(*[
+    instrument: \snare,
+    freq: 900,
+    out: ~signalBus,
+    gain: 0.1,
+    vol: 0.1,
+    dur: 0.03
+  ]);
+  ~simplePlayer.play;
+  ~newSimplePlayer = Pbind(*[
+    instrument: \snare,
+    freq: 600,
+    out: 53,
+    gain: 0.1,
+    vol: 0.1,
+    dur: 0.02
+  ]);
+  ~newSimplePlayer.play;
+  ~simplePlayer3 = Pbind(*[
+    instrument: \snare,
+    freq: 1200,
+    out: 54,
+    gain: 0.1,
+    vol: 0.1,
+    dur: 0.01
+  ]);
+  ~simplePlayer3.play;
+#+end_src
       
-      Regular hits
-      #+name: play
-      #+begin_src sclang :results none :noweb yes
-	~signalBus = 33;
-	~simplePlayer = Pbind(*[
-		instrument: \snare,
-		freq: 140,
-		out: ~signalBus,
-		gain: 1,
-		vol: 0.5,
-		dur: 5
-	]);
-	~simplePlayer.play;
-	~newSimplePlayer = Pbind(*[
-		instrument: \snare,
-		freq: 60,
-		out: 34,
-		gain: 1,
-		vol: 0.5,
-		dur: 5
-	]);
-	~newSimplePlayer.play;
-	~simplePlayer3 = Pbind(*[
-		instrument: \snare,
-		freq: 120,
-		out: 35,
-		gain: 1,
-		vol: 0.5,
-		dur: 5
-	]);
-	~simplePlayer3.play;
-      #+end_src
-      #+begin_src sclang :results none
-	s.meter;
-      #+end_src
+Regular hits
+#+name: play
+#+begin_src sclang :results none :noweb yes
+  ~signalBus = 52;
+  ~simplePlayer = Pbind(*[
+    instrument: \snare,
+    freq: 140,
+    out: ~signalBus,
+    gain: 1,
+    vol: 0.5,
+    dur: 5
+  ]);
+  ~simplePlayer.play;
+  ~newSimplePlayer = Pbind(*[
+    instrument: \snare,
+    freq: 60,
+    out: 53,
+    gain: 1,
+    vol: 0.5,
+    dur: 5
+  ]);
+  ~newSimplePlayer.play;
+  ~simplePlayer3 = Pbind(*[
+    instrument: \snare,
+    freq: 120,
+    out: 54,
+    gain: 1,
+    vol: 0.5,
+    dur: 5
+  ]);
+  ~simplePlayer3.play;
+#+end_src
+#+begin_src sclang :results none
+  s.meter;
+#+end_src
       
-      #+name: stop
-      #+begin_src sclang :results none
-	~simplePlayer.stop;
-      #+end_src
+#+name: stop
+#+begin_src sclang :results none
+  ~simplePlayer.stop;
+#+end_src
 *** record
-   #+name: record_me
-   #+begin_src sclang :results none
-     s.prepareForRecord("~/Music/single2.wav", numChannels: 29);
-     s.record;
-   #+end_src
+#+name: record_me
+#+begin_src sclang :results none
+  s.prepareForRecord("~/Music/single2.wav", numChannels: 29);
+  s.record;
+#+end_src
 ** VBAP                                                              :export:
 *** Lilla salen                                                      :export:
 **** data
-    The angles for lilla salen:
-    #+tblname: angles_ls
-    | ndx |    azimuth |     angle | distance |    radius |
-    |-----+------------+-----------+----------+----------- |
-    |   1 | -34.689614 | 12.910417 |     4.61 | 4.5789148 |
-    |   2 | -13.383763 | 12.910417 |     4.61 | 4.5577825 |
-    |   3 |  10.440725 | 12.910417 |     4.61 | 4.5635592 |
-    |   4 |  32.117788 | 12.910417 |     4.61 | 4.5386017 |
-    |   5 |  55.741675 | 12.910417 |     4.61 | 4.4464181 |
-    |   6 |  78.207673 | 12.910417 |     4.61 | 4.4723909 |
-    |   7 |  101.49442 | 12.910417 |     4.61 | 4.4461719 |
-    |   8 |  124.85167 | 12.910417 |     4.61 | 4.5148007 |
-    |   9 |  147.91193 | 12.910417 |     4.61 | 4.5536496 |
-    |  10 |  169.17789 | 12.910417 |     4.61 |  4.606935 |
-    |  11 | -167.82013 | 12.910417 |     4.61 | 4.7018379 |
-    |  12 | -145.63454 | 12.910417 |     4.61 | 4.6822723 |
-    |  13 |   -123.784 | 12.910417 |     4.61 | 4.7368687 |
-    |  14 | -102.64182 | 12.910417 |     4.61 | 4.6743181 |
-    |  15 | -79.887731 | 12.910417 |     4.61 | 4.7101696 |
-    |  16 | -57.926139 | 12.910417 |     4.61 | 4.6119481 |
-    |  17 | -22.349553 | 34.696822 |    4.882 | 4.0761992 |
-    |  18 |  22.843958 | 34.696822 |    4.882 | 3.7761827 |
-    |  19 |  69.013292 | 34.696822 |    4.882 | 4.0485676 |
-    |  20 |  115.56544 | 34.696822 |    4.882 | 4.1015729 |
-    |  21 |  158.89992 | 34.696822 |    4.882 | 3.9444645 |
-    |  22 | -158.89763 | 34.696822 |    4.882 | 3.8051807 |
-    |  23 | -114.65354 | 34.696822 |    4.882 | 3.6199724 |
-    |  24 | -68.170128 | 34.696822 |    4.882 | 3.7380476 |
-    |  25 |        -45 | 69.185799 |    5.317 | 1.7225121 |
-    |  26 |         45 | 69.185799 |    5.317 | 1.7225121 |
-    |  27 |        135 | 69.185799 |    5.317 | 1.7225121 |
-    |  28 |       -135 | 69.185799 |    5.317 | 1.7225121 |
-    |  29 |          0 |        90 |    5.576 |         0 |
-    First ring:
-    #+tblname: lower_ring
-    | -34.689614 | -13.383763 | 10.440725 | 32.117788 | 55.741675 | 78.207673 | 101.49442 | 124.85167 | 147.91193 | 169.17789 | -167.82013 | -145.63454 | -123.784 | -102.64182 | -79.887731 | -57.926139 | 
+The angles for lilla salen:
+#+tblname: angles_ls
+| ndx |    azimuth |     angle | distance |    radius |
+|-----+------------+-----------+----------+----------- |
+|   1 | -34.689614 | 12.910417 |     4.61 | 4.5789148 |
+|   2 | -13.383763 | 12.910417 |     4.61 | 4.5577825 |
+|   3 |  10.440725 | 12.910417 |     4.61 | 4.5635592 |
+|   4 |  32.117788 | 12.910417 |     4.61 | 4.5386017 |
+|   5 |  55.741675 | 12.910417 |     4.61 | 4.4464181 |
+|   6 |  78.207673 | 12.910417 |     4.61 | 4.4723909 |
+|   7 |  101.49442 | 12.910417 |     4.61 | 4.4461719 |
+|   8 |  124.85167 | 12.910417 |     4.61 | 4.5148007 |
+|   9 |  147.91193 | 12.910417 |     4.61 | 4.5536496 |
+|  10 |  169.17789 | 12.910417 |     4.61 |  4.606935 |
+|  11 | -167.82013 | 12.910417 |     4.61 | 4.7018379 |
+|  12 | -145.63454 | 12.910417 |     4.61 | 4.6822723 |
+|  13 |   -123.784 | 12.910417 |     4.61 | 4.7368687 |
+|  14 | -102.64182 | 12.910417 |     4.61 | 4.6743181 |
+|  15 | -79.887731 | 12.910417 |     4.61 | 4.7101696 |
+|  16 | -57.926139 | 12.910417 |     4.61 | 4.6119481 |
+|  17 | -22.349553 | 34.696822 |    4.882 | 4.0761992 |
+|  18 |  22.843958 | 34.696822 |    4.882 | 3.7761827 |
+|  19 |  69.013292 | 34.696822 |    4.882 | 4.0485676 |
+|  20 |  115.56544 | 34.696822 |    4.882 | 4.1015729 |
+|  21 |  158.89992 | 34.696822 |    4.882 | 3.9444645 |
+|  22 | -158.89763 | 34.696822 |    4.882 | 3.8051807 |
+|  23 | -114.65354 | 34.696822 |    4.882 | 3.6199724 |
+|  24 | -68.170128 | 34.696822 |    4.882 | 3.7380476 |
+|  25 |        -45 | 69.185799 |    5.317 | 1.7225121 |
+|  26 |         45 | 69.185799 |    5.317 | 1.7225121 |
+|  27 |        135 | 69.185799 |    5.317 | 1.7225121 |
+|  28 |       -135 | 69.185799 |    5.317 | 1.7225121 |
+|  29 |          0 |        90 |    5.576 |         0 |
+First ring:
+#+tblname: lower_ring
+| -34.689614 | -13.383763 | 10.440725 | 32.117788 | 55.741675 | 78.207673 | 101.49442 | 124.85167 | 147.91193 | 169.17789 | -167.82013 | -145.63454 | -123.784 | -102.64182 | -79.887731 | -57.926139 | 
 
-    Second ring:
-    #+tblname: middle_ring
-    | -22.349553 | 22.843958 | 69.013292 | 115.56544 | 158.89992 | -158.89763 | -114.65354 | -68.170128 |
+Second ring:
+#+tblname: middle_ring
+| -22.349553 | 22.843958 | 69.013292 | 115.56544 | 158.89992 | -158.89763 | -114.65354 | -68.170128 |
 
-     Third ring (and top speaker):
-    #+tblename: top_ring
-    | -45 | 45 | 135 | -135 | 0 |
+Third ring (and top speaker):
+#+tblename: top_ring
+| -45 | 45 | 135 | -135 | 0 |
 
 **** 2D example                                                      :export:
-     2D example för lilla salen, endast nedre ringen, 16 högtalare.
+2D example för lilla salen, endast nedre ringen, 16 högtalare.
 
-     The argument to ~VBAPSpeakerarray~ in this case is ~2~ for 2D and an array of angles.
-     #+begin_src sclang :results none :tangle vbap_example.sc
-       (
-       // Creata a 2D speaker array with 16 channels (lower ring in lilla salen)
-       ~spkrArray = VBAPSpeakerArray.new(2, [-34.689614, -13.383763,  10.440725,  32.117788,  55.741675,  78.207673,  101.49442,  124.85167,  147.91193,  169.17789, -167.82013, -145.63454, -123.784, -102.64182, -79.887731, -57.926139]);
-       // Dump the speaker array to stdout
-       ~spkrArray.speakers[1].dump;
-       // Load a new buffer with the spear array
-       ~spkrBuffer = ~spkrArray.loadToBuffer;
-       )
-     #+end_src
+The argument to ~VBAPSpeakerarray~ in this case is ~2~ for 2D and an array of angles.
+#+begin_src sclang :results none :tangle vbap_example.sc
+  (
+  // Creata a 2D speaker array with 16 channels (lower ring in lilla salen)
+  ~spkrArray = VBAPSpeakerArray.new(2, [-34.689614, -13.383763,  10.440725,  32.117788,  55.741675,  78.207673,  101.49442,  124.85167,  147.91193,  169.17789, -167.82013, -145.63454, -123.784, -102.64182, -79.887731, -57.926139]);
+  // Dump the speaker array to stdout
+  ~spkrArray.speakers[1].dump;
+  // Load a new buffer with the spear array
+  ~spkrBuffer = ~spkrArray.loadToBuffer;
+  )
+#+end_src
 
-     Pan a signal with the 2D array and scope it:
-     #+begin_src sclang :results none :tangle vbap_example.sc
-       (
-       ~panVBAP = { |azi = 0, ele = 0, spr = 0|
-	       VBAP.ar(16, In.ar(35,1), ~spkrBuffer.bufnum, azi, ele, spr);
-       }.scope;
-       ~panVBAP.set(\azi, 90);
-       )       
-     #+end_src
+Pan a signal with the 2D array and scope it:
+#+begin_src sclang :results none :tangle vbap_example.sc
+  (
+  ~panVBAP = { |azi = 0, ele = 0, spr = 0|
+    VBAP.ar(16, In.ar(35,1), ~spkrBuffer.bufnum, azi, ele, spr);
+  }.scope;
+  ~panVBAP.set(\azi, 90);
+  )       
+#+end_src
 
-     Change the panning angle:
-     #+begin_src sclang :results none
-       ~panVBAP.set(\azi, 80);
-     #+end_src     
+Change the panning angle:
+#+begin_src sclang :results none
+  ~panVBAP.set(\azi, 80);
+#+end_src     
 **** 2D GUI                                                        :noexport:
-     #+begin_src sclang :results none :tangle vbap_example.sc
-       (
-       var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid;
-       ~guiWindowVBAP = Window.new.front;
+#+begin_src sclang :results none :tangle vbap_example.sc
+  (
+  var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid;
+  ~guiWindowVBAP = Window.new.front;
 
-       aNumb = NumberBox(~guiWindowVBAP, Rect(20, 20, 70, 20));
-       aSlid = Slider(~guiWindowVBAP, Rect(20, 60, 20, 150)).action_({
-	       aNumb.value_(aSlid.value);
-	       ~panVBAP.set(\azi, aSlid.value * 360);
-       });
-       aSlid.action.value;
+  aNumb = NumberBox(~guiWindowVBAP, Rect(20, 20, 70, 20));
+  aSlid = Slider(~guiWindowVBAP, Rect(20, 60, 20, 150)).action_({
+    aNumb.value_(aSlid.value);
+    ~panVBAP.set(\azi, aSlid.value * 360);
+  });
+  aSlid.action.value;
 
-       eNumb = NumberBox(~guiWindowVBAP, Rect(90, 20, 70, 20));
-       eSlid = Slider(~guiWindowVBAP, Rect(90, 60, 20, 150)).action_({
-	       eNumb.value_(eSlid.value);
-	       ~panVBAP.set(\ele, eSlid.value * 180 - 90);
-       });
-       eSlid.action.value;
+  eNumb = NumberBox(~guiWindowVBAP, Rect(90, 20, 70, 20));
+  eSlid = Slider(~guiWindowVBAP, Rect(90, 60, 20, 150)).action_({
+    eNumb.value_(eSlid.value);
+    ~panVBAP.set(\ele, eSlid.value * 180 - 90);
+  });
+  eSlid.action.value;
 
-       sNumb = NumberBox(~guiWindowVBAP, Rect(160, 20, 70, 20));
-       sSlid = Slider(~guiWindowVBAP, Rect(160, 60, 20, 150)).action_({
-	       sNumb.value_(sSlid.value);
-	       ~panVBAP.set(\spr, sSlid.value * 180);
-       });
-       sSlid.action.value;
-       )
-     #+end_src
+  sNumb = NumberBox(~guiWindowVBAP, Rect(160, 20, 70, 20));
+  sSlid = Slider(~guiWindowVBAP, Rect(160, 60, 20, 150)).action_({
+    sNumb.value_(sSlid.value);
+    ~panVBAP.set(\spr, sSlid.value * 180);
+  });
+  sSlid.action.value;
+  )
+#+end_src
 **** 3D example                                                      :export:
-     The argument to ~VBAPSpeakerarray~ in this case is ~3~ for 3D and an array of arrays of angle/elevation pairs:.
-     #+begin_src sclang :results none
-       ~spkrArray = VBAPSpeakerArray.new(3, [[ -34.689614 , 12.910417 ], [ -13.383763 , 12.910417 ], [ 10.440725 , 12.910417 ], [ 32.117788 , 12.910417 ],
-	       [ 55.741675 , 12.910417 ], [ 78.207673 , 12.910417 ], [ 101.49442 , 12.910417 ], [ 124.85167 , 12.910417 ],
-	       [ 147.91193 , 12.910417 ], [ 169.17789 , 12.910417 ], [ -167.82013 , 12.910417 ], [ -145.63454 , 12.910417 ],
-	       [ -123.784 , 12.910417 ], [ -102.64182 , 12.910417 ], [ -79.887731 , 12.910417 ], [ -57.926139 , 12.910417 ],
-	       [ -22.349553 , 34.696822 ], [ 22.843958 , 34.696822 ], [ 69.013292 , 34.696822 ], [ 115.56544 , 34.696822 ],
-	       [ 158.89992 , 34.696822 ], [ -158.89763 , 34.696822 ], [ -114.65354 , 34.696822 ], [ -68.170128 , 34.696822 ],
-	       [ -45 , 69.185799 ], [ 45 , 69.185799 ], [ 135 , 69.185799 ], [ -135 , 69.185799 ], [ 0 , 90 ]]);
-       ~spkrArray.speakers[1].dump;
-       ~spkrBuffer = Buffer.loadCollection(s, ~spkrArray.getSetsAndMatrices);
-       #+end_src
+The argument to ~VBAPSpeakerarray~ in this case is ~3~ for 3D and an array of arrays of angle/elevation pairs:.
+#+begin_src sclang :results none
+  ~spkrArray = VBAPSpeakerArray.new(3, [[ -34.689614 , 12.910417 ], [ -13.383763 , 12.910417 ], [ 10.440725 , 12.910417 ], [ 32.117788 , 12.910417 ],
+    [ 55.741675 , 12.910417 ], [ 78.207673 , 12.910417 ], [ 101.49442 , 12.910417 ], [ 124.85167 , 12.910417 ],
+    [ 147.91193 , 12.910417 ], [ 169.17789 , 12.910417 ], [ -167.82013 , 12.910417 ], [ -145.63454 , 12.910417 ],
+    [ -123.784 , 12.910417 ], [ -102.64182 , 12.910417 ], [ -79.887731 , 12.910417 ], [ -57.926139 , 12.910417 ],
+    [ -22.349553 , 34.696822 ], [ 22.843958 , 34.696822 ], [ 69.013292 , 34.696822 ], [ 115.56544 , 34.696822 ],
+    [ 158.89992 , 34.696822 ], [ -158.89763 , 34.696822 ], [ -114.65354 , 34.696822 ], [ -68.170128 , 34.696822 ],
+    [ -45 , 69.185799 ], [ 45 , 69.185799 ], [ 135 , 69.185799 ], [ -135 , 69.185799 ], [ 0 , 90 ]]);
+  ~spkrArray.speakers[1].dump;
+  ~spkrBuffer = Buffer.loadCollection(s, ~spkrArray.getSetsAndMatrices);
+#+end_src
 
-     Circle panning up and down in an unusable pattern. The spread argument is for dispersing the signal. 0 spread is maximum focus.:
-     #+begin_src sclang :results none
-       (
-       ~panVBAP3 = { |azi = 0, ele = 0, spr = 0|
-	       var source;
-	       source = In.ar(35);
-	       VBAP.ar(29, source, ~spkrBuffer.bufnum, LFSaw.kr(0.1, 0).range(-180, 180) * -1, SinOsc.kr(3, 0).range(0, 14.97), spr);
+Circle panning up and down in an unusable pattern. The spread argument is for dispersing the signal. 0 spread is maximum focus.:
+#+begin_src sclang :results none
+  (
+  ~panVBAP3 = { |azi = 0, ele = 0, spr = 0|
+    var source;
+    source = In.ar(31);
+    VBAP.ar(29, source, ~spkrBuffer.bufnum, LFSaw.kr(0.1, 0).range(-180, 180) * -1, SinOsc.kr(3, 0).range(0, 14.97), spr);
 
-       }.play;
-       )
-     #+end_src
+  }.play;
+  )
+#+end_src
 
-     #+begin_src sclang :results none
-       SynthDef(\test_vbap, { arg freq = 440, out = 10, amp = 0.2;
-	       Out.ar(35, SinOsc.ar(freq, 0, amp));
-       }).play;
-       Synth.new(\test_vbap);
-     #+end_src
+Test signal for VBAP (52)
+#+begin_src sclang :results none
+  SynthDef(\test_vbap, { arg freq = 440, out = 10, amp = 0.2;
+    Out.ar(31, SinOsc.ar(freq, 0, amp));
+  }).play;
+  Synth.new(\test_vbap);
+#+end_src
 
-     #+begin_src sclang :results none
-       s.meter;
-     #+end_src
-     #+begin_src sclang :results none
-       (
-       ~panVBAP3 = { |azi = 180, ele = 40, spr = 0|
-	       var source;
-	       source = In.ar(35);
-	       VBAP.ar(29, source, ~spkrBuffer.bufnum, azi, ele, spr);
-       }.play;
-       )
-     #+end_src
+Test signal for VBAP (53)
+#+begin_src sclang :results none
+  (
+  ~panVBAP3 = { |azi = 180, ele = 40, spr = 0|
+    var source;
+    source = In.ar(31);
+    VBAP.ar(29, source, ~spkrBuffer.bufnum, azi, ele, spr);
+  }.play;
+  )
+#+end_src
 
 ***** Panning examples                                             :noexport:
-      Multi panning
-      #+begin_src sclang :results none
-	(
-	~panVBAP3Dspread1 = { arg s1 = 0, f1 = 1;
-		VBAP.ar(29, In.ar(33), ~spkrBuffer.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
-	}.play;
+Multi panning
+#+begin_src sclang :results none
+  (
+  ~panVBAP3Dspread1 = { arg s1 = 0, f1 = 1;
+    VBAP.ar(29, In.ar(33), ~spkrBuffer.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
+  }.play;
 
-	~panVBAP3Dspread2 = {  arg s1 = 0, f1 = 5;
-		VBAP.ar(29, In.ar(34), ~spkrBuffer.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
-	}.play;
+  ~panVBAP3Dspread2 = {  arg s1 = 0, f1 = 5;
+    VBAP.ar(29, In.ar(34), ~spkrBuffer.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
+  }.play;
 
-	~panVBAP3Dspread3 = {  arg s1 = 0, f1 = 10;
-		VBAP.ar(29, In.ar(35), ~spkrBuffer.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
-	}.play;
-	)
-      #+end_src
+  ~panVBAP3Dspread3 = {  arg s1 = 0, f1 = 10;
+    VBAP.ar(29, In.ar(35), ~spkrBuffer.bufnum, LFSaw.kr(f1, 0).range(-180, 180) * -1, 0, s1);
+  }.play;
+  )
+#+end_src
      
-      General, manual panning object
-      #+begin_src sclang :results none
-	~panVBAP3D = { arg azi=0, ele=0, spr=0, in=35;
-		VBAP.ar(29, In.ar(in), ~spkrBuffer.bufnum, azi, ele, spr);
-	}.play;
-      #+end_src
+General, manual panning object
+#+begin_src sclang :results none
+  ~panVBAP3D = { arg azi=0, ele=0, spr=0, in=35;
+    VBAP.ar(29, In.ar(in), ~spkrBuffer.bufnum, azi, ele, spr);
+  }.play;
+#+end_src
 
-      Controling the panning algorithmically
-      #+begin_src sclang :results none
-	~pannerA = SynthDef(\panControl, {arg bus;
-		Out.kr(bus, SinOsc.kr(1, 0, 90));
-	}).add;
+Controling the panning algorithmically
+#+begin_src sclang :results none
+  ~pannerA = SynthDef(\panControl, {arg bus;
+    Out.kr(bus, SinOsc.kr(1, 0, 90));
+  }).add;
 
-	~azib = Bus.control(s);
+  ~azib = Bus.control(s);
 
-	~csynth = Synth.new(\panControl, [\bus, ~azib]);
+  ~csynth = Synth.new(\panControl, [\bus, ~azib]);
 
-	~panVBAP3D = { arg azi=0, ele=0, spr=0, in=35, azib, eleb, sprb;
-		VBAP.ar(29, In.ar(in), ~spkrBuffer.bufnum, In.kr(~azib), ele, spr);
-	}.play;
+  ~panVBAP3D = { arg azi=0, ele=0, spr=0, in=35, azib, eleb, sprb;
+    VBAP.ar(29, In.ar(in), ~spkrBuffer.bufnum, In.kr(~azib), ele, spr);
+  }.play;
 
-	// ~panVBAP3D.set(\azib, ~azib);
-      #+end_src
+  // ~panVBAP3D.set(\azib, ~azib);
+#+end_src
 
-      Bus example
-      #+begin_src sclang :results none
-	a = SynthDef(\myControlSynth, {arg bus;
-		Out.ar (0, SinOsc.ar(500 * In.kr(bus), 0, 0.1))
-	}).add;
+Bus example
+#+begin_src sclang :results none
+  a = SynthDef(\myControlSynth, {arg bus;
+    Out.ar (0, SinOsc.ar(500 * In.kr(bus), 0, 0.1))
+  }).add;
 
-	c = SynthDef(\controlSynth, { arg bus;
-		Out.kr(bus, SinOsc.kr(10, 0));
-	}).add;
+  c = SynthDef(\controlSynth, { arg bus;
+    Out.kr(bus, SinOsc.kr(10, 0));
+  }).add;
 
-	b = Bus.control(s);
+  b = Bus.control(s);
 
-	x = Synth.new(\controlSynth, [\bus, b]);
-	y = Synth.after(x, \myControlSynth, [\bus, b]);
-      #+end_src
-      #+begin_src sclang :noweb yes
-	 <<play>>
-      #+end_src      
+  x = Synth.new(\controlSynth, [\bus, b]);
+  y = Synth.after(x, \myControlSynth, [\bus, b]);
+#+end_src
+#+begin_src sclang :noweb yes
+  <<play>>
+#+end_src      
 ****** 3D GUI aes                                                  :noexport:
-       #+begin_src sclang :results none
-	 (
-	 var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid, textA, textE, textS;
-	 ~guiWindowVBAP = Window.new.front;
-	 // 1 is center, the counter clockwise to 0 which is back at center
-	 textA = StaticText(~guiWindowVBAP, Rect(20, 20, 70, 20));
-	 textA.string = "Azimuth";
-	 aNumb = NumberBox(~guiWindowVBAP, Rect(20, 40, 70, 20));
-	 aSlid = Slider(~guiWindowVBAP, Rect(20, 70, 20, 150)).action_({
-		 aNumb.value_(aSlid.value);
-		 ~panVBAP3D.set(\azi, aSlid.value * 360);
-	 });
-	 aSlid.action.value;
+#+begin_src sclang :results none
+  (
+  var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid, textA, textE, textS;
+  ~guiWindowVBAP = Window.new.front;
+  // 1 is center, the counter clockwise to 0 which is back at center
+  textA = StaticText(~guiWindowVBAP, Rect(20, 20, 70, 20));
+  textA.string = "Azimuth";
+  aNumb = NumberBox(~guiWindowVBAP, Rect(20, 40, 70, 20));
+  aSlid = Slider(~guiWindowVBAP, Rect(20, 70, 20, 150)).action_({
+    aNumb.value_(aSlid.value);
+    ~panVBAP3D.set(\azi, aSlid.value * 360);
+  });
+  aSlid.action.value;
 
-	 // 0.5 is middle, 0 is as high as possible and 1 is as low as possible
-	 textE = StaticText(~guiWindowVBAP, Rect(100, 20, 70, 20));
-	 textE.string = "Elev";
-	 eNumb = NumberBox(~guiWindowVBAP, Rect(100, 40, 70, 20));
-	 eSlid = Slider(~guiWindowVBAP, Rect(100, 70, 20, 150)).action_({
-		 eNumb.value_(eSlid.value);
-		 ~panVBAP3D.set(\ele, eSlid.value * 180 - 90);
-	 });
-	 eSlid.action.value;
+  // 0.5 is middle, 0 is as high as possible and 1 is as low as possible
+  textE = StaticText(~guiWindowVBAP, Rect(100, 20, 70, 20));
+  textE.string = "Elev";
+  eNumb = NumberBox(~guiWindowVBAP, Rect(100, 40, 70, 20));
+  eSlid = Slider(~guiWindowVBAP, Rect(100, 70, 20, 150)).action_({
+    eNumb.value_(eSlid.value);
+    ~panVBAP3D.set(\ele, eSlid.value * 180 - 90);
+  });
+  eSlid.action.value;
 
-	 textS = StaticText(~guiWindowVBAP, Rect(180, 20, 70, 20));
-	 textS.string = "Spread";
-	 sNumb = NumberBox(~guiWindowVBAP, Rect(180, 40, 70, 20));
-	 sSlid = Slider(~guiWindowVBAP, Rect(180, 70, 20, 150)).action_({
-		 sNumb.value_(sSlid.value);
-		 ~panVBAP3D.set(\spr, sSlid.value * 180);
-	 });
-	 sSlid.action.value;
-	 )
-       #+end_src
+  textS = StaticText(~guiWindowVBAP, Rect(180, 20, 70, 20));
+  textS.string = "Spread";
+  sNumb = NumberBox(~guiWindowVBAP, Rect(180, 40, 70, 20));
+  sSlid = Slider(~guiWindowVBAP, Rect(180, 70, 20, 150)).action_({
+    sNumb.value_(sSlid.value);
+    ~panVBAP3D.set(\spr, sSlid.value * 180);
+  });
+  sSlid.action.value;
+  )
+#+end_src
 ****** 3D GUI 3 x spread                                           :noexport:
-       #+begin_src sclang :results none
-	 (
-	 var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid, aaNumb, eeNumb, ssNumb, aaSlid, eeSlid, ssSlid;
-	 ~guiWindowVBAP = Window.new.front;
+#+begin_src sclang :results none
+  (
+  var aNumb, eNumb, sNumb, aSlid, eSlid, sSlid, aaNumb, eeNumb, ssNumb, aaSlid, eeSlid, ssSlid;
+  ~guiWindowVBAP = Window.new.front;
 
-	 aNumb = NumberBox(~guiWindowVBAP, Rect(20, 20, 70, 20));
-	 aSlid = Slider(~guiWindowVBAP, Rect(20, 60, 20, 150)).action_({
-		 aNumb.value_(aSlid.value);
-		 ~panVBAP3Dspread1.set(\s1, aSlid.value * 180);
-	 });
-	 aSlid.action.value;
+  aNumb = NumberBox(~guiWindowVBAP, Rect(20, 20, 70, 20));
+  aSlid = Slider(~guiWindowVBAP, Rect(20, 60, 20, 150)).action_({
+    aNumb.value_(aSlid.value);
+    ~panVBAP3Dspread1.set(\s1, aSlid.value * 180);
+  });
+  aSlid.action.value;
 
-	 eNumb = NumberBox(~guiWindowVBAP, Rect(90, 20, 70, 20));
-	 eSlid = Slider(~guiWindowVBAP, Rect(90, 60, 20, 150)).action_({
-		 eNumb.value_(eSlid.value);
-		 ~panVBAP3Dspread2.set(\s1, eSlid.value * 180);
-	 });
-	 eSlid.action.value;
+  eNumb = NumberBox(~guiWindowVBAP, Rect(90, 20, 70, 20));
+  eSlid = Slider(~guiWindowVBAP, Rect(90, 60, 20, 150)).action_({
+    eNumb.value_(eSlid.value);
+    ~panVBAP3Dspread2.set(\s1, eSlid.value * 180);
+  });
+  eSlid.action.value;
 
-	 sNumb = NumberBox(~guiWindowVBAP, Rect(160, 20, 70, 20));
-	 sSlid = Slider(~guiWindowVBAP, Rect(160, 60, 20, 150)).action_({
-		 sNumb.value_(sSlid.value);
-		 ~panVBAP3Dspread3.set(\s1, sSlid.value * 180);
-	 });
-	 sSlid.action.value;
+  sNumb = NumberBox(~guiWindowVBAP, Rect(160, 20, 70, 20));
+  sSlid = Slider(~guiWindowVBAP, Rect(160, 60, 20, 150)).action_({
+    sNumb.value_(sSlid.value);
+    ~panVBAP3Dspread3.set(\s1, sSlid.value * 180);
+  });
+  sSlid.action.value;
 
-	 aaNumb = NumberBox(~guiWindowVBAP, Rect(230, 20, 70, 20));
-	 aaSlid = Slider(~guiWindowVBAP, Rect(230, 60, 20, 150)).action_({
-		 aaNumb.value_(aaSlid.value);
-		 ~panVBAP3Dspread1.set(\f1, aaSlid.value * 10);
-	 });
-	 aaSlid.action.value;
+  aaNumb = NumberBox(~guiWindowVBAP, Rect(230, 20, 70, 20));
+  aaSlid = Slider(~guiWindowVBAP, Rect(230, 60, 20, 150)).action_({
+    aaNumb.value_(aaSlid.value);
+    ~panVBAP3Dspread1.set(\f1, aaSlid.value * 10);
+  });
+  aaSlid.action.value;
 
-	 eeNumb = NumberBox(~guiWindowVBAP, Rect(300, 20, 70, 20));
-	 eeSlid = Slider(~guiWindowVBAP, Rect(300, 60, 20, 150)).action_({
-		 eeNumb.value_(eeSlid.value);
-		 ~panVBAP3Dspread2.set(\f1, eeSlid.value * 10);
-	 });
-	 eeSlid.action.value;
+  eeNumb = NumberBox(~guiWindowVBAP, Rect(300, 20, 70, 20));
+  eeSlid = Slider(~guiWindowVBAP, Rect(300, 60, 20, 150)).action_({
+    eeNumb.value_(eeSlid.value);
+    ~panVBAP3Dspread2.set(\f1, eeSlid.value * 10);
+  });
+  eeSlid.action.value;
 
-	 ssNumb = NumberBox(~guiWindowVBAP, Rect(370, 20, 70, 20));
-	 ssSlid = Slider(~guiWindowVBAP, Rect(370, 60, 20, 150)).action_({
-		 ssNumb.value_(ssSlid.value);
-		 ~panVBAP3Dspread3.set(\f1, ssSlid.value * 10);
-	 });
-	 ssSlid.action.value;
-	 )
-       #+end_src
+  ssNumb = NumberBox(~guiWindowVBAP, Rect(370, 20, 70, 20));
+  ssSlid = Slider(~guiWindowVBAP, Rect(370, 60, 20, 150)).action_({
+    ssNumb.value_(ssSlid.value);
+    ~panVBAP3Dspread3.set(\f1, ssSlid.value * 10);
+  });
+  ssSlid.action.value;
+  )
+#+end_src
 
 ** Ambisonics
 *** ambi with control
-    Working example with azimuth and elevation panning.
+Working example with azimuth and elevation panning.
     
-      Start server
-      #+call: boot_jack()
-      Load SynthDef
-      #+call: original_snare()
-      Start the encoder
-      #+call: scl_encode()
-      Start the player
-      #+call: play()
-      Load the panning GUIle
-      #+call: load_window()
-      #+call: sliders()
-      Connect the encoder with the decoder
-      #+call: scl_connect()
-      Free stuff
-      #+call: free_instances()
+Start server
+#+call: boot_jack()
+Load SynthDef
+#+call: original_snare()
+Start the encoder
+#+call: scl_encode()
+Start the player
+#+call: play()
+Load the panning GUIle
+#+call: load_window()
+#+call: sliders()
+Connect the encoder with the decoder
+#+call: scl_connect()
+Free stuff
+#+call: free_instances()
 
-      Set the environment variables, then, create the encoder and the decoder.
-      #+name: scl_encode
-      #+begin_src sclang :results none :noweb yes
-	(
-	// Settings
-	var trig;
+Set the environment variables, then, create the encoder and the decoder.
+#+name: scl_encode
+#+begin_src sclang :results none :noweb yes
+  (
+  // Settings
+  var trig;
 
-	~signalBus = 33;
-	~order = 3;
-	~binaural = 1;
-	~hoaNumChannels = (~order+1).pow(2);
-	~decoderNumChannels = 29;
-	//s.scope(~hoaNumChannels);
+  ~signalBus = 52;
+  ~reverbBus = 63;
+  ~order = 3;
+  ~binaural = 1;
+  ~hoaNumChannels = (~order+1).pow(2);
+  ~decoderNumChannels = 29;
+  //s.scope(~hoaNumChannels);
 
-	// Create the input bus and the encoder
-	~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
-	//~hoaSignal.play;
+  // Create the input bus and the encoder
+  ~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
+  //~hoaSignal.play;
 
-	// hoaSignal.source och hoaSignal.add verkar fungera lika bra.
-	~hoaSignal[0] = {
-		HOAEncoder.ar(~order,
-			In.ar(~signalBus),
-			\azpana.kr(-3.14),
-			\elpana.kr(0),
-			\gaina.kr(0),
-			\planespherical.kr(1),
-			\rada.kr(2),
-			\speakerrad.ir(1.07))
-	};
-	~hoaSignal[1] = {
-		HOAEncoder.ar(~order,
-			In.ar(~signalBus),
-			\azpanb.kr(-3.14),
-			\elpanb.kr(0),
-			\gainb.kr(0),
-			\planespherical.kr(1),
-			\radb.kr(2),
-			\speakerrad.ir(1.07)) };
-	~hoaSignal.fadeTime = 0.1;
+  // Handling the reverb send
+  ~reverbSend = NodeProxy.new(s, \audio, 1);
 
-	/* Create windows for panning */
-	~windows = Environment(know: true);
+  // hoaSignal.source och hoaSignal.add verkar fungera lika bra.
+  ~hoaSignal[0] = {
+    HOAEncoder.ar(~order,
+          In.ar(~signalBus),
+          \azpana.kr(-3.14),
+          \elpana.kr(0),
+          \gaina.kr(0),
+          \planespherical.kr(1),
+          \rada.kr(2),
+          \speakerrad.ir(1.07))
+  };
+  ~hoaSignal[1] = {
+    HOAEncoder.ar(~order,
+          In.ar(54),
+          \azpanb.kr(-3.14),
+          \elpanb.kr(0),
+          \gainb.kr(0),
+          \planespherical.kr(1),
+          \radb.kr(2),
+          \speakerrad.ir(1.07)) };
 
-	// With phasor
-	// trig = Impulse.kr(0.001);
-	//~azimuthA.source = { LinLin.kr(Phasor.kr(Impulse.kr(0.5), 0.5/ControlRate.ir), 0, 1, 0, 360); };
+  ~hoaSignal.do({ arg obj, i;
+    obj.fadeTime = 0.1;
+  });
 
-	// Load the decoder:
-	~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
-	~decoder.fadeTime = 1;
-	if(~binaural == 0,
-		//////////////////
-		/* If decoded */
-		{
-			if(~order == 1, {
-				"First order".postln;	
-				~decoder.source = {
-					var in; in = \in.ar(0!~hoaNumChannels);
-					in.add(-10);
-					KMHLSDome1h1pNormal6.ar(*in);
-				};
-			});
-			if(~order == 3, {
-				"Third order".postln;
-				~decoder.source = {
-					var in; in = \in.ar(0!~hoaNumChannels);
-					in.add(-10);
-					KMHLSDome3h3pNormal6.ar(*in);
-				};
-			});
-			if(~order == 5, {
-				"Fifth order".postln;
-				~decoder.source = {
-					var in; in = \in.ar(0!~hoaNumChannels);
-					in.add(-10);
-					KMHLSDome5h5pNormal6.ar(*in);
-				};
-			});
-			//////////////////
-			/* If binaural */
-		}, {
-			"Binaural version".postln;
-			HOADecLebedev26.loadHrirFilters (
-				s,
-				"/home/henrikfr/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50"
-			);
-			if(~order == 1, {
-				~decoder.source = {
-					var in; in = \in.ar(0!~hoaNumChannels);
-					HOADecLebedev06.ar(~order.asInteger, in, hrir_Filters:1)
-				};
-			});
-			/* 3 and 5 are actually the same */
-			if(~order == 3, {
-				~decoder.source = {
-					var in; in = \in.ar(0!~hoaNumChannels);
-					HOADecLebedev26.ar(~order.asInteger, in, hrir_Filters:1)
-				};
-			});
-			/* 3 and 5 are actually the same */
-			if(~order == 5, {
-				~decoder.source = {
-					var in; in = in.ar(0!~hoaNumChannels);
-					HOADecLebedev26.ar(~order.asInteger, in, hrir_Filters:1)
-				};
-			});
-		});
-	)
-      #+end_src
+  // Merely mapping and scaling the audio
+  ~reverbSend[0].source = { In.ar(~signalBus) * \reva.kr(1) };
+  ~reverbSend[0].play;
 
-      Generic window to be filled with content
-      #+name: load_window
-      #+begin_src sclang :results none :noweb yes
-	<<gui_object>>
-	~guiWindow = Window.new.front;
-      #+end_src
+  /* Create windows for panning */
+  ~windows = Environment(know: true);
 
-      The gui object for panning
-      #+name: gui_object
-      #+begin_src sclang :results none :noweb yes :tangle test.sc
-	~addGuiElements = { arg window, name = "default", offset = 0, multi = pi, xParam = \azpana, yParam = \elpana, zParam = \rada;
-		var text, dNum, eNum, fNum, aSlid, bSlid, cSlid, csX, csY, csZ;
+  // With phasor
+  // trig = Impulse.kr(0.001);
+  //~azimuthA.source = { LinLin.kr(Phasor.kr(Impulse.kr(0.5), 0.5/ControlRate.ir), 0, 1, 0, 360); };
 
-		text = StaticText(window, Rect(20+offset, 20, 200, 20));
-		dNum = NumberBox(window, Rect(20+offset, 50, 50, 20));
-		eNum = NumberBox(window, Rect(80+offset, 50, 50, 20));
-		fNum = NumberBox(window, Rect(140+offset, 50, 50, 20));
-		aSlid = Slider(window, Rect(40+offset, 90, 150, 20));
-		bSlid = Slider(window, Rect(20+offset, 90, 20, 150));
-		cSlid = Slider(window, Rect(40+offset, 220, 150, 20));
-		text.string = name;
-		csX = ControlSpec(-pi, pi, \linear, 0.001, 0);
-		csY = ControlSpec(-pi/2, pi/2, \linear, 0.001, 0);
-		csZ = ControlSpec(0.01, 20, \linear, 0.01, 1);
+  // Load the decoder:
+  ~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
+  ~decoder.fadeTime = 1;
+  if(~binaural == 0,
+    //////////////////
+    /* If decoded */
+    {
+          if(~order == 1, {
+            "First order".postln;	
+            ~decoder.source = {
+                  var in; in = \in.ar(0!~hoaNumChannels);
+                  in.add(-10);
+                  KMHLSDome1h1pNormal6.ar(*in);
+            };
+          });
+          if(~order == 3, {
+            "Third order".postln;
+            ~decoder.source = {
+                  var in; in = \in.ar(0!~hoaNumChannels);
+                  in.add(-10);
+                  KMHLSDome3h3pNormal6.ar(*in);
+            };
+          });
+          if(~order == 5, {
+            "Fifth order".postln;
+            ~decoder.source = {
+                  var in; in = \in.ar(0!~hoaNumChannels);
+                  in.add(-10);
+                  KMHLSDome5h5pNormal6.ar(*in);
+            };
+          });
+          //////////////////
+          /* If binaural */
+    }, {
+          "Binaural version".postln;
+          HOADecLebedev26.loadHrirFilters (
+            s,
+            "/home/henrikfr/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50"
+          );
+          if(~order == 1, {
+            ~decoder.source = {
+                  var in; in = \in.ar(0!~hoaNumChannels);
+                  HOADecLebedev06.ar(~order.asInteger, in, hrir_Filters:1)
+            };
+          });
+          /* 3 and 5 are actually the same */
+          if(~order == 3, {
+            ~decoder.source = {
+                  var in; in = \in.ar(0!~hoaNumChannels);
+                  HOADecLebedev26.ar(~order.asInteger, in, hrir_Filters:1)
+            };
+          });
+          /* 3 and 5 are actually the same */
+          if(~order == 5, {
+            ~decoder.source = {
+                  var in; in = in.ar(0!~hoaNumChannels);
+                  HOADecLebedev26.ar(~order.asInteger, in, hrir_Filters:1)
+            };
+          });
+    });
+  )
+#+end_src
 
-		aSlid.valueAction = 0.5;
-		bSlid.value_(0.5);
+Generic window to be filled with content
+#+name: load_window
+#+begin_src sclang :results none :noweb yes
+  <<gui_object>>
+  ~guiWindow = Window.new.front;
+#+end_src
 
-		aSlid.action_({
-			dNum.value_(csX.map(aSlid.value));
-			~hoaSignal.set(xParam, (csX.map(aSlid.value)));
-		});
-		// Setting vertical panning via interface:
-		bSlid.action_({
-			eNum.value_(csY.map(bSlid.value));
-			~hoaSignal.set(yParam, (csY.map(bSlid.value)));
-		});
-		// Setting vertical panning via interface:
-		cSlid.action_({
-			fNum.value_(csZ.map(cSlid.value));
-			~hoaSignal.set(zParam, (csZ.map(cSlid.value)));
-		});
-		(
-			sliderA: aSlid,
-			sliderB: bSlid,
-			set_value: { |self, val|
-				self.sliderA.value_(val);
-			},
-		)
-	};
-      #+end_src
-      
-      Add window elements
-      #+name: sliders
-      #+begin_src sclang :results none
-	~windOne = ~addGuiElements.value(~guiWindow, "HOAEncoder 1", 0);
-	~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 200, pi, \azpanb, \elpanb, \radb);
-	#+end_src
+The gui object for panning
+#+name: gui_object
+#+begin_src sclang :results none :noweb yes :tangle test.sc
+  ~addGuiElements = { arg window, name = "default", offset = 0, multi = pi, xParam = \azpana, yParam = \elpana, zParam = \rada;
+    var text, dNum, eNum, fNum, aSlid, bSlid, cSlid, csX, csY, csZ;
 
-      #+begin_src sclang :results none
-	~windOne.set_value(1);
-	~windTwo.set_value(1);
-      #+end_src
-      Binaural rendering, see files here:
-      [[file:~/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50][file:~/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50]]
-      #+begin_src sclang :results none
-	(
-	// s.scope(~hoaNumChannels); 
+    text = StaticText(window, Rect(20+offset, 20, 200, 20));
+    dNum = NumberBox(window, Rect(20+offset, 50, 50, 20));
+    eNum = NumberBox(window, Rect(80+offset, 50, 50, 20));
+    fNum = NumberBox(window, Rect(140+offset, 50, 50, 20));
+    aSlid = Slider(window, Rect(40+offset, 90, 150, 20));
+    bSlid = Slider(window, Rect(20+offset, 90, 20, 150));
+    cSlid = Slider(window, Rect(40+offset, 220, 150, 20));
+    text.string = name;
+    csX = ControlSpec(pi, -pi, \linear, 0.001, 0);
+    csY = ControlSpec(-pi/2, pi/2, \linear, 0.001, 0);
+    csZ = ControlSpec(0.01, 20, \linear, 0.01, 1);
 
-	HOADecLebedev26.loadHrirFilters(
-	    s,
-		"/home/henrikfr/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50"
-	);
+    aSlid.valueAction = 0.5;
+    bSlid.value_(0.5);
 
-	~decoderSynth = {
-	    Out.ar(0, HOADecLebedev26.ar(~order.asInteger, In.ar(30, ~hoaNumChannels.asInteger), hrir_Filters:1))
-	}.play;
-	)
-     #+end_src
-      
-      Signal, encoded and decoded, but not mapped. Use this.
-      #+name: scl_connect
-      #+begin_src sclang :results none
-	~decoder.play(0, ~decoderNumChannels, vol: 1.0);
-	~hoaSignal <>> ~decoder;
-      #+end_src
-      
-      Clear the instances
-      #+name: free_instances
-      #+begin_src sclang :results none
-	~hoaSignal.clear;
-	~decoder.clear;
-      #+end_src
-
-      #+begin_src sclang :results none
-w = Window.new("GUI Introduction").layout_(
-    VLayout(
-        HLayout( Button(), TextField(), Button() ),
-        TextView()
+      // Setting horizontal panning via interface:
+    aSlid.action_({
+          dNum.value_(csX.map(aSlid.value));
+          ~hoaSignal.set(
+xParam, (csX.map(aSlid.value)));
+    });
+    // Setting vertical panning via interface:
+    bSlid.action_({
+          eNum.value_(csY.map(bSlid.value));
+          ~hoaSignal.set(yParam, (csY.map(bSlid.value)));
+    });
+    // Setting distance via interface:
+    cSlid.action_({
+          fNum.value_(csZ.map(cSlid.value));
+          ~hoaSignal.set(zParam, (csZ.map(cSlid.value)));
+    });
+    (
+          sliderA: aSlid,
+          sliderB: bSlid,
+          set_value: { |self, val|
+            self.sliderA.value_(val);
+          },
     )
-).front;
-      #+end_src
+  };
+#+end_src
+      
+Add window elements
+#+name: sliders
+#+begin_src sclang :results none
+  ~windOne = ~addGuiElements.value(~guiWindow, "HOAEncoder 1", 0);
+  ~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 200, pi, \azpanb, \elpanb, \radb);
+#+end_src
 
-      #+begin_src sclang :results none
-(
-w = Window("Slider2D", Rect(100, 100, 140, 140));
-t = Slider2D(w, Rect(20, 20, 80, 80))
-        .x_(0.5) // initial location of x
-        .y_(1)   // initial location of y
-        .action_({|sl|
-            [\sliderX, sl.x, \sliderY, sl.y].postln;
-        });
-w.front;
-)
-      #+end_src
+#+begin_src sclang :results none
+  ~windOne.set_value(1);
+  ~windTwo.set_value(1);
+#+end_src
+Binaural rendering, see files here:
+[[file:~/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50][file:~/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50]]
+#+begin_src sclang :results none
+  (
+  // s.scope(~hoaNumChannels); 
+
+  HOADecLebedev26.loadHrirFilters(
+    s,
+    "/home/henrikfr/Dropbox/Music/faust/ambi/ambitools/FIR/hrir/hrir_christophe_lebedev50"
+  );
+
+  ~decoderSynth = {
+    Out.ar(0, HOADecLebedev26.ar(~order.asInteger, In.ar(30, ~hoaNumChannels.asInteger), hrir_Filters:1))
+  }.play;
+  )
+#+end_src
+      
+Signal, encoded and decoded, but not mapped. Use this.
+#+name: scl_connect
+#+begin_src sclang :results none
+  ~decoder.play(0, ~decoderNumChannels, vol: 1.0);
+  ~hoaSignal <>> ~decoder;
+#+end_src
+      
+Clear the instances
+#+name: free_instances
+#+begin_src sclang :results none
+  ~hoaSignal.clear;
+  ~decoder.clear;
+#+end_src
+
+#+begin_src sclang :results none
+  w = Window.new("GUI Introduction").layout_(
+    VLayout(
+          HLayout( Button(), TextField(), Button() ),
+          TextView()
+    )
+  ).front;
+#+end_src
+
+#+begin_src sclang :results none
+  (
+  w = Window("Slider2D", Rect(100, 100, 140, 140));
+  t = Slider2D(w, Rect(20, 20, 80, 80))
+  .x_(0.5) // initial location of x
+  .y_(1)   // initial location of y
+  .action_({|sl|
+    [\sliderX, sl.x, \sliderY, sl.y].postln;
+  });
+  w.front;
+  )
+#+end_src
 
 *** efficient binaural example
-    Settings
-    #+begin_src sclang :results none
-      (
-      s.scope(40);
-      Buffer.freeAll;
-      HOABinaural.loadbinauralIRs(s);
-      HOABinaural.loadHeadphoneCorrections(s);
-      HOABinaural.binauralIRs;
-      HOABinaural.headPhoneIRs;
+Settings
+#+begin_src sclang :results none
+  (
+  s.scope(40);
+  Buffer.freeAll;
+  HOABinaural.loadbinauralIRs(s);
+  HOABinaural.loadHeadphoneCorrections(s);
+  HOABinaural.binauralIRs;
+  HOABinaural.headPhoneIRs;
 
-      HOABinaural.listHeadphones;
+  HOABinaural.listHeadphones;
 
-      ~headphoneModel = nil;
+  ~headphoneModel = nil;
 
-      // set to nil if you want no correction
-      //~headphoneModel = nil;
-      )
-    #+end_src
+  // set to nil if you want no correction
+  //~headphoneModel = nil;
+  )
+#+end_src
 
-      Initilaize the binaural decoder and feed it with 3 noise sources
-      #+begin_src sclang :results none
-	(
-	{OffsetOut.ar(0, HOABinaural.ar(5, In.ar(2, 36), headphoneCorrection:~headphoneModel) * 1 )}.play;
+Initilaize the binaural decoder and feed it with 3 noise sources
+#+begin_src sclang :results none
+  (
+  {OffsetOut.ar(0, HOABinaural.ar(5, In.ar(2, 36), headphoneCorrection:~headphoneModel) * 1 )}.play;
 
-	{ Out.ar(2, HOAEncoder.ar(5, PinkNoise.ar(0.1),
-		SinOsc.ar(0.1, 0, pi * 0.999 ),
-		SinOsc.ar(0.2, 0, pi * 0.999 * 0.4 )
-	) -
-		HOAEncoder.ar(5, WhiteNoise.ar(0.05),
-			SinOsc.ar(0.11, 0, pi * 0.999 ),
-			SinOsc.ar(0.22, 0, pi * 0.999 * 0.4 )
-		) -
-		HOAEncoder.ar(5, BrownNoise.ar(0.2),
-			SinOsc.ar(0.12, 0, pi * 0.999 ),
-			SinOsc.ar(0.23, 0, pi * 0.999 * 0.4 )
-		)
-	) }.play;
-	s.meter;
-	)
+  { Out.ar(2, HOAEncoder.ar(5, PinkNoise.ar(0.1),
+    SinOsc.ar(0.1, 0, pi * 0.999 ),
+    SinOsc.ar(0.2, 0, pi * 0.999 * 0.4 )
+  ) -
+    HOAEncoder.ar(5, WhiteNoise.ar(0.05),
+          SinOsc.ar(0.11, 0, pi * 0.999 ),
+          SinOsc.ar(0.22, 0, pi * 0.999 * 0.4 )
+    ) -
+    HOAEncoder.ar(5, BrownNoise.ar(0.2),
+          SinOsc.ar(0.12, 0, pi * 0.999 ),
+          SinOsc.ar(0.23, 0, pi * 0.999 * 0.4 )
+    )
+  ) }.play;
+  s.meter;
+  )
 
-	#+end_src
+#+end_src
 	
+** Reverb
+Load reverb
+#+name: load_reverb
+#+begin_src sclang :results none :noweb yes
+  <<reverb_ndef>>
+  <<reverb_specs>>
+  <<reverb_panning>>
+  <<connect_reverb>>
+#+end_src
+
+#+name: reverb_specs
+#+begin_src sclang :results none
+  Spec.add(\t60, [0.1, 60, \exp]);
+  Spec.add(\damp, [0, 1]);
+  Spec.add(\size, [0.5, 3]);
+  Spec.add(\earlydiff, [0, 1]);
+  Spec.add(\mdepth, [0, 50]);
+  Spec.add(\mfreq, [0, 10]);
+  Spec.add(\lowx, [0, 1]);
+  Spec.add(\midx, [0, 1]);
+  Spec.add(\highx, [0, 1]);
+  Spec.add(\lowband, [100, 6000, \exp]);
+  Spec.add(\highband, [1000, 10000, \exp]);
+#+end_src
+
+Load the reverb
+#+name: reverb_ndef
+#+begin_src sclang :results none
+  Ndef(\reverb, {
+    var src = In.ar(~reverbSendBus.index) * \amp.kr(1);
+    src = JPverb.ar(
+          src,
+          \t60.kr(1,           0.05),
+          \damp.kr(0,          0.05),
+          \size.kr(1,          0.05),
+          \earlydiff.kr(0.707, 0.05),
+          \mdepth.kr(5,        0.05),
+          \mfreq.kr(2,         0.05),
+          \lowx.kr(1,          0.05),
+          \midx.kr(1,          0.05),
+          \highx.kr(1,         0.05),
+          \lowband.kr(500,     0.05),
+          \highband.kr(2000,   0.05)
+    );
+  });
+#+end_src
+
+Reset the two example Ndefs
+#+begin_src sclang :results none
+  Ndef(\reverb).clear;
+  Ndef(\reverbPanning).clear;
+#+end_src
+
+#+name: reverb_panning
+#+begin_src sclang :results none
+  Ndef(\reverbPanning, {
+    var src = \input.ar;
+    PanX.ar(16, src, \revPanPos.kr(0), \revPanAmp.kr(1), \revPanSpread.kr(64));
+  }).mold(16);
+#+end_src
+
+Connect the source to the reverb.
+#+name: connect_reverb
+#+begin_src sclang :results none
+  Ndef(\reverb).fadeTime = 1;
+  Ndef(\reverbPanning).play(addAction: \addToTail);
+  Ndef(\reverbPanning) <<>.input Ndef(\reverb);
+  Ndef(\reverb).set(\t60, 0.7);
+  Ndef(\reverb).set(\size, 0.2);
+  Ndef(\reverb).set(\amp, 0.5);
+  Ndef(\reverb).set(\earlydiff, 0.1);
+  Ndef(\reverb).set(\mdepth, 1);
+  Ndef(\reverbPanning).set(\revPanSpread, 64);
+#+end_src
+
+Start the two Ndefs (and stop)
+#+begin_src sclang :results none
+  Ndef(\reverb).fadeTime = 5;
+  Ndef(\reverbPanning).play;
+  Ndef(\reverbPanning).stop;
+  Ndef(\reverb).play;
+  Ndef(\reverb).stop;
+  Ndef(\reverbBus).play;
+  Ndef(\reverbBus).stop;
+#+end_src
+
+#+begin_src sclang :results none
+  Ndef(\reverbPanning).set(\revPanSpread, 64);
+  Ndef(\reverbPanning).set(\revPanAmp, 0.7);
+#+end_src
+
+#+begin_src sclang :results none
+  Ndef(\reverbPanning).scope;
+#+end_src
