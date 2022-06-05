@@ -5,6 +5,12 @@
 #+STARTUP: overview hidestars
 
 * Spatialisation in SC
+
+** TEst
+#+begin_src sclang :results none
+  b = ControlSpec(1, 0, \lin);
+  b.map(1).postln;
+#+end_src
 ** Setup
 *** boot
 Use a 64 channel bus for outputs.
@@ -487,7 +493,15 @@ Bus example
 ** Ambisonics
 *** ambi with control
 Working example with azimuth and elevation panning.
-    
+
+Load reverb
+#+begin_src sclang :results none :noweb yes
+  <<reverb_ndef>>
+  <<reverb_specs>>
+  <<reverb_panning>>
+  <<connect_reverb>>
+#+end_src
+
 Start server
 #+call: boot_jack()
 Load SynthDef
@@ -512,7 +526,7 @@ Set the environment variables, then, create the encoder and the decoder.
   var trig;
 
   ~signalBus = 52;
-  ~reverbBus = 63;
+  ~reverbChan = 63;
   ~order = 3;
   ~binaural = 1;
   ~hoaNumChannels = (~order+1).pow(2);
@@ -552,8 +566,14 @@ Set the environment variables, then, create the encoder and the decoder.
   });
 
   // Merely mapping and scaling the audio
-  ~reverbSend[0].source = { In.ar(~signalBus) * \reva.kr(1) };
-  ~reverbSend[0].play;
+  ~reverbSend.source = { arg scale, ctrl;
+    //    in = In.ar(~reverbChan);
+    //  in = in * \reva.kr(0);
+    ctrl = \reva.kr(0) / 20;
+    scale = ControlSpec(0, 1, \lin).map(ctrl);
+    In.ar(~signalBus) * scale;
+  };
+  ~reverbSend.play(~reverbChan, 1);
 
   /* Create windows for panning */
   ~windows = Environment(know: true);
@@ -635,29 +655,34 @@ Generic window to be filled with content
 The gui object for panning
 #+name: gui_object
 #+begin_src sclang :results none :noweb yes :tangle test.sc
-  ~addGuiElements = { arg window, name = "default", offset = 0, multi = pi, xParam = \azpana, yParam = \elpana, zParam = \rada;
-    var text, dNum, eNum, fNum, aSlid, bSlid, cSlid, csX, csY, csZ;
+  ~addGuiElements = { arg window, name = "default", offset = 0, multi = pi, xParam = \azpana, yParam = \elpana, zParam = \rada, rev = \reva, rVol=\revVol;
+    var text, dNum, eNum, fNum, rNum, sNum, aSlid, bSlid, cSlid, revVol, csX, csY, csZ, rSend, vol;
 
     text = StaticText(window, Rect(20+offset, 20, 200, 20));
     dNum = NumberBox(window, Rect(20+offset, 50, 50, 20));
     eNum = NumberBox(window, Rect(80+offset, 50, 50, 20));
     fNum = NumberBox(window, Rect(140+offset, 50, 50, 20));
+    sNum = NumberBox(window, Rect(200+offset, 50, 50, 20));
+    rNum = NumberBox(window, Rect(260+offset, 50, 50, 20));
     aSlid = Slider(window, Rect(40+offset, 90, 150, 20));
     bSlid = Slider(window, Rect(20+offset, 90, 20, 150));
     cSlid = Slider(window, Rect(40+offset, 220, 150, 20));
+    revVol = Slider(window, Rect(40+offset, 260, 150, 20));
     text.string = name;
     csX = ControlSpec(pi, -pi, \linear, 0.001, 0);
     csY = ControlSpec(-pi/2, pi/2, \linear, 0.001, 0);
     csZ = ControlSpec(0.01, 20, \linear, 0.01, 1);
+    rSend = ControlSpec(0.0001, 1, \lin, 0.001, 1);
+    vol = ControlSpec(0.0001, 1, \linear, 0.001, 0);
 
     aSlid.valueAction = 0.5;
     bSlid.value_(0.5);
 
-      // Setting horizontal panning via interface:
+    // Setting horizontal panning via interface:
     aSlid.action_({
           dNum.value_(csX.map(aSlid.value));
           ~hoaSignal.set(
-xParam, (csX.map(aSlid.value)));
+            xParam, (csX.map(aSlid.value)));
     });
     // Setting vertical panning via interface:
     bSlid.action_({
@@ -667,7 +692,14 @@ xParam, (csX.map(aSlid.value)));
     // Setting distance via interface:
     cSlid.action_({
           fNum.value_(csZ.map(cSlid.value));
+          sNum.value_(rSend.map(cSlid.value));
           ~hoaSignal.set(zParam, (csZ.map(cSlid.value)));
+          ~reverbSend.set(rev, (rSend.map(cSlid.value)));
+    });
+    // Setting distance via interface:
+    revVol.action_({
+          rNum.value_(vol.map(revVol.value));
+          Ndef(\reverb).set(rVol, (vol.map(revVol.value)));
     });
     (
           sliderA: aSlid,
@@ -683,7 +715,7 @@ Add window elements
 #+name: sliders
 #+begin_src sclang :results none
   ~windOne = ~addGuiElements.value(~guiWindow, "HOAEncoder 1", 0);
-  ~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 200, pi, \azpanb, \elpanb, \radb);
+  ~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 300, pi, \azpanb, \elpanb, \radb, \reva);
 #+end_src
 
 #+begin_src sclang :results none
@@ -712,6 +744,12 @@ Signal, encoded and decoded, but not mapped. Use this.
 #+begin_src sclang :results none
   ~decoder.play(0, ~decoderNumChannels, vol: 1.0);
   ~hoaSignal <>> ~decoder;
+  ~reverbSend <>> Ndef(\reverb);
+#+end_src
+
+#+name: scl_connect
+#+begin_src sclang :results none
+  ~reverbSend <>> Ndef(\reverb);
 #+end_src
       
 Clear the instances
@@ -796,6 +834,10 @@ Load reverb
   <<connect_reverb>>
 #+end_src
 
+#+begin_src sclang :results none :noweb yes
+  <<free_reverb>>
+#+end_src
+
 #+name: reverb_specs
 #+begin_src sclang :results none
   Spec.add(\t60, [0.1, 60, \exp]);
@@ -815,7 +857,9 @@ Load the reverb
 #+name: reverb_ndef
 #+begin_src sclang :results none
   Ndef(\reverb, {
-    var src = In.ar(~reverbSendBus.index) * \amp.kr(1);
+    //    var src = In.ar(~reverbSendBus.index) * \amp.kr(1);
+    var src;
+    src = \in.ar(0);
     src = JPverb.ar(
           src,
           \t60.kr(1,           0.05),
@@ -829,7 +873,7 @@ Load the reverb
           \highx.kr(1,         0.05),
           \lowband.kr(500,     0.05),
           \highband.kr(2000,   0.05)
-    );
+    ) * \revVol.kr(0);
   });
 #+end_src
 
@@ -879,4 +923,12 @@ Start the two Ndefs (and stop)
 
 #+begin_src sclang :results none
   Ndef(\reverbPanning).scope;
+#+end_src
+
+Free all busses and stop execution
+#+name: free_reverb
+#+begin_src sclang :results none :noweb yes
+  Ndef(\reverbBus).clear;
+  Ndef(\reverb).clear;
+  CmdPeriod.run;
 #+end_src
