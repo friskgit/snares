@@ -6,7 +6,7 @@
 
 * Spatialisation in SC
 
-** TEst
+** Test
 #+begin_src sclang :results none
   b = ControlSpec(1, 0, \lin);
   b.map(1).postln;
@@ -58,8 +58,7 @@ Then the message can be triggered as follows:
 *** synth
 Make a simple snare for testing
 #+name: original_snare
-#+begin_src sclang :results none
-  (
+#+begin_src sclang :results none :tangle spatme.sc
   ~snareSimple = SynthDef(\snare, {
     var snd;
     var env = Env([0, 1, 0], [0.0001, \length.ir(0.5)]);
@@ -68,7 +67,6 @@ Make a simple snare for testing
     snd = OGenericSnarefs.ar(imp, 0.00001, 0.001, \noiselvl.kr(0.1), \nrel.ir(0.1), frq1, frq2, \rel.ir(0.1), \trifrq.kr(111)) * EnvGen.kr(env, doneAction: Done.freeSelf);
     Out.ar(\out.kr(0), snd*\gain.ir(1));
   }).add;
-  )
 #+end_src
 
 Play one hit on the snare above.
@@ -91,8 +89,8 @@ Regular hits on busses 52, 53 and 54
     instrument: \snare,
     freq: 65,
     out: ~signalBus,
-    gain: 0.1,
-    vol: 0.5,
+    gain: 0.8,
+    vol: 0.9,
     dur: 0.85
   ]);
   ~simplePlayer.play;
@@ -100,8 +98,8 @@ Regular hits on busses 52, 53 and 54
     instrument: \snare,
     freq: 60,
     out: 53,
-    gain: 1,
-    vol: 0.5,
+    gain: 0,
+    vol: 0.0,
     dur: 2
   ]);
   ~newSimplePlayer.play;
@@ -109,15 +107,15 @@ Regular hits on busses 52, 53 and 54
     instrument: \snare,
     freq: 50,
     out: 54,
-    gain: 0.2,
-    vol: 0.5,
+    gain: 0.0,
+    vol: 0.0,
     dur: 0.3
   ]);
   ~simplePlayer3.play;
 #+end_src
 
 Regular hits
-#+name: play
+#+name: play_two
 #+begin_src sclang :results none :noweb yes
   ~signalBus = 52;
   ~simplePlayer = Pbind(*[
@@ -150,7 +148,7 @@ Regular hits
 #+end_src
       
 Regular hits
-#+name: play
+#+name: play_three
 #+begin_src sclang :results none :noweb yes
   ~signalBus = 52;
   ~simplePlayer = Pbind(*[
@@ -158,7 +156,7 @@ Regular hits
     freq: 140,
     out: ~signalBus,
     gain: 1,
-    vol: 0.5,
+    vol: 0.9,
     dur: 5
   ]);
   ~simplePlayer.play;
@@ -166,8 +164,8 @@ Regular hits
     instrument: \snare,
     freq: 60,
     out: 53,
-    gain: 1,
-    vol: 0.5,
+    gain: 0,
+    vol: 0.0,
     dur: 5
   ]);
   ~newSimplePlayer.play;
@@ -175,8 +173,8 @@ Regular hits
     instrument: \snare,
     freq: 120,
     out: 54,
-    gain: 1,
-    vol: 0.5,
+    gain: 0,
+    vol: 0.0,
     dur: 5
   ]);
   ~simplePlayer3.play;
@@ -494,37 +492,41 @@ Bus example
 *** ambi with control
 Working example with azimuth and elevation panning.
 
+Start server
+#+call: boot_jack()
+
 Load reverb
 #+begin_src sclang :results none :noweb yes
   <<reverb_ndef>>
   <<reverb_specs>>
-  <<reverb_panning>>
+  <<reverb_ambi>>
   <<connect_reverb>>
 #+end_src
 
-Start server
-#+call: boot_jack()
-Load SynthDef
-#+call: original_snare()
-Start the encoder
-#+call: scl_encode()
-Start the player
-#+call: play()
-Load the panning GUIle
-#+call: load_window()
-#+call: sliders()
-Connect the encoder with the decoder
-#+call: scl_connect()
+Start instances
+#+begin_src sclang :results none :noweb yes
+  (
+  <<scl_encode>>
+  <<original_snare>>
+//  <<scl_connect>>
+  //  <<play()>>
+  )
+#+end_src
+
+Load GUI
+#+begin_src sclang :results none :noweb yes
+  <<load_window()>>
+#+end_src
+
 Free stuff
-#+call: free_instances()
+#+begin_src sclang :results none :noweb yes
+  <<free_instances()>>
+#+end_src
 
 Set the environment variables, then, create the encoder and the decoder.
 #+name: scl_encode
-#+begin_src sclang :results none :noweb yes
-  (
+#+begin_src sclang :results none :noweb yes  :tangle spatme.sc
   // Settings
-  var trig;
-
   ~signalBus = 52;
   ~reverbChan = 63;
   ~order = 3;
@@ -642,7 +644,6 @@ Set the environment variables, then, create the encoder and the decoder.
             };
           });
     });
-  )
 #+end_src
 
 Generic window to be filled with content
@@ -650,13 +651,15 @@ Generic window to be filled with content
 #+begin_src sclang :results none :noweb yes
   <<gui_object>>
   ~guiWindow = Window.new.front;
+  ~windOne = ~addGuiElements.value(~guiWindow, "HOAEncoder 1", 0);
+  ~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 300, pi, \azpanb, \elpanb, \radb, \reva);
 #+end_src
 
 The gui object for panning
 #+name: gui_object
 #+begin_src sclang :results none :noweb yes :tangle test.sc
   ~addGuiElements = { arg window, name = "default", offset = 0, multi = pi, xParam = \azpana, yParam = \elpana, zParam = \rada, rev = \reva, rVol=\revVol;
-    var text, dNum, eNum, fNum, rNum, sNum, aSlid, bSlid, cSlid, revVol, csX, csY, csZ, rSend, vol;
+    var text, dNum, eNum, fNum, rNum, sNum, aSlid, bSlid, cSlid, revVol, csX, csY, csZ, rSend, vol, rv, revScale;
 
     text = StaticText(window, Rect(20+offset, 20, 200, 20));
     dNum = NumberBox(window, Rect(20+offset, 50, 50, 20));
@@ -674,6 +677,7 @@ The gui object for panning
     csZ = ControlSpec(0.01, 20, \linear, 0.01, 1);
     rSend = ControlSpec(0.0001, 1, \lin, 0.001, 1);
     vol = ControlSpec(0.0001, 1, \linear, 0.001, 0);
+    rv = ControlSpec(0.8, 0.2, \linear, 0.001, 0);
 
     aSlid.valueAction = 0.5;
     bSlid.value_(0.5);
@@ -691,10 +695,14 @@ The gui object for panning
     });
     // Setting distance via interface:
     cSlid.action_({
+          var tempRevVol=0;
           fNum.value_(csZ.map(cSlid.value));
           sNum.value_(rSend.map(cSlid.value));
           ~hoaSignal.set(zParam, (csZ.map(cSlid.value)));
           ~reverbSend.set(rev, (rSend.map(cSlid.value)));
+          tempRevVol = rv.map(cSlid.value) * sNum.value();
+          rNum.value_(tempRevVol);
+          Ndef(\reverb).set(tempRevVol);
     });
     // Setting distance via interface:
     revVol.action_({
@@ -744,19 +752,18 @@ Signal, encoded and decoded, but not mapped. Use this.
 #+begin_src sclang :results none
   ~decoder.play(0, ~decoderNumChannels, vol: 1.0);
   ~hoaSignal <>> ~decoder;
-  ~reverbSend <>> Ndef(\reverb);
+//  ~reverbSend <>> Ndef(\reverb);
+//  Ndef(\NdefL) <>> ~decoder;
+//  Ndef(\NdefR) <>> ~decoder;
 #+end_src
 
-#+name: scl_connect
-#+begin_src sclang :results none
-  ~reverbSend <>> Ndef(\reverb);
-#+end_src
       
 Clear the instances
 #+name: free_instances
-#+begin_src sclang :results none
+#+begin_src sclang :results none :noweb yes
   ~hoaSignal.clear;
   ~decoder.clear;
+  <<free_reverb()>>
 #+end_src
 
 #+begin_src sclang :results none
@@ -883,6 +890,35 @@ Reset the two example Ndefs
   Ndef(\reverbPanning).clear;
 #+end_src
 
+#+name: reverb_ambi
+#+begin_src sclang :results none
+  ~reverbEncoder = NodeProxy.new(s, \audio, ~hoaNumChannels);
+  ~reverbEncoder.source({ 
+    HOAEncoder.ar(~order,
+          In.ar(\in.ar),
+          \azpana.kr(-3.14),
+          \elpana.kr(0),
+          \gaina.kr(0),
+          \planespherical.kr(1),
+          \rada.kr(2),
+          \speakerrad.ir(1.07))
+    });
+#+end_src
+
+#+begin_src sclang :results none
+    Ndef(\revR, {
+          var srcR = \input.ar;
+          HOAEncoder.ar(~order,
+            srcR,	  
+            \azpanb.kr(-3.14),
+            \elpanb.kr(0),
+            \gainb.kr(0),
+            \planespherical.kr(1),
+            \radb.kr(2),
+            \speakerrad.ir(1.07))
+    });
+#+end_src
+
 #+name: reverb_panning
 #+begin_src sclang :results none
   Ndef(\reverbPanning, {
@@ -895,13 +931,32 @@ Connect the source to the reverb.
 #+name: connect_reverb
 #+begin_src sclang :results none
   Ndef(\reverb).fadeTime = 1;
+  //  Ndef(\revL).play(addAction: \addToTail);
+  //  Ndef(\revR).play(addAction: \addToTail);
+  //  Ndef(\revL) <<>.input Ndef(\reverb);
+  //  Ndef(\revR) <<>.input Ndef(\reverb);
+  ~reverbEncoder <<> Ndef(\reverb);
+  Ndef(\reverb).set(\t60, 0.5);
+  Ndef(\reverb).set(\size, 0.5);
+  Ndef(\reverb).set(\amp, 0.6);
+  Ndef(\reverb).set(\earlydiff, 0.05);
+  Ndef(\reverb).set(\mdepth, 0.2);
+  Ndef(\reverb).set(\highband, 5000);
+  Ndef(\reverbPanning).set(\revPanSpread, 64);
+#+end_src
+
+Connect the source to the reverb.
+#+name: connect_pan_reverb
+#+begin_src sclang :results none
+  Ndef(\reverb).fadeTime = 1;
   Ndef(\reverbPanning).play(addAction: \addToTail);
   Ndef(\reverbPanning) <<>.input Ndef(\reverb);
-  Ndef(\reverb).set(\t60, 0.7);
-  Ndef(\reverb).set(\size, 0.2);
-  Ndef(\reverb).set(\amp, 0.5);
-  Ndef(\reverb).set(\earlydiff, 0.1);
-  Ndef(\reverb).set(\mdepth, 1);
+  Ndef(\reverb).set(\t60, 0.5);
+  Ndef(\reverb).set(\size, 0.5);
+  Ndef(\reverb).set(\amp, 0.6);
+  Ndef(\reverb).set(\earlydiff, 0.05);
+  Ndef(\reverb).set(\mdepth, 0.2);
+  Ndef(\reverb).set(\highband, 5000);
   Ndef(\reverbPanning).set(\revPanSpread, 64);
 #+end_src
 
@@ -931,4 +986,14 @@ Free all busses and stop execution
   Ndef(\reverbBus).clear;
   Ndef(\reverb).clear;
   CmdPeriod.run;
+#+end_src
+
+#+name: reverb_setting
+#+begin_src sclang :results none
+  Ndef(\reverb).set(\t60, 0.5);
+  Ndef(\reverb).set(\size, 0.5);
+  Ndef(\reverb).set(\amp, 0.6);
+  Ndef(\reverb).set(\earlydiff, 0.05);
+  Ndef(\reverb).set(\mdepth, 0.2);
+  Ndef(\reverb).set(\highband, 5000);
 #+end_src

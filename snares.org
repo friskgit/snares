@@ -58,6 +58,37 @@ Edirol
   startjack -l
 #+end_src
 
+*** connect with jack
+disconnect supercollider from main out$
+#+name: disconnect_sc
+#+begin_src shell :dir /home/henrikfr/bin/scripts
+  for i in {0..4}; do
+      ~/bin/scripts/jdis -D Super out system playback $i
+  done
+#+end_src
+
+#+RESULTS: disconnect_sc
+
+#+RESULTS:
+
+connect supercollider to jconvolver
+#+name: connect_sc-jcon-out
+#+begin_src shell :results replace
+  ~/bin/scripts/jcon Super out jcon in 30
+  ~/bin/scripts/jcon jcon out system play 3
+#+end_src
+
+#+RESULTS: connect_sc-jcon-out
+
+#+RESULTS:
+
+connect only jconvolver to jack
+#+begin_src shell :dir /home/henrikfr/bin/scripts
+  ~/bin/scripts/jcon jcon out sys play 3
+#+end_src
+
+#+RESULTS:
+
 *** jconvolver
 Remember to load the library ob-async prior to testing these:
 
@@ -71,32 +102,6 @@ To start jconvolver:
   echo "Starting up jconvolver"
   jconvolver KMH_LILLA_SALEN.conf &
 #+end_src
-
-**** Connect with jack
-disconnect supercollider from main out$
-#+name: disconnect_sc
-#+begin_src shell :dir /home/henrikfr/bin/scripts
-  for i in {0..4}; do
-      ~/bin/scripts/jdis -D Super out system playback $i
-  done
-#+end_src
-
-#+RESULTS:
-
-connect supercollider to jconvolver
-#+name: connect_sc-jcon-out
-#+begin_src shell :results replace
-  ~/bin/scripts/jcon Super out jcon in 30
-  ~/bin/scripts/jcon jcon out system play 2
-#+end_src
-
-#+RESULTS:
-
-connect only jconvolver to jack
-#+begin_src shell :dir /home/henrikfr/bin/scripts
-  ~/bin/scripts/jcon jcon out sys play 2
-#+end_src
-
 
 *** connect multi to stereo
 - Odd multi output to left out
