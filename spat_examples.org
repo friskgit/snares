@@ -533,13 +533,10 @@ Working example with azimuth and elevation panning.
 Start server
 #+call: boot_jack()
 
-Load reverb
-#+begin_src sclang :results none :noweb yes
-  <<reverb_ndef>>
-  <<reverb_specs>>
-  <<reverb_ambi>>
-  <<connect_reverb>>
-#+end_src
+#+call: original_snare()
+#+call: scl_encode()
+#+call: play()
+#+call: scl_connect()
 
 Start instances
 #+begin_src sclang :results none :noweb yes
@@ -551,18 +548,12 @@ Start instances
   )
 #+end_src
 
-#+call: original_snare()
-#+call: scl_encode()
-#+call: play()
-#+call: scl_connect()
-
+Load reverb
 #+begin_src sclang :results none :noweb yes
-  (
-  <<scl_encode>>
-  <<original_snare>>
-  <<scl_connect>>
-  <<play()>>
-  )
+  <<reverb_ndef>>
+  <<reverb_specs>>
+  <<reverb_ambi>>
+  <<connect_reverb>>
 #+end_src
 
 Load GUI
@@ -570,6 +561,10 @@ Load GUI
   <<load_window()>>
 #+end_src
 
+#+begin_src sclang :results none
+  ~reverbEncoder.gui;
+  ~reverbSend.gui;
+#+end_src
 Free stuff
 #+begin_src sclang :results none :noweb yes
   <<free_instances()>>
@@ -582,7 +577,7 @@ Set the environment variables, then, create the encoder and the decoder.
 #+begin_src sclang :results none :noweb yes  :tangle spatme.sc
   // Settings
   ~signalBus = 52;
-  ~reverbFeed = ~signalBus
+  ~reverbFeed = ~signalBus;
   ~reverbChan = 63;
   ~order = 3;
   ~binaural = 0;
@@ -594,7 +589,6 @@ Set the environment variables, then, create the encoder and the decoder.
   ~hoaSignal = NodeProxy.new(s, \audio, ~hoaNumChannels);
   //~hoaSignal.play;
 
-
   // Handling the reverb send
   ~reverbSend = NodeProxy.new(s, \audio, 1);
 
@@ -602,7 +596,7 @@ Set the environment variables, then, create the encoder and the decoder.
   ~hoaSignal[0] = {
     HOAEncoder.ar(~order,
           In.ar(~signalBus),
-          \azpana.kr(-3.14),
+          \azpana.kr(-1.14),
           \elpana.kr(0),
           \gaina.kr(0),
           \planespherical.kr(1),
@@ -611,8 +605,8 @@ Set the environment variables, then, create the encoder and the decoder.
   };
   ~hoaSignal[1] = {
     HOAEncoder.ar(~order,
-          In.ar(54),
-          \azpanb.kr(-3.14),
+          In.ar(~signalBus + 1),
+          \azpanb.kr(1.14),
           \elpanb.kr(0),
           \gainb.kr(0),
           \planespherical.kr(1),
@@ -623,7 +617,11 @@ Set the environment variables, then, create the encoder and the decoder.
     obj.fadeTime = 0.1;
   });
 
-  // Merely mapping and scaling the audio
+  /* Merely mapping and scaling the audio
+    It takes its input from the snare signal bus on channel ~reverbFeed.
+    It's volume is controlled by the parameter \reva which is mapped to
+    revSend in the GUI object.
+  ,*/
   ~reverbSend.source = { arg scale, ctrl;
     //    var in = \in.ar(~reverbChan);
     //  in = in * \reva.kr(0);
@@ -702,21 +700,59 @@ Set the environment variables, then, create the encoder and the decoder.
     });
 #+end_src
 
+#+name: distance_function
+#+begin_src sclang :results none
+  var distanceFunc = { arg size, dir, time;
+    var rout = Routine {
+          size.do({ arg val, wait;
+            if(dir == 0, {
+                  val = val / size;
+                  val = val - 1;
+                  val = val.abs;  
+            }, {
+                  val = val / size;		  
+            });		  
+            val.postln;		
+            ~hoaSignal.set(zParam, (csZ.map(val)));
+            ~reverbSend.set(revSend, (rSend.map(val)));
+            wait = time / size;   
+            wait.wait;
+          });
+          "done".postln;
+    }.play;
+  };
+  //  distanceFunc.value(100, 1, 10);
+#+end_src
+
+#+begin_src sclang :results none
+  m = ControlSpec(0.01, 20, \exp, 0.01, 440, units: "Hz");
+  m.map(0.95).postln;
+#+end_src
 Generic window to be filled with content
 #+name: load_window
 #+begin_src sclang :results none :noweb yes
   <<gui_object>>
   ~guiWindow = Window.new.front;
   ~windOne = ~addGuiElements.value(~guiWindow, "HOAEncoder 1", 0);
-  ~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 300, pi, \azpanb, \elpanb, \radb, \reva);
+  ~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 300, \azpanb, \elpanb, \radb, \revb);
 #+end_src
 
 The gui funtion for adding an object for panning. Pass the parameters to be controlled as arguments.
+The arguments are:
+1. The GUI window
+2. Name of the window
+3. Vertical offset for each instance
+4. The name of the [[scl_encode][~~hoaSignal~]] x-panning parameter
+5. The name of the [[scl_encode][~~hoaSignal~]] y-panning parameter
+6. The name of the [[scl_encode][~~hoaSignal~]] z-panning parameter
+7. The name of the ~~revSend~ reverb send parameter
+8. The name of the ~Ndef(\reverb)~ reverb volume parameter
 #+name: gui_object
 #+begin_src sclang :results none :noweb yes :tangle test.sc
-  ~addGuiElements = { arg window, name = "default", offset = 0, multi = pi, xParam = \azpana, yParam = \elpana, zParam = \rada, revSend = \reva, rVol=\revVol;
-    var text, dNum, eNum, fNum, rNum, sNum, aSlid, bSlid, cSlid, revVol, csX, csY, csZ, rSend, vol, rv, revScale;
+  ~addGuiElements = { arg window, name = "default", offset = 0, xParam = \azpana, yParam = \elpana, zParam = \rada, revSend = \reva, rVol=\revVol;
+    var text, dNum, eNum, fNum, rNum, sNum, aSlid, bSlid, cSlid, revVol, csX, csY, csZ, rSend, vol, rv, revScale, distanceAuto;
 
+    <<distance_function>>
     text = StaticText(window, Rect(20+offset, 20, 200, 20));
     dNum = NumberBox(window, Rect(20+offset, 50, 50, 20));
     eNum = NumberBox(window, Rect(80+offset, 50, 50, 20));
@@ -726,11 +762,12 @@ The gui funtion for adding an object for panning. Pass the parameters to be cont
     aSlid = Slider(window, Rect(40+offset, 90, 150, 20));
     bSlid = Slider(window, Rect(20+offset, 90, 20, 150));
     cSlid = Slider(window, Rect(40+offset, 220, 150, 20));
+    distanceAuto = Button(window, Rect(50+offset, 190, 20, 20));  
     revVol = Slider(window, Rect(40+offset, 260, 150, 20));
     text.string = name;
     csX = ControlSpec(pi, -pi, \linear, 0.001, 0);
     csY = ControlSpec(-pi/2, pi/2, \linear, 0.001, 0);
-    csZ = ControlSpec(0.01, 20, \linear, 0.01, 1);
+    csZ = ControlSpec(0.001, 20, \lin, 0.001, 1);
     rSend = ControlSpec(0.0001, 1, \lin, 0.001, 1);
     vol = ControlSpec(0.0001, 1, \linear, 0.001, 0);
     rv = ControlSpec(0.9, 0.6, \linear, 0.001, 0);
@@ -765,6 +802,20 @@ The gui funtion for adding an object for panning. Pass the parameters to be cont
           rNum.value_(vol.map(revVol.value));
           Ndef(\reverb).set(rVol, (vol.map(revVol.value)));
     });
+
+    distanceAuto.states_([
+          ["p", Color.black, Color.white],
+          ["r", Color.white, Color.black],
+    ])
+    .action_({ arg butt, revC, rout;
+          if(butt.value == 1, {
+            distanceFunc.value(200, 1, 10);	  
+          }, {
+            distanceFunc.value(200, 0, 10);	  	  
+            butt.value.postln;
+          });
+    });
+
     (
           sliderA: aSlid,
           sliderB: bSlid,
@@ -774,7 +825,10 @@ The gui funtion for adding an object for panning. Pass the parameters to be cont
     )
   };
 #+end_src
-      
+
+#+begin_src sclang :results none
+  { Line.kr(0, 20, 20, doneAction: Done.freeSelf); }.scope;
+#+end_src
 Add window elements
 #+name: sliders
 #+begin_src sclang :results none
@@ -804,6 +858,7 @@ Binaural rendering, see files here:
 #+end_src
       
 Signal, encoded and decoded, but not mapped. Use this.
+Here, the ~~reverbSend~ is connected to the [[reverb_ndef][\reverb Ndef.]]
 #+name: scl_connect
 #+begin_src sclang :results none
   ~decoder.play(0, ~decoderNumChannels, vol: 1.0);
@@ -904,6 +959,7 @@ Load reverb
   <<free_reverb>>
 #+end_src
 
+Reverb settings
 #+name: reverb_specs
 #+begin_src sclang :results none
   Spec.add(\t60, [0.1, 60, \exp]);
@@ -919,13 +975,12 @@ Load reverb
   Spec.add(\highband, [1000, 10000, \exp]);
 #+end_src
 
-Load the reverb
+Load the reverb. The send to the reverb is [[scl_connect][connected here]].
+The reverb is [[reverb_ambi][encoded here]] (and decoded)
 #+name: reverb_ndef
 #+begin_src sclang :results none
   Ndef(\reverb, {
-    //    var src = In.ar(~reverbSendBus.index) * \amp.kr(1);
-    var src;
-    src = \in.ar(0) * 2;
+    var src; src = \in.ar(0!2) * \amp.kr(1);
     src = JPverb.ar(
           src,
           \t60.kr(1,           0.05),
@@ -947,19 +1002,22 @@ Load the reverb
   Ndef(\reverb).set(\revVol, 8);
 #+end_src
 
-Reset the two example Ndefs
+Reset the two reverb Ndefs
 #+begin_src sclang :results none
   Ndef(\reverb).clear;
   Ndef(\reverbPanning).clear;
-
 #+end_src
 
+Create the encoder for the reverb as well as the decoder.
+This is a temporary solution. The reverb should be decoded through main decoder.
 #+name: reverb_ambi
 #+begin_src sclang :results none
   ~reverbEncoder = NodeProxy.new(s, \audio, ~hoaNumChannels);
-  ~reverbEncoder[0] = { 
+  ~reverbEncoder.source = {
+    var in; in = \in.ar(0!2);	
     HOAEncoder.ar(~order,
-          In.ar(61),
+          //          In.ar(61),
+          in,
           \azpanr.kr(0),
           \elpanr.kr(0),
           \gainr.kr(0),
@@ -976,7 +1034,7 @@ Reset the two example Ndefs
     KMHLSDome3h3pNormal6.ar(*in);
   };
   ~revDecoder.play();
-
+  ~reverbEncoder.play();
   ~revDecoder <<> ~reverbEncoder;
 #+end_src
 
@@ -1000,7 +1058,7 @@ Connect the source to the reverb.
   Ndef(\reverb).fadeTime = 1;
   Ndef(\reverb).play(61);
   // Change the above to the below later
-  // ~reverbEncoder <<> Ndef(\reverb);
+  ~reverbEncoder <<> Ndef(\reverb);
   // ~decoder.add(~reverbEncoder)
 #+end_src
 
@@ -1011,17 +1069,6 @@ Connect the reverb to a simple panner.
   Ndef(\reverbPanning).play(addAction: \addToTail);
   Ndef(\reverbPanning) <<>.input Ndef(\reverb);
   Ndef(\reverbPanning).set(\revPanSpread, 64);
-#+end_src
-
-Start the two Ndefs (and stop)
-#+begin_src sclang :results none
-  Ndef(\reverb).fadeTime = 5;
-  Ndef(\reverbPanning).play;
-  Ndef(\reverbPanning).stop;
-  Ndef(\reverb).play;
-  Ndef(\reverb).stop;
-  Ndef(\reverbBus).play;
-  Ndef(\reverbBus).stop;
 #+end_src
 
 #+begin_src sclang :results none

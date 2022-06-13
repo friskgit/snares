@@ -62,12 +62,10 @@ Edirol
 disconnect supercollider from main out$
 #+name: disconnect_sc
 #+begin_src shell :dir /home/henrikfr/bin/scripts
-  for i in {0..4}; do
+  for i in {0..8}; do
       ~/bin/scripts/jdis -D Super out system playback $i
   done
 #+end_src
-
-#+RESULTS: disconnect_sc
 
 #+RESULTS:
 
@@ -77,8 +75,6 @@ connect supercollider to jconvolver
   ~/bin/scripts/jcon Super out jcon in 30
   ~/bin/scripts/jcon jcon out system play 3
 #+end_src
-
-#+RESULTS: connect_sc-jcon-out
 
 #+RESULTS:
 
