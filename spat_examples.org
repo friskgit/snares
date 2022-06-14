@@ -104,6 +104,7 @@ Make a simple snare for testing
     var frq1=\freq.kr(300), frq2=frq1-100;
     snd = OGenericSnarefs.ar(imp, 0.00001, 0.001, \noiselvl.kr(0.1), \nrel.ir(0.1), frq1, frq2, \rel.ir(0.1), \trifrq.kr(111)) * EnvGen.kr(env, doneAction: Done.freeSelf);
     Out.ar(\out.kr(0), snd*\gain.ir(1));
+    Out.ar(\revSend.kr(62), snd);
   }).add;
 #+end_src
 
@@ -125,7 +126,7 @@ Regular hits on busses 52, 53 and 54
   ~signalBus = 52;
   ~simplePlayer = Pbind(*[
     instrument: \snare,
-    freq: 65,
+    freq: 81,
     out: ~signalBus,
     gain: 0.8,
     vol: 0.9,
@@ -134,10 +135,10 @@ Regular hits on busses 52, 53 and 54
   ~simplePlayer.play;
   ~newSimplePlayer = Pbind(*[
     instrument: \snare,
-    freq: 60,
-    out: 53,
-    gain: 0,
-    vol: 0.0,
+    freq: 80,
+    out: ~signalBus + 1,
+    gain: 0.8,
+    vol: 0.9,
     dur: 2
   ]);
   ~newSimplePlayer.play;
@@ -149,7 +150,7 @@ Regular hits on busses 52, 53 and 54
     vol: 0.0,
     dur: 0.3
   ]);
-  ~simplePlayer3.play;
+  //  ~simplePlayer3.play;
 #+end_src
 
 Regular hits
@@ -197,7 +198,7 @@ Regular hits
     vol: 0.9,
     dur: 5
   ]);
-  ~simplePlayer.play;
+//  ~simplePlayer.play;
   ~newSimplePlayer = Pbind(*[
     instrument: \snare,
     freq: 60,
@@ -537,14 +538,18 @@ Start server
 #+call: scl_encode()
 #+call: play()
 #+call: scl_connect()
+#+call: reverb_ndef()
+#+call: reverb_specs()
+#+call: reverb_ambi()
+#+call: connect_reverb()
 
 Start instances
 #+begin_src sclang :results none :noweb yes
   (
-  <<scl_encode>>
   <<original_snare>>
+  <<scl_encode>>
+  <<play>>
   <<scl_connect>>
-  <<play()>>
   )
 #+end_src
 
@@ -577,7 +582,7 @@ Set the environment variables, then, create the encoder and the decoder.
 #+begin_src sclang :results none :noweb yes  :tangle spatme.sc
   // Settings
   ~signalBus = 52;
-  ~reverbFeed = ~signalBus;
+  ~reverbFeed = 62;
   ~reverbChan = 63;
   ~order = 3;
   ~binaural = 0;
@@ -629,14 +634,10 @@ Set the environment variables, then, create the encoder and the decoder.
     scale = ControlSpec(0, 1, \lin).map(ctrl);
     In.ar(~reverbFeed) * scale;
   };
-  ~reverbSend.play(~reverbChan, 1);
+//  ~reverbSend.play(, 1);
 
   /* Create windows for panning */
   ~windows = Environment(know: true);
-
-  // With phasor
-  // trig = Impulse.kr(0.001);
-  //~azimuthA.source = { LinLin.kr(Phasor.kr(Impulse.kr(0.5), 0.5/ControlRate.ir), 0, 1, 0, 360); };
 
   // Load the decoder:
   ~decoder = NodeProxy.new(s, \audio, ~decoderNumChannels);
@@ -741,8 +742,9 @@ Generic window to be filled with content
 #+begin_src sclang :results none :noweb yes
   <<gui_object>>
   ~guiWindow = Window.new.front;
-  ~windOne = ~addGuiElements.value(~guiWindow, "HOAEncoder 1", 0);
-  ~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 300, \azpanb, \elpanb, \radb, \revb);
+  ~windOne = ~addGuiElements.value(~guiWindow, "HOAEncoder 1", 0, ~hoaSignal[0]);
+  ~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 300, ~hoaSignal[1], \azpanb, \elpanb, \radb);
+  ~windRev = ~addGuiElements.value(~guiWindow, "HOAEncoder Reverb", 600, \azpanr, \elpanr, \radr);
 #+end_src
 
 The gui funtion for adding an object for panning. Pass the parameters to be controlled as arguments.
@@ -757,7 +759,7 @@ The arguments are:
 8. The name of the ~Ndef(\reverb)~ reverb volume parameter
 #+name: gui_object
 #+begin_src sclang :results none :noweb yes :tangle test.sc
-  ~addGuiElements = { arg window, name = "default", offset = 0, xParam = \azpana, yParam = \elpana, zParam = \rada, revSend = \reva, rVol=\revVol;
+  ~addGuiElements = { arg window, name = "default", offset = 0, xParam = \azpana, yParam = \elpana, zParam = \rada, rVol=\revVol;
     var text, dNum, eNum, fNum, rNum, sNum, aSlid, bSlid, cSlid, revVol, csX, csY, csZ, rSend, vol, rv, revScale, distanceAuto;
 
     <<distance_function_clock>>
@@ -800,7 +802,7 @@ The arguments are:
           fNum.value_(csZ.map(cSlid.value));
           sNum.value_(rSend.map(cSlid.value));
           ~hoaSignal.set(zParam, (csZ.map(cSlid.value)));
-          ~reverbSend.set(revSend, (rSend.map(cSlid.value)));
+          ~reverbSend.set(\reva, (rSend.map(cSlid.value)));
           tempRevVol = rv.map(cSlid.value) * sNum.value();
           rNum.value_(tempRevVol);
           Ndef(\reverb).set(tempRevVol);
@@ -863,13 +865,8 @@ Here, the ~~reverbSend~ is connected to the [[reverb_ndef][\reverb Ndef.]]
 #+begin_src sclang :results none
   ~decoder.play(0, ~decoderNumChannels, vol: 1.0);
   ~hoaSignal <>> ~decoder;
-  ~reverbSend <>> Ndef(\reverb);
 //  ~reverbEncoder <>> ~decoder;
   //  Ndef(\NdefR) <>> ~decoder;
-#+end_src
-
-#+begin_src sclang :results none
-  ~reverbEncoder <>> ~decoder;
 #+end_src
       
 Clear the instances
@@ -976,11 +973,11 @@ Reverb settings
 #+end_src
 
 Load the reverb. The send to the reverb is [[scl_connect][connected here]].
-The reverb is [[reverb_ambi][encoded here]] (and decoded)
+The reverb is [[reverb_ambi][encoded here]] (and decoded). Now using channel 63 as send bus.
 #+name: reverb_ndef
 #+begin_src sclang :results none
   Ndef(\reverb, {
-    var src; src = \in.ar(0!2) * \amp.kr(1);
+    var src; src = \in.ar(0!1) * \amp.kr(1);
     src = JPverb.ar(
           src,
           \t60.kr(1,           0.05),
@@ -999,6 +996,9 @@ The reverb is [[reverb_ambi][encoded here]] (and decoded)
 #+end_src
 
 #+begin_src sclang :results none
+  Ndef(\reverb).gui;
+#+end_src
+#+begin_src sclang :results none
   Ndef(\reverb).set(\revVol, 8);
 #+end_src
 
@@ -1016,7 +1016,6 @@ This is a temporary solution. The reverb should be decoded through main decoder.
   ~reverbEncoder.source = {
     var in; in = \in.ar(0!2);	
     HOAEncoder.ar(~order,
-          //          In.ar(61),
           in,
           \azpanr.kr(0),
           \elpanr.kr(0),
@@ -1035,7 +1034,6 @@ This is a temporary solution. The reverb should be decoded through main decoder.
   };
   ~revDecoder.play();
   ~reverbEncoder.play();
-  ~revDecoder <<> ~reverbEncoder;
 #+end_src
 
 #+begin_src sclang :results none
@@ -1051,15 +1049,14 @@ This is a temporary solution. The reverb should be decoded through main decoder.
   }).mold(16);
 #+end_src
 
-Connect the source to the reverb.
+Connect the sources to the reverb and out.
 #+name: connect_reverb
 #+begin_src sclang :results none :noweb yes
   <<reverb_setting>>
   Ndef(\reverb).fadeTime = 1;
-  Ndef(\reverb).play(61);
-  // Change the above to the below later
+  Ndef(\reverb) <<> ~reverbSend;
   ~reverbEncoder <<> Ndef(\reverb);
-  // ~decoder.add(~reverbEncoder)
+  ~revDecoder <<> ~reverbEncoder;
 #+end_src
 
 Connect the reverb to a simple panner.

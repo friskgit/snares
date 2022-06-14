@@ -35,6 +35,7 @@ Query for node tree
 
 #+begin_src sclang :results none
   s.makeGui(p);
+  s.meter;
 #+end_src
 
 #+begin_src sclang :results none
