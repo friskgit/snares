@@ -85,11 +85,12 @@ Global variables and semaphhores
   /* Which space? */
   ~space = 0;
   /* Fundamental frequency */
-  ~fundamental = 261.1;
+  ~fundamental = 1;
+  //  ~fundamental = 261.1;
   /* Mode of synthesis */
-  ~mode = \dual;
+  ~mode = \harmony;
   /* Amplitude mode */
-  ~ampMode = \full;
+  ~ampMode = \linear;
   ~baseAmplitude = 0.4;
   /* The general level of loggging */
   ~logging = 2;
@@ -117,7 +118,7 @@ Global variables and semaphhores
   "Global variables loaded.".postln;
   ~separator.postln;
 
-  ~setRunningVariables = { |fund=1, mode=\harmony, ampMode=\default, synthMode=\snare, scaleIndex, bAmp=0.3|
+  ~setRunningVariables = { |fund=2, mode=\harmony, ampMode=\default, synthMode=\snare, scaleIndex, bAmp=0.3|
 
     ~fundamental = fund; 
     ~mode = mode;
@@ -215,7 +216,7 @@ First iteration of breakBeat
 #+end_src
 
 #+begin_src sclang :results none
-  ~setAllSynths.value(\rel, 0.2);
+  ~setAllSynths.value(\freq, 200);
 #+end_src
 
 #+begin_src sclang :results none
@@ -247,9 +248,9 @@ Main snare synth. The pulse parameter is controlled by the ~pulse_bus~
 
 #+begin_src sclang :results none
   b = Bus.control(s,1).set(10);
-  c = Synth.new(\p_snare, [\freq, [100, 800]]);
+  c = Synth.new(\p_snare, [\freq, [40, 100]]);
   c.map(\pulse, b);
-  b.set(400);
+  b.set(10);
   b.get.postln;
 #+end_src
 
@@ -325,10 +326,10 @@ Called by [[*generate harmonics][generate harmonics]].
     var bFrq1, bFrq2, bFade, bNoise, bLength, bRelease, breakSynthSettings = \default;
 
     "Fundamental is ".post; fund.postln;
-
+    "Sel is ".post; sel.postln;
     /* Fill arrays for pitches */
     harmonics = Array.fill(32, { arg i; (i)*fund; });
-
+    harmonics.postln;
     /* Fill arrays for amplitudes */
     switch(ampMode,
           \default, {amp = Array.fill(32, { arg i; 1/(i+1) * ampScale; }); },
@@ -425,6 +426,7 @@ Called by [[*generate harmonics][generate harmonics]].
                           },
                           { }); //if
                     ~synths.add( synth ); // synths.add
+                    "synth size: ".post; ~synths.size.postln; "-----------------".postln
                   }, //if true
                   {  }); // false, end
             delta.wait;
@@ -437,7 +439,7 @@ Called by [[*generate harmonics][generate harmonics]].
 End of harmonics.
 
 #+begin_src sclang :results none
-  ~synths[0].size.postln;
+  ~synths.size.postln;
 #+end_src
 
 Unused function to map frequency to noise level
@@ -571,17 +573,19 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
 #+name: generate_harmonics
 #+begin_src sclang :results none :noweb yes :tangle harmony.sc
   var select, task,
-  mode = ~mode,
+  mode = \quart,
   ampMode = ~ampMode,
   synthesis = ~synthMode;
   <<global_variables>>
   <<harmonics>>
 
+  "Mode is ".post; mode.postln;
+
   switch(mode,
     /* 15 partials */
     \harmony, {
-          select = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
-          ~spatPositions = [0,1,5,6,3,2,7,4,9,11,8,10,12,13,14];
+          select = [1,2,3,4,5,6,7,8,9,11,13,14,15];
+          ~spatPositions = [0,1,5,6,3,2,7,4,9,11,8,10,12];
           "Full mode".postln;		
     },
     \odd, {
@@ -595,12 +599,12 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
           "Single mode".postln;		
     },
     \quart, {
-          select = [2,3,5,7];
+          select = [5,6,7,8];
           ~spatPositions = [0,4,10,12];
           "Quart mode".postln;		
     },
     \dual, {
-          select = [81,64];
+          select = [7, 8];
           ~spatPositions = [0,1];
           "Dual mode".postln;	
     },
@@ -640,7 +644,7 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
           });	  
     },
     {
-          "we are here now".postln;
+          //          "we are here now".postln;
           if(select.size == ~spatPositions.size,
             {
                   if(~allRings.size >= ~spatPositions.size,
@@ -763,6 +767,11 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
     ~setSpatPositions.value([[2, 1, 0], [4, 1, 0]], time);
   };
   frontDry.value(30);
+#+end_src
+
+#+begin_src sclang :results none
+  ~modulateSpeed.value(0.5, 10, 10, \ratio, [80,54]);
+  ~setSpatPositions.value([[12, 1, 0.1], [9, 1, 0.1]], 10);
 #+end_src
 
 #+begin_src sclang :results none
@@ -1052,18 +1061,28 @@ Gradually increase parameter in all synths using [[set_all_synths][set_all_synth
 #+end_src
 
 #+begin_src sclang :results none
+  ~setSynthsInterpol.value((0.0001..0.1), 10, \rel);
+#+end_src
+
+#+begin_src sclang :results none
   ~setSynthsInterpol.value((150..10), 1, \trifrq); 
+#+end_src
+
+#+name: synth_frequency
+#+begin_src sclang :results none
+  ~setAllSynths.value(\freq2, 40);
 #+end_src
 
 #+name: synth_release_harmony
 #+begin_src sclang :results none
-  ~setAllSynths.value(\rel, 0.01);
+  ~setAllSynths.value(\gain, 1.0);
 #+end_src
 
 #+begin_src sclang :results none
   ~setAllSynths = { arg param = \noiseScale, value = 0;
     ~synths.do({ arg obj, i;
           obj.set(param, value);
+          "synth ".post; i.postln;
     });
   };
 #+end_src
@@ -1073,12 +1092,12 @@ Gradually increase parameter in all synths using [[set_all_synths][set_all_synth
 #+end_src
 
 #+begin_src sclang :results none
-  ~setAllSynths.value(\gain, 1.0);
+  ~setAllSynths.value(\rel, 0.01);
 #+end_src
 
 Set one synths parameter x.
 #+begin_src sclang :results none
-~setSynth.value(1, \gain, 1);
+~setSynth.value(1, \rel, 0.1);
 #+end_src
 
 ** ambisonics
@@ -1124,21 +1143,6 @@ Call this to set each ~~audioBus~ to a fraction of the space.
     ~updatePanningAmbiSingle.value(i, caz, cel, 0, 20) 
 //    ~controlBus[i].setn([caz, cel, 0]);
   });
-#+end_src
-
-Using Pfunc to set the spatialisation randomly
-BROKEN
-#+name: 
-#+begin_src sclang :results none
-  x = Pfunc({ |inval|
-    var az, el, bus;
-    el = 1;
-    az = (pi / 16) * (1..32).choose;
-    bus = ~controlBus[inval].index;
-    ~updatePanningAmbiSingle.value(inval-1, az, el, 1, 20) }).asStream;
-  (1..~audioBusses.size).do {
-  |i| x.next(i);
-  };
 #+end_src
 
 #+begin_src sclang :results none
@@ -1314,7 +1318,7 @@ The functions controlling panning are here: [[inter_pan][inter_pan]].
           Ndef(o, {
             var src;
             src = In.ar(bus) * In.kr(n.index + 2) * \revScaleI.kr(0.4);
-            src = src * (revMap.map(In.kr(n.index + 2) + 1) * \revScaleii.kr(0.4));
+            src = src * (revMap.map(In.kr(n.index + 2) + 1) * \revScaleII.kr(0.4));
             Out.ar(~reverbSendBus.index, src)
           });
     );
@@ -1359,7 +1363,7 @@ Function to start and stop individual nodes
 
 Set the reverb
 #+begin_src sclang :results none
-  var setMe = 0.62;
+  var setMe = 0.8;
   ~reverbSendNdefs[0].set(\revScaleI, setMe);
   ~reverbSendNdefs[0].set(\revScaleII, setMe);
   ~reverbSendNdefs[1].set(\revScaleI, setMe);
@@ -1379,8 +1383,9 @@ Set individual controlbusses
 Control individual synths pulse.
 #+begin_src sclang :results none
   var pulse = 10, synth = 0;
-  ~synths[synth].se(\pulse, 20);
+  //  ~synths[synth].set(\pulse, 2);
   ~synths[synth].get(\pulse, {arg item; item.postln; });
+  ~synths.size.postln;
 #+end_src
 
 Set all synths parameter to a value.
@@ -1480,7 +1485,7 @@ Loads necesary auxilliary functions and copies over the positions according to t
 
 Bring forward in one angle
 #+begin_src sclang :results none
-  ~setSpatPositions.value([ [9, 1, 1 ] ], 1, 90);
+  ~setSpatPositions.value([ [2, 1, 1 ] ], 1, 10);
   // ~spatializations[0].postln;
   //~controlBus[1].scope;
 #+end_src
@@ -1512,7 +1517,7 @@ Use this to re-initialize the spatialisations array.
 
 Call the update panning function setting the current panning to the setting of the ~~spatializations~ vector.
 #+begin_src sclang :results none
-  ~updatePanning.value(5);
+  ~updatePanning.value(1);
 #+end_src
 
 #+name: modulate_spat_synth
@@ -1651,7 +1656,7 @@ Call the function getIt to retrieve the current values of the three ~~controlBus
     "Spread (0-100): ".post;
     ~controlBus[instance].getnSynchronous(4)[3].postln;
   };
-  getIt.value(0);
+  getIt.value(1);
 #+end_src
 
 #+begin_src sclang :results none
@@ -1666,7 +1671,7 @@ Fade in 15 channels
 
 Fade out.
 #+begin_src sclang :results none
-  ~setSpatPositions.value([ [ 1, 1, 1 ], [ 0, 1, 1 ] ], 20);
+  ~setSpatPositions.value([ [ 1, 1, 1 ], [ 0, 1, 1 ] ], 10);
 #+end_src
 
 Bring forward in one angle
@@ -1759,7 +1764,7 @@ Init
 #+end_src
 
 #+begin_src sclang :results none
-  var setMe = 0.5;
+  var setMe = 0.9;
   ~reverbSendNdefs[0].set(\revScaleI, setMe);
   ~reverbSendNdefs[0].set(\revScaleII, setMe);
   ~reverbSendNdefs[1].set(\revScaleI, setMe);
@@ -1773,6 +1778,7 @@ Init
   ~setSpatPositions.value();
   ~setSpatialization.value(\sine, 10);
 #+end_src
+
 #+begin_src sclang :results none
   ~spatializations.at(0).size.postln;
   ~allRings.size.postln;

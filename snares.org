@@ -34,6 +34,10 @@ Query for node tree
 #+end_src
 
 #+begin_src sclang :results none
+  s.makeGui(p);
+#+end_src
+
+#+begin_src sclang :results none
   s.quit;
 #+end_src
 ** jack
@@ -75,6 +79,208 @@ connect supercollider to jconvolver
   ~/bin/scripts/jcon Super out jcon in 30
   ~/bin/scripts/jcon jcon out system play 3
 #+end_src
+
+#+RESULTS: connect_sc-jcon-out
+| HHHHHHHHHHHHHHHHHHHH   |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_1\n  |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_2\n  |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_3\n  |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_4\n  |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_5\n  |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_6\n  |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_7\n  |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_8\n  |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_9\n  |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_10\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_11\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_12\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_13\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_14\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_15\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_16\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_17\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_18\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_19\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_20\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_21\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_22\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_23\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_24\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_25\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_26\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_27\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_28\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_29\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_30\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_31\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_32\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_33\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_34\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_35\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_36\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_37\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_38\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_39\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_40\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_41\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_42\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_43\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_44\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_45\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_46\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_47\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_48\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_49\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_50\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_51\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_52\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_53\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_54\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_55\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_56\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_57\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_58\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_59\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_60\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_61\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_62\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_63\n |                      |    |                   |
+| This:                  |                      |    |                   |
+| SuperCollider:out_64\n |                      |    |                   |
+| jconvolver:in_0        |                      |    |                   |
+| Connecting             | SuperCollider:out_0  | to | jconvolver:in_0   |
+| jconvolver:in_1        |                      |    |                   |
+| Connecting             | SuperCollider:out_1  | to | jconvolver:in_1   |
+| jconvolver:in_2        |                      |    |                   |
+| Connecting             | SuperCollider:out_2  | to | jconvolver:in_2   |
+| jconvolver:in_3        |                      |    |                   |
+| Connecting             | SuperCollider:out_3  | to | jconvolver:in_3   |
+| jconvolver:in_4        |                      |    |                   |
+| Connecting             | SuperCollider:out_4  | to | jconvolver:in_4   |
+| jconvolver:in_5        |                      |    |                   |
+| Connecting             | SuperCollider:out_5  | to | jconvolver:in_5   |
+| jconvolver:in_6        |                      |    |                   |
+| Connecting             | SuperCollider:out_6  | to | jconvolver:in_6   |
+| jconvolver:in_7        |                      |    |                   |
+| Connecting             | SuperCollider:out_7  | to | jconvolver:in_7   |
+| jconvolver:in_8        |                      |    |                   |
+| Connecting             | SuperCollider:out_8  | to | jconvolver:in_8   |
+| jconvolver:in_9        |                      |    |                   |
+| Connecting             | SuperCollider:out_9  | to | jconvolver:in_9   |
+| jconvolver:in_10       |                      |    |                   |
+| Connecting             | SuperCollider:out_10 | to | jconvolver:in_10  |
+| jconvolver:in_11       |                      |    |                   |
+| Connecting             | SuperCollider:out_11 | to | jconvolver:in_11  |
+| jconvolver:in_12       |                      |    |                   |
+| Connecting             | SuperCollider:out_12 | to | jconvolver:in_12  |
+| jconvolver:in_13       |                      |    |                   |
+| Connecting             | SuperCollider:out_13 | to | jconvolver:in_13  |
+| jconvolver:in_14       |                      |    |                   |
+| Connecting             | SuperCollider:out_14 | to | jconvolver:in_14  |
+| jconvolver:in_15       |                      |    |                   |
+| Connecting             | SuperCollider:out_15 | to | jconvolver:in_15  |
+| jconvolver:in_16       |                      |    |                   |
+| Connecting             | SuperCollider:out_16 | to | jconvolver:in_16  |
+| jconvolver:in_17       |                      |    |                   |
+| Connecting             | SuperCollider:out_17 | to | jconvolver:in_17  |
+| jconvolver:in_18       |                      |    |                   |
+| Connecting             | SuperCollider:out_18 | to | jconvolver:in_18  |
+| jconvolver:in_19       |                      |    |                   |
+| Connecting             | SuperCollider:out_19 | to | jconvolver:in_19  |
+| jconvolver:in_20       |                      |    |                   |
+| Connecting             | SuperCollider:out_20 | to | jconvolver:in_20  |
+| jconvolver:in_21       |                      |    |                   |
+| Connecting             | SuperCollider:out_21 | to | jconvolver:in_21  |
+| jconvolver:in_22       |                      |    |                   |
+| Connecting             | SuperCollider:out_22 | to | jconvolver:in_22  |
+| jconvolver:in_23       |                      |    |                   |
+| Connecting             | SuperCollider:out_23 | to | jconvolver:in_23  |
+| jconvolver:in_24       |                      |    |                   |
+| Connecting             | SuperCollider:out_24 | to | jconvolver:in_24  |
+| jconvolver:in_25       |                      |    |                   |
+| Connecting             | SuperCollider:out_25 | to | jconvolver:in_25  |
+| jconvolver:in_26       |                      |    |                   |
+| Connecting             | SuperCollider:out_26 | to | jconvolver:in_26  |
+| jconvolver:in_27       |                      |    |                   |
+| Connecting             | SuperCollider:out_27 | to | jconvolver:in_27  |
+| jconvolver:in_28       |                      |    |                   |
+| Connecting             | SuperCollider:out_28 | to | jconvolver:in_28  |
+| jconvolver:in_29       |                      |    |                   |
+| Connecting             | SuperCollider:out_29 | to | jconvolver:in_29  |
+| HHHHHHHHHHHHHHHHHHHH   |                      |    |                   |
+| This:                  |                      |    |                   |
+| jconvolver:out_1\n     |                      |    |                   |
+| This:                  |                      |    |                   |
+| jconvolver:out_2\n     |                      |    |                   |
+| system:playback_0      |                      |    |                   |
+| Connecting             | jconvolver:out_0     | to | system:playback_0 |
+| system:playback_1      |                      |    |                   |
+| Connecting             | jconvolver:out_1     | to | system:playback_1 |
+| system:playback_2      |                      |    |                   |
+| Connecting             | jconvolver:out_2     | to | system:playback_2 |
 
 #+RESULTS:
 
@@ -3257,7 +3463,7 @@ Attempt to make a complete beat with variation.
   ),
   2, ~loop_bass_dr_1,
   2.75, ~loop_bass_dr_2,
-  3, Pn(
+  3, NP(
   ~loop_snare_3
   ),
   4.5, ~loop_bass_dr_1,
@@ -4798,7 +5004,6 @@ Set parameters
 
 
     
-
 
            
 ** testing

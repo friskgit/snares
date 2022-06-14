@@ -9,3 +9,6 @@ faust/snare/cpp
 /generic_pbind.scm
 /sclang_output.sc
 /audio
+*.bu
+/test.org
+/#test.org#

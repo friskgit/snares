@@ -1,0 +1,4 @@
+2021-07-18  Henrik Frisk  <mail@henrikfrisk.com>
+
+	* snares.org (harmonics function): Adding switch clause for the synth.
+

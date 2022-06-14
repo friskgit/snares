@@ -622,10 +622,11 @@ Set the environment variables, then, create the encoder and the decoder.
     It's volume is controlled by the parameter \reva which is mapped to
     revSend in the GUI object.
   ,*/
-  ~reverbSend.source = { arg scale;
+  ~reverbSend.source = { arg scale, ctrl;
     //    var in = \in.ar(~reverbChan);
     //  in = in * \reva.kr(0);
-    scale = ControlSpec(0, 1, \lin).map(\reva.kr(0) / 20);
+    ctrl = \reva.kr(0) / 20;
+    scale = ControlSpec(0, 1, \lin).map(ctrl);
     In.ar(~reverbFeed) * scale;
   };
   ~reverbSend.play(~reverbChan, 1);
@@ -699,36 +700,18 @@ Set the environment variables, then, create the encoder and the decoder.
     });
 #+end_src
 
-#+name: distance_function
-#+begin_src sclang :results none
-  var distanceFunc = { arg size, dir, time;
-    var rout = Routine {
-          size.do({ arg val, wait;
-            if(dir == 0, {
-                  val = val / size;
-                  val = val - 1;
-                  val = val.abs;  
-            }, {
-                  val = val / size;		  
-            });		  
-            val.postln;		
-            ~hoaSignal.set(zParam, (csZ.map(val)));
-            ~reverbSend.set(revSend, (rSend.map(val)));
-            wait = time / size;   
-            wait.wait;
-          });
-          "done".postln;
-    }.play;
-  };
-  //  distanceFunc.value(100, 1, 10);
-#+end_src
+Function to generate a line between 0 and ~size~ in ~time~ seconds to contyrol a slider.
+If ~dir~ is 1 the function counts from 0 and up, if it is 0 it counts from ~size~ to 0.
 
-
+Arguments:
+- ~size~ Size of the counter
+- ~dir~ Direction
+- ~time~ Time
+- ~obj~ The gui object to control
 #+name: distance_function_clock
 #+begin_src sclang :results none
-  var distanceFunc = { arg size, dir, time;
+  var distanceFunc = { arg size, dir, time, obj;
     var rout = Routine({arg appClockTime;
-          "hej".postln;
           size.do({ arg val, wait;
             if(dir == 0, {
                   val = val / size;
@@ -740,7 +723,7 @@ Set the environment variables, then, create the encoder and the decoder.
             wait = time / size;   
             wait.yield;
             val.postln;
-            cSlid.valueAction_(val);
+            obj.valueAction_(val);
           });
           "done".postln;
     });
@@ -834,10 +817,10 @@ The arguments are:
     ])
     .action_({ arg butt, revC, rout;
           if(butt.value == 1, {
-            distanceFunc.value(200, 1, 10);	  
+            distanceFunc.value(200, 1, 10, cSlid);	  
           }, {
-            distanceFunc.value(200, 0, 10);	  	  
-            butt.value.postln;
+            distanceFunc.value(200, 0, 10, cSlid);	  	  
+//            butt.value.postln;
           });
     });
   };
