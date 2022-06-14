@@ -102,7 +102,7 @@ Make a simple snare for testing
     var env = Env([0, 1, 0], [0.0001, \length.ir(0.5)]);
     var imp = Impulse.ar(\impf.ir(1), 0.0, 0.5, 0);
     var frq1=\freq.kr(300), frq2=frq1-100;
-    snd = OGenericSnarefs.ar(imp, 0.00001, 0.001, \noiselvl.kr(0.1), \nrel.ir(0.1), frq1, frq2, \rel.ir(0.1), \trifrq.kr(111)) * EnvGen.kr(env, doneAction: Done.freeSelf);
+    snd = OGenericSnarefs.ar(imp, 0.00001, 0.001, \noiselvl.kr(0.0), \nrel.ir(0.1), frq1, frq2, \rel.ir(0.1), \trifrq.kr(200)) * EnvGen.kr(env, doneAction: Done.freeSelf);
     Out.ar(\out.kr(0), snd*\gain.ir(1));
     Out.ar(\revSend.kr(62), snd);
   }).add;
@@ -120,9 +120,6 @@ Example: Run the one hit synth above and load the meter
   <<sc_meter>>
 #+end_src      
 
-#+begin_src sclang :results none
-  ~simplePlayer.stop;
-#+end_src
 Regular hits on busses 52, 53 and 54
 dur on
 - 81/80: 0.01234567 / 0.0125
@@ -132,7 +129,8 @@ dur on
   ~signalBus = 52;
   ~simplePlayer = Pbind(*[
     instrument: \snare,
-    freq: 81,
+    freq: Prand([261.6, 264.87, 267.87844], inf),
+    noiselvl: Pfunc({0.005.rand}),
     out: ~signalBus,
     gain: 0.6,
     vol: 0.9,
@@ -707,7 +705,7 @@ Set the environment variables, then, create the encoder and the decoder.
     });
 #+end_src
 
-Function to generate a line between 0 and ~size~ in ~time~ seconds to contyrol a slider.
+Helper function for GUI. Function to generate a line between 0 and ~size~ in ~time~ seconds to contyrol a slider.
 If ~dir~ is 1 the function counts from 0 and up, if it is 0 it counts from ~size~ to 0.
 
 Arguments:
@@ -717,7 +715,7 @@ Arguments:
 - ~obj~ The gui object to control
 #+name: distance_function_clock
 #+begin_src sclang :results none
-  var distanceFunc = { arg size, dir, time, obj;
+  ~distanceFunc = { arg size, dir, time, obj;
     var rout = Routine({arg appClockTime;
           size.do({ arg val, wait;
             if(dir == 0, {
@@ -735,8 +733,45 @@ Arguments:
           "done".postln;
     });
     AppClock.play(rout);
+    rout;  
   };
-//  distanceFunc.value(100, 1, 10);
+  //  distanceFunc.value(100, 1, 10);
+#+end_src
+
+Helper function for GUI. Helper function for GUI. Function to generate a line between -~range~ and ~range~ in ~time~ seconds to control a slider.
+If ~dir~ is 1 the function counts from 0 and up, if it is 0 it counts from ~range~ to -~range~.
+
+Arguments:
+- ~size~ Size of the counter
+- ~range~ Range of data
+- ~dir~ Direction
+- ~time~ Time
+- ~obj~ The gui object to control
+#+name: azimuth_function_clock
+#+begin_src sclang :results none
+  ~azimuthFunc = { arg size, range, dir, time, obj;
+    var rout = Routine({arg appClockTime;
+          size.do({ arg val, wait;
+            if(dir == 0, {
+                  val = val / size;
+                  val = val - 1;
+                  val = val.abs;
+                  //                  val = (val * range) - (range / 2);
+            }, {
+                  val = val / size;
+                  //                  val = (val * range) - (range / 2);
+            });
+            wait = time / size;   
+            wait.yield;
+            val.postln;
+            obj.valueAction_(val);
+          });
+          "done".postln;
+    });
+    AppClock.play(rout);
+    rout;  
+  };
+  //~azimuthFunc.value(100, 2*pi, 1, 10);
 #+end_src
 
 #+begin_src sclang :results none
@@ -746,7 +781,10 @@ Arguments:
 Generic window to be filled with content
 #+name: load_window
 #+begin_src sclang :results none :noweb yes
+//var azimuthFunc, distanceFunc;
   <<gui_object>>
+//  <<distance_function_clock()>>
+//  <<azimuth_function_clock()>>
   ~guiWindow = Window.new.front;
   ~windOne = ~addGuiElements.value(~guiWindow, "HOAEncoder 1", 0, ~hoaSignal);
   ~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 300, ~hoaSignal, \azpanb, \elpanb, \radb);
@@ -766,7 +804,7 @@ The arguments are:
 #+name: gui_object
 #+begin_src sclang :results none :noweb yes :tangle test.sc
   ~addGuiElements = { arg window, name = "default", offset = 0, obj, xParam = \azpana, yParam = \elpana, zParam = \rada, rVol=\revVol;
-    var text, dNum, eNum, fNum, rNum, sNum, aSlid, bSlid, cSlid, revVol, csX, csY, csZ, rSend, vol, rv, revScale, distanceAuto, panAuto;
+    var text, dNum, eNum, fNum, rNum, sNum, aSlid, bSlid, cSlid, revVol, csX, csY, csZ, rSend, vol, rv, revScale, distanceAuto, panAuto, eleAuto, stopRoutine, stopAll;
 
     <<distance_function_clock>>
     text = StaticText(window, Rect(20+offset, 20, 200, 20));
@@ -779,7 +817,9 @@ The arguments are:
     bSlid = Slider(window, Rect(20+offset, 90, 20, 150));
     cSlid = Slider(window, Rect(40+offset, 220, 150, 20));
     distanceAuto = Button(window, Rect(50+offset, 190, 20, 20));
-    panAuto = Button(window, Rect(70+offset, 190, 20, 20));    
+    panAuto = Button(window, Rect(70+offset, 190, 20, 20));
+    eleAuto = Button(window, Rect(90+offset, 190, 20, 20));
+    stopAll = Button(window, Rect(130+offset, 190, 20, 20));
     revVol = Slider(window, Rect(40+offset, 260, 150, 20));
     text.string = name;
     csX = ControlSpec(pi, -pi, \linear, 0.001, 0);
@@ -824,11 +864,11 @@ The arguments are:
           ["p", Color.black, Color.white],
           ["r", Color.white, Color.black],
     ])
-    .action_({ arg butt, revC, rout;
+    .action_({ arg butt;
           if(butt.value == 1, {
-            distanceFunc.value(200, 1, 10, cSlid);	  
+            stopRoutine = ~distanceFunc.value(200, 1, 10, cSlid);	  
           }, {
-            distanceFunc.value(200, 0, 10, cSlid);	  	  
+            stopRoutine = ~distanceFunc.value(200, 0, 10, cSlid);	  	  
             //            butt.value.postln;
           });
     });
@@ -837,12 +877,37 @@ The arguments are:
           ["l", Color.black, Color.white],
           ["r", Color.white, Color.black],
     ])
-    .action_({ arg butt, revC, rout;
+    .action_({ arg butt;
           if(butt.value == 1, {
-            distanceFunc.value(200, 1, 10, cSlid);	  
+            stopRoutine = ~azimuthFunc.value(200, 2*pi, 1, 20, aSlid);	  
           }, {
-            distanceFunc.value(200, 0, 10, cSlid);	  	  
-            //            butt.value.postln;
+            stopRoutine = ~azimuthFunc.value(200, 2*pi, 0, 20, aSlid);	  	  
+            butt.value.postln;
+          });
+    });
+
+    eleAuto.states_([
+          ["u", Color.black, Color.white],
+          ["d", Color.white, Color.black],
+    ])
+    .action_({ arg butt;
+          if(butt.value == 1, {
+            stopRoutine = ~azimuthFunc.value(200, pi, 1, 20, bSlid);	  
+          }, {
+            stopRoutine = ~azimuthFunc.value(200, pi, 0, 20, bSlid);	  	  
+            butt.value.postln;
+          });
+    });
+    stopAll.states_([
+          ["s", Color.black, Color.white],
+          ["r", Color.white, Color.black],
+    ])
+    .action_({ arg butt;
+          if(butt.value == 1, {
+            stopRoutine.stop;
+            stopAll.value = 0;	  
+          }, {
+            butt.value.postln;
           });
     });
   };

@@ -88,6 +88,26 @@ Get the spatialisation positions from the table.
   (format #t "~a" "]")
 #+end_src
 
+#+RESULTS: generate_scale_positions
+#+begin_src sclang
+[[261.6, 0], [264.87, 0], [267.87844, 0], [282.52807, 0], [294.3, 0], [326.99987, 0], [331.0875, 0], [387.5554, 0], [392.4, 0], [465.06667, 0], [490.50036, 0], ]
+#+end_src
+
+Get a list of frequencies from the table.
+#+name: generate_frequencies
+#+begin_src scheme :var angles=snares_pitches[3:13,9] :results output raw :exports code :wrap "src sclang"
+  (format #t "~a" "[")
+  (map
+     (lambda (x)
+       (format #t "~a, " x)) angles)
+  (format #t "~a" "]")
+#+end_src
+
+#+RESULTS: generate_frequencies
+#+begin_src sclang
+[261.6, 264.87, 267.87844, 282.52807, 294.3, 326.99987, 331.0875, 387.5554, 392.4, 465.06667, 490.50036, ]
+#+end_src
+
 Get fractions from the ratios.
 #+begin_src scheme :var fraction=snares_pitches[3:14,3] :results output raw :exports code :wrap "src sclang"
   (format #t "~a" "[")
@@ -275,3 +295,108 @@ Example for how to use the array of tempos to control the playback of a bass dru
 [[file:spat_examples.org::play][spat_examples: play]]
 *** speed
 - 27/25: 0.037037 / 0.04
+- 
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220614_1517.wav
+:END:
+[[file:spat_examples.org::load_window][spat_examples: load_window]]
+*** speed
+As mentioned in [[*Section A][Section A]], this snare is beating at 65.4 and moving from back to front
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220614_1541.wav
+:END:
+Mainly using this Pbind for a steady pulse.
+#+begin_src sclang :results none
+#+begin_src sclang :results none :noweb yes
+  ~signalBus = 52;
+  ~simplePlayer = Pbind(*[
+    instrument: \snare,
+    freq: Prand([261.6, 264.87, 267.87844], inf),
+    noiselvl: Pfunc({0.005.rand}),
+    out: ~signalBus,
+    gain: 0.6,
+    vol: 0.9,
+    dur: 0.917431192661
+  ]);
+  ~simplePlayer.play;
+#+end_src
+*** spat
+Moving back and forth and pannning left channel from left to right and at the end both channels up.
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220614_1603.wav
+:END:
+[[file:snares_harmony.org::global_variables][snares_harmony: global_variables]]
+
+*** pitch degree 0
+261.6
+
+*** synthesis
+[[file:snares_harmony.org::synth_frequency][synth_frequency]]
+#+begin_src sclang :results none
+  ~setAllSynths.value(\freq2, 261.4);
+  ~setAllSynths.value(\freq, 130.8);
+  ~setAllSynths.value(\rel, 0.001);
+#+end_src
+
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220614_1618.wav
+:END:
+*** pitch degree 1
+fading in to the root frequency:
+#+begin_src sclang :results none
+  ~setSynthsInterpol.value((100..264.87), 0.5, \freq);
+  ~setSynthsInterpol.value((260..132.45), 0.5, \freq2);
+#+end_src
+changing the release value.
+*** spat
+fading back and forth from center.
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220614_1637.wav
+:END:
+\single 
+*** pitch degree 5
+326.99987
+In the beginning of the file there is a sweep to the correct frequency.
+
+*** spat
+- most of the file is at a distance with much reverb
+- moving back and forth to differend postilions
+
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220614_1702.wav
+:END:
+\dual [1, 3]
+*** pitch degree 10
+490.50036
+*** spat
+mainly minor movements back and forth
+
+** recording 
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220614_1717.wav
+:END:
+\quart [1,2,3,4]
+*** pitch degree 7
+387.55540
+*** spat
+Using the quad panning settings in [[file:snares_harmony.org::_][spat_fade_in]]
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220614_1727.wav
+:END:
+\single
+*** pitch degree 6
+331.0875
+*** spat
+Using single panning mode in vbap ending in
+#+begin_src sclang :results none
+  ~setSpatPositions.value([ [1, 0, 10 ] ], 8);
+#+end_src
+*** modulation
+ending with a slow down of snare to 10.346484375
