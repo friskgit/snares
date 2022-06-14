@@ -573,7 +573,7 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
 #+name: generate_harmonics
 #+begin_src sclang :results none :noweb yes :tangle harmony.sc
   var select, task,
-  mode = \quart,
+  mode = \dual,
   ampMode = ~ampMode,
   synthesis = ~synthMode;
   <<global_variables>>
@@ -604,7 +604,7 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
           "Quart mode".postln;		
     },
     \dual, {
-          select = [7, 8];
+          select = [8,9];
           ~spatPositions = [0,1];
           "Dual mode".postln;	
     },
@@ -757,8 +757,8 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 #+begin_src sclang :results none :noweb yes
   <<interpolate_busses>>
   <<pulse_modulation>>
-  ~modulateSpeed.value(2, 10, 1, \ratio, [81,80]);
-  ~setSpatPositions.value([[7, 1, 10], [9, 1, 10]], 10);
+  ~modulateSpeed.value(2, 50, 1, \ratio, [81,80]);
+  ~setSpatPositions.value([[9, 1, 10], [3, 1, 10]], 50);
 #+end_src
 
 #+begin_src sclang :results none
@@ -1088,6 +1088,13 @@ Gradually increase parameter in all synths using [[set_all_synths][set_all_synth
 #+end_src
 
 #+begin_src sclang :results none
+  ~setSynth = { arg i = 0, param = \freq, value = 0;
+    ~synths[i].set(param, value);
+    "synth ".post; i.post; " set to ".post; value.postln;
+  };
+#+end_src
+
+#+begin_src sclang :results none
   ~setAllSynths.value(\noiseScale, 0.1);
 #+end_src
 
@@ -1097,7 +1104,15 @@ Gradually increase parameter in all synths using [[set_all_synths][set_all_synth
 
 Set one synths parameter x.
 #+begin_src sclang :results none
-~setSynth.value(1, \rel, 0.1);
+  ~setSynth.value(1, \rel, 0.1);
+#+end_src
+
+#+name: set_synth_freq
+#+begin_src sclang :results none
+  ~setSynth.value(0, \freq, 261.6);
+  ~setSynth.value(0, \freq2, 264.87);
+  ~setSynth.value(1, \freq, 261.6);
+  ~setSynth.value(1, \freq2, 264.87);
 #+end_src
 
 ** ambisonics
@@ -1671,7 +1686,7 @@ Fade in 15 channels
 
 Fade out.
 #+begin_src sclang :results none
-  ~setSpatPositions.value([ [ 1, 1, 1 ], [ 0, 1, 1 ] ], 10);
+  ~setSpatPositions.value([ [ 0, 1, 90 ], [ 1, 1, 90 ] ], 20);
 #+end_src
 
 Bring forward in one angle

@@ -120,7 +120,13 @@ Example: Run the one hit synth above and load the meter
   <<sc_meter>>
 #+end_src      
 
+#+begin_src sclang :results none
+  ~simplePlayer.stop;
+#+end_src
 Regular hits on busses 52, 53 and 54
+dur on
+- 81/80: 0.01234567 / 0.0125
+- 27/25: 0.037037 / 0.04
 #+name: play
 #+begin_src sclang :results none :noweb yes
   ~signalBus = 52;
@@ -128,18 +134,18 @@ Regular hits on busses 52, 53 and 54
     instrument: \snare,
     freq: 81,
     out: ~signalBus,
-    gain: 0.8,
+    gain: 0.6,
     vol: 0.9,
-    dur: 0.85
+    dur: 0.917431192661
   ]);
   ~simplePlayer.play;
   ~newSimplePlayer = Pbind(*[
     instrument: \snare,
     freq: 80,
     out: ~signalBus + 1,
-    gain: 0.8,
+    gain: 0.6,
     vol: 0.9,
-    dur: 2
+    dur: 0.917431192661
   ]);
   ~newSimplePlayer.play;
   ~simplePlayer3 = Pbind(*[
@@ -742,9 +748,9 @@ Generic window to be filled with content
 #+begin_src sclang :results none :noweb yes
   <<gui_object>>
   ~guiWindow = Window.new.front;
-  ~windOne = ~addGuiElements.value(~guiWindow, "HOAEncoder 1", 0, ~hoaSignal[0]);
-  ~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 300, ~hoaSignal[1], \azpanb, \elpanb, \radb);
-  ~windRev = ~addGuiElements.value(~guiWindow, "HOAEncoder Reverb", 600, \azpanr, \elpanr, \radr);
+  ~windOne = ~addGuiElements.value(~guiWindow, "HOAEncoder 1", 0, ~hoaSignal);
+  ~windTwo = ~addGuiElements.value(~guiWindow, "HOAEncoder 2", 300, ~hoaSignal, \azpanb, \elpanb, \radb);
+  ~windRev = ~addGuiElements.value(~guiWindow, "HOAEncoder Reverb", 600, ~reverbEncoder, \azpanr, \elpanr, \radr);
 #+end_src
 
 The gui funtion for adding an object for panning. Pass the parameters to be controlled as arguments.
@@ -759,8 +765,8 @@ The arguments are:
 8. The name of the ~Ndef(\reverb)~ reverb volume parameter
 #+name: gui_object
 #+begin_src sclang :results none :noweb yes :tangle test.sc
-  ~addGuiElements = { arg window, name = "default", offset = 0, xParam = \azpana, yParam = \elpana, zParam = \rada, rVol=\revVol;
-    var text, dNum, eNum, fNum, rNum, sNum, aSlid, bSlid, cSlid, revVol, csX, csY, csZ, rSend, vol, rv, revScale, distanceAuto;
+  ~addGuiElements = { arg window, name = "default", offset = 0, obj, xParam = \azpana, yParam = \elpana, zParam = \rada, rVol=\revVol;
+    var text, dNum, eNum, fNum, rNum, sNum, aSlid, bSlid, cSlid, revVol, csX, csY, csZ, rSend, vol, rv, revScale, distanceAuto, panAuto;
 
     <<distance_function_clock>>
     text = StaticText(window, Rect(20+offset, 20, 200, 20));
@@ -772,7 +778,8 @@ The arguments are:
     aSlid = Slider(window, Rect(40+offset, 90, 150, 20));
     bSlid = Slider(window, Rect(20+offset, 90, 20, 150));
     cSlid = Slider(window, Rect(40+offset, 220, 150, 20));
-    distanceAuto = Button(window, Rect(50+offset, 190, 20, 20));  
+    distanceAuto = Button(window, Rect(50+offset, 190, 20, 20));
+    panAuto = Button(window, Rect(70+offset, 190, 20, 20));    
     revVol = Slider(window, Rect(40+offset, 260, 150, 20));
     text.string = name;
     csX = ControlSpec(pi, -pi, \linear, 0.001, 0);
@@ -788,20 +795,20 @@ The arguments are:
     // Setting horizontal panning via interface:
     aSlid.action_({
           dNum.value_(csX.map(aSlid.value));
-          ~hoaSignal.set(
+          obj.set(
             xParam, (csX.map(aSlid.value)));
     });
     // Setting vertical panning via interface:
     bSlid.action_({
           eNum.value_(csY.map(bSlid.value));
-          ~hoaSignal.set(yParam, (csY.map(bSlid.value)));
+          obj.set(yParam, (csY.map(bSlid.value)));
     });
     // Setting distance via interface:
     cSlid.action_({
           var tempRevVol=0;
           fNum.value_(csZ.map(cSlid.value));
           sNum.value_(rSend.map(cSlid.value));
-          ~hoaSignal.set(zParam, (csZ.map(cSlid.value)));
+          obj.set(zParam, (csZ.map(cSlid.value)));
           ~reverbSend.set(\reva, (rSend.map(cSlid.value)));
           tempRevVol = rv.map(cSlid.value) * sNum.value();
           rNum.value_(tempRevVol);
@@ -822,7 +829,20 @@ The arguments are:
             distanceFunc.value(200, 1, 10, cSlid);	  
           }, {
             distanceFunc.value(200, 0, 10, cSlid);	  	  
-//            butt.value.postln;
+            //            butt.value.postln;
+          });
+    });
+
+    panAuto.states_([
+          ["l", Color.black, Color.white],
+          ["r", Color.white, Color.black],
+    ])
+    .action_({ arg butt, revC, rout;
+          if(butt.value == 1, {
+            distanceFunc.value(200, 1, 10, cSlid);	  
+          }, {
+            distanceFunc.value(200, 0, 10, cSlid);	  	  
+            //            butt.value.postln;
           });
     });
   };
