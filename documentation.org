@@ -424,3 +424,139 @@ ending with a slow down of snare to 10.346484375
 ~setSpatPositions.value([ [4, 1.0, 5] ], 20);
 #+end_src
 
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220615_1420.wav
+:END:
+\harmony
+*** pitch degree 0
+#+begin_src sclang :results none
+  ~setRunningVariables.value(261.6, \harmony, \linear, \sin, 1);
+  ~updatePanningAmbi.value(0, 0, -1.1, 10);
+#+end_src
+
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220615_1423.wav
+:END:
+\harmony
+*** pitch degree 1
+264.87
+#+begin_src sclang :results none
+  ~setRunningVariables.value(264.87, \harmony, \linear, \sin, 1);
+  ~updatePanningAmbi.value(5, 1.4, 0.1, 5);
+#+end_src
+
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220615_1427.wav
+:END:
+\harmony
+*** pitch degree 2
+267.87844
+#+begin_src sclang :results none
+  //~setRunningVariables.value(267.87844, \harmony, \linear, \sin, 1);
+//  ~updatePanningAmbiSingle.value(6, 1, 0, 0.1, 5);
+#+end_src
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220615_1431.wav
+:END:
+\harmony
+*** pitch degree 3
+282.52807
+#+begin_src sclang :results none
+  //~setRunningVariables.value(282.52807, \harmony, \linear, \sin, 1);
+  ~updatePanningAmbiSingle.value(12, -0.2, 2.1, 0.1, 9);
+  //  ~updatePanningAmbi.value(-2, 0.1, 0.1, 9);
+#+end_src
+
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220615_1435.wav
+:END:
+\harmony
+*** pitch degree 4
+294.30000
+#+begin_src sclang :results none
+  // ~setRunningVariables.value(294.30000, \harmony, \linear, \sin, 1);
+  //~updatePanningAmbiSingle.value(0, 2.2, 0.1, 0.1, 5);
+  ~updatePanningAmbi.value(2, -1.5, 1, 10);
+#+end_src
+
+
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220615_1439.wav
+:END:
+\harmony
+*** pitch degree 5
+326.99987
+#+begin_src sclang :results none
+  //~setRunningVariables.value(326.99987, \harmony, \linear, \sin, 1);
+  ~updatePanningAmbiSingle.value(0, 2, -1.6, 0.1, 5);
+  //~updatePanningAmbi.value(-2.5, 2.5, -1.1, 10);
+#+end_src
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220615_1443.wav
+:END:
+\harmony
+*** pitch degree 6
+331.08750
+#+begin_src sclang :results none
+  // ~setRunningVariables.value(331.08750, \harmony, \linear, \sin, 1);
+  ~updatePanningAmbiSingle.value(11, 2, 0, 0.1, 5);
+  //~updatePanningAmbi.value(-1.0, 2.0, 1.1, 10);
+#+end_src
+
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220615_1449.wav
+:END:
+\harmony
+*** pitch degree 7
+387.55540
+#+begin_src sclang :results none
+  // ~setRunningVariables.value(387.55540, \harmony, \linear, \sin, 1);
+   ~updatePanningAmbiSingle.value(3, -2, 0, 0.1, 5);
+  //~updatePanningAmbi.value(-1.14, 1.0, 1.1, 10);
+#+end_src
+
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220615_1453.wav
+:END:
+\harmony
+*** pitch degree 8
+392.4
+#+begin_src sclang :results none
+  // ~setRunningVariables.value(392.4, \harmony, \linear, \sin, 1);
+   // ~updatePanningAmbiSingle.value(0, -2, 0, 0.1, 5);
+  ~updatePanningAmbi.value(1.14, 0.0, 1.1, 10);
+#+end_src
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220615_1458.wav
+:END:
+\harmony
+*** pitch degree 9
+465.06667
+#+begin_src sclang :results none
+  // ~setRunningVariables.value(465.06667, \harmony, \linear, \sin, 1);
+  //~updatePanningAmbiSingle.value(6, -2, 0, 0.1, 5);
+  ~updatePanningAmbi.value(0, 1.6, 1.1, 10);
+#+end_src
+
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220615_1501.wav
+:END:
+\harmony
+*** pitch degree 10
+490.50036
+#+begin_src sclang :results none
+  // ~setRunningVariables.value(490.50036, \harmony, \linear, \sin, 1);
+  //~updatePanningAmbiSingle.value(6, -2, 0, 0.1, 5);
+  ~updatePanningAmbi.value(-1.14, -1.0, 1.1, 10);
+#+end_src

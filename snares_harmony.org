@@ -52,7 +52,9 @@ Set JackRouter to be the interface on Linux
   s.boot;
   )
 #+end_src
-
+#+begin_src sclang :results none
+s.makeGui();
+#+end_src
 ** global variables
 Global variables and semaphhores
 
@@ -85,17 +87,17 @@ Global variables and semaphhores
   /* Which space? */
   ~space = 0;
   /* Fundamental frequency */
-  ~fundamental = 294.3;
+  ~fundamental = 490.50036;
   //  ~fundamental = 261.1;
   /* Mode of synthesis */
-  ~mode = \full;
+  ~mode = \harmony;
   /* Amplitude mode */
   ~ampMode = \reverse;
-  ~baseAmplitude = 0.4;
+  ~baseAmplitude = 0.3;
   /* The general level of loggging */
   ~logging = 2;
   /* The synthesis mode \sin, \break, \snare */
-  ~synthMode = \synth;
+  ~synthMode = \sin;
 
 
   /* Spatialisation positions */
@@ -140,6 +142,17 @@ Global variables and semaphhores
   ~scaleSpats.size.postln;
 #+end_src
 
+#+begin_src sclang :results none
+  ~setRunningVariables.value(267.87844, \harmony, \linear, \sin, 1);
+#+end_src
+#+begin_src sclang :results none :noweb yes
+  <<inter_pan_ambi>>
+  <<update_panning_ambi_single>>
+  <<update_panning_ambi>>
+  ~updatePanningAmbi.value(3, -1.5, -1.0, 1, 10);
+  //  ~updatePanningAmbi.value(5, 1.4, 0.1, 5);
+#+end_src
+
 *** spkrBuffer settings
  The argument to ~VBAPSpeakerarray~ is ~3~ for 3D and an array of arrays of angle/elevation pairs:
  #+name: vbap_speaker_array
@@ -176,6 +189,9 @@ Set the runtime values for the parameters:
 - base amplitude
 #+begin_src sclang :results none
   ~setRunningVariables.value(300, \dual, \full, \snare);
+#+end_src
+#+begin_src sclang :results none
+  ~setRunningVariables.value(300, \harmony, \full, \sin);
 #+end_src
 #+begin_src sclang :results none :noweb yes
   ~setRunningVariables.value(800, \harmony, \linear, \snare);
@@ -225,11 +241,15 @@ First iteration of breakBeat
 ** synth
 #+name: harmonic_synth
 #+begin_src sclang :results none
-  SynthDef("test", { arg freq = 440, out = 10, amp = 0.2;
-    Out.ar(out, SinOsc.ar(freq, 0, amp));
+  SynthDef("test", { 
+    Out.ar(\out.ir(0), SinOsc.ar(\freq.kr(440), 0, \amp.kr(0.2)) * \gain.kr(0.3));
   }).add;
 #+end_src
 
+Just a quick test
+#+begin_src sclang :results none
+  ~homie = Synth("test", [freq: 300, amp: 0.1, out: 3]);
+#+end_src
 Main snare synth. The pulse parameter is controlled by the ~pulse_bus~
 #+name: snare_phase_multi
 #+begin_src sclang :results none
@@ -385,10 +405,11 @@ Called by [[*generate harmonics][generate harmonics]].
 
                     ~separator.value.postln;    
                     "".postln;
-                    "This is the synth ".post; synthMode.postln;		  
+                    "synthmode is ".post; synthMode.postln;		  
                     switch(synthMode,
                           \sin, {			
-                            synth = Synth("test", [\pulse, harmonics[i], \amp, amp[i], \out, audioBus]);
+                            synth = Synth("test", [freq: harmonics[i], amp: amp[i], out: audioBus]);
+                            "Setting synth to freq ".post; harmonics[i].postln;			  
                           },
                           \break, {
                             synth = Synth.new(\breakSnare, [
@@ -582,15 +603,14 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
 #+name: generate_harmonics
 #+begin_src sclang :results none :noweb yes :tangle harmony.sc
   var select, task,
-  mode = \single,
   ampMode = ~ampMode,
   synthesis = ~synthMode;
   <<global_variables>>
   <<harmonics>>
 
-  "Mode is ".post; mode.postln;
+  "Mode is ".post; ~mode.postln;
 
-  switch(mode,
+  switch(~mode,
     /* 15 partials */
     \harmony, {
           select = [1,2,3,4,5,6,7,8,9,11,13,14,15];
@@ -644,7 +664,7 @@ Function that loads [[global_variables][global_variables]] and [[harmonics][harm
   ~spatializations = Array.new(~spatPositions.size);
 
   /* mode = thythm is a special case */
-  if(mode == \rhythm,
+  if(~mode == \rhythm,
     {
           "we are IF now".postln;
           ~spatPositions.do({ arg pos, i;	  
@@ -1103,8 +1123,8 @@ Gradually increase parameter in all synths using [[set_all_synths][set_all_synth
 #+end_src
 
 #+begin_src sclang :results none
-  ~synths[0].get(\freq, { arg value; ("freq is now:" + value + "Hz").postln; });
-  ~synths[0].get(\freq2, { arg value; ("freq2 is now:" + value + "Hz").postln; });
+  ~synths[0].get(\amp, { arg value; ("freq is now:" + value + "Hz").postln; });
+  ~synths[0].get(\freq, { arg value; ("freq2 is now:" + value + "Hz").postln; });
 #+end_src
 #+name: synth_frequency
 #+begin_src sclang :results none
@@ -1203,6 +1223,10 @@ Call this to set each ~~audioBus~ to a fraction of the space.
 #+end_src
 
 #+begin_src sclang :results none
+~updatePanningAmbiSingle.value(0, 0, -1.5, 1, 8);
+#+end_src
+
+#+begin_src sclang :results none
   Pn((dur: 2, freq:8000)).play;
 #+end_src
 #+name: spat_setup_decoder
@@ -1297,6 +1321,10 @@ Function for generating the lines for the panning modulation using azimuth, elev
           ~interPanAmbi.value(~controlBus[i], astart, aend, estart, eend, dstart, dend, duration);
     }); // end of spatNdefs.do
   }; //end of function
+#+end_src
+
+#+begin_src sclang :results none
+  ~updatePanningAmbi.value(1.5, -1.5, 0.01, 10);
 #+end_src
 
 Settings for ~~updatePanningAmbi~
@@ -1728,12 +1756,12 @@ Fade in 15 channels
 
 Fade out.
 #+begin_src sclang :results none
-  ~setSpatPositions.value([ [ 0, 1, 90 ], [ 1, 1, 90 ] ], 20);
+  ~setSpatPositions.value([ [ 0, 1, 90 ], [ 1, 1, 90 ] ], 4);
 #+end_src
 
 Bring forward in one angle
 #+begin_src sclang :results none
-  ~setSpatPositions.value([ [4, 1.0, 9] ], 8);
+  ~setSpatPositions.value([ [0, 0.4, 9] ], 8);
   //~controlBus[1].scope;
 #+end_src
 
@@ -1800,7 +1828,7 @@ Mix forward
     [ 4, 0.8, 1 ],
     [ 10, 0.7, 1 ],
     [ 12, 0.5, 1 ] ],
-    30);
+    3);
 #+end_src
 
 Mix forward
@@ -1854,7 +1882,7 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
 
 #+name: set_sine
 #+begin_src sclang :results none
-  ~setSpatialization.value(\randa, 5);
+  ~setSpatialization.value(\randc, 5);
 #+end_src
 
 #+begin_src sclang :results none
@@ -1863,7 +1891,7 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
 #+end_src
 
 #+begin_src sclang :results none
-
+~synths.size.postln;
 #+end_src
 
 #+begin_src sclang :results none
@@ -1884,8 +1912,11 @@ Never set the spread to less then 0.1.
           \nther, { ~setSpatPositions.value([[3, 0.1, 0.0], [0, 0.6, 0.0]]); },
           \sine, { ~setSpatPositions.value([[0.0, 0.1, 0.0], [2.0, 0.2, 0.0], [4.0, 0.3, 0.0], [6.0, 0.4, 0.0], [7.0, 0.3, 0.0], [9.0, 0.3, 0.0], [10.0, 0.2, 0.0], [12.0, 0.1, 0.0], [13.0, 0.1, 0.0], [13.0 , 0.1, 0.0], [ 13.0, 0.1, 0.0], [ 13.0, 0.1, 0.0], [ 3.0, 0.1, 0.0], [13.0 , 0.1, 0.0], [12.0, 0.1, 0.0], [10.0, 0.1, 0.0], [9.0 , 0.1, 0.0], [7.0, 0.1, 0.0], [6.0, 0.1, 0.0], [4.0, 0.1, 0.0], [2.0, 0.1, 0.0]]); },
           \frontTop, { ~setSpatPositions.value([[2, 1, 0.0], [5, 1, 0.0], [9, 0.3, 0.0], [12, 0.3, 0.0],[9, 0.3, 0.0],[12, 0.3, 0.0],[9, 0.3, 0.0],[12, 0.3, 0.0],[2, 0.3, 0.0],[5, 0.3, 0.0], [9, 0.3, 0.0], [12, 0.3, 0.0], [2, 0.3, 0.0], [9, 0.3, 0.0]]); };
-          \randa, { ~setSpatPositions.value([[ 10, 0.37790203094482, 92 ], [ 9, 0.47935628890991, 74 ], [ 6, 0.11242318153381, 86 ], [ 9, 0.35007119178772, 84 ], [ 11, 0.97699058055878, 97 ], [ 0, 0.43978643417358, 82 ], [ 4, 0.046381950378418, 49 ], [ 3, 0.93596339225769, 45 ], [ 11, 0.69877302646637, 97 ], [ 1, 0.57486021518707, 0 ], [ 11, 0.10488903522491, 24 ], [ 6, 0.6761668920517, 81 ], [ 12, 0.15752398967743, 95 ] ]); };
+          \randa, { ~setSpatPositions.value([ [ 0, 0.057643294334412, 61 ], [5, 0.4096759557724, 83 ], [3, 0.11163520812988, 41 ], [3, 0.84732925891876, 22 ], [8, 0.62294363975525, 79 ], [3, 0.040828824043274, 17 ], [9, 0.45221710205078, 27 ], [2, 0.28460097312927, 92 ], [10, 0.90151596069336, 60 ], [4, 0.5679839849472, 67 ], [11, 0.68047535419464, 93 ], [7, 0.46742391586304, 96 ], [3, 0.062367081642151, 67 ] ]); };
           \randb, { ~setSpatPositions.value([ [ 8, 0.65711605548859, 44 ], [ 12, 0.49157476425171, 61 ], [ 2, 0.30045628547668, 53 ], [ 6, 0.63139295578003, 10 ], [ 5, 0.57754254341125, 53 ], [ 1, 0.50569725036621, 60 ], [ 7, 0.5032913684845, 52 ], [ 9, 0.17669081687927, 72 ], [ 11, 0.83947396278381, 23 ], [ 11, 0.87903380393982, 47 ], [ 3, 0.90455305576324, 26 ], [ 12, 0.53946733474731, 2 ], [ 0, 0.99620449542999, 96 ] ]); };
+          \randc, { ~setSpatPositions.value([ [ 6, 0.85040557384491, 37 ], [5, 0.43603944778442, 58 ], [12, 0.33771061897278, 67 ], [11, 0.87044203281403, 51 ], [1, 0.068694591522217, 93 ], [3, 0.47870373725891, 59 ], [3, 0.3126368522644, 49 ], [8, 0.9961599111557, 40 ], [4, 0.88454246520996, 23 ], [9, 0.20187020301819, 24 ], [11, 0.39941608905792, 81 ], [11, 0.53773868083954, 9 ], [13, 0.5431877374649, 55 ] ]
+
+          ); };	  
     )};
 #+end_src
 
