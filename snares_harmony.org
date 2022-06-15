@@ -85,17 +85,17 @@ Global variables and semaphhores
   /* Which space? */
   ~space = 0;
   /* Fundamental frequency */
-  ~fundamental = 331.08750;
+  ~fundamental = 294.3;
   //  ~fundamental = 261.1;
   /* Mode of synthesis */
-  ~mode = \single;
+  ~mode = \full;
   /* Amplitude mode */
-  ~ampMode = \full;
+  ~ampMode = \reverse;
   ~baseAmplitude = 0.4;
   /* The general level of loggging */
   ~logging = 2;
   /* The synthesis mode \sin, \break, \snare */
-  ~synthMode = \snare;
+  ~synthMode = \synth;
 
 
   /* Spatialisation positions */
@@ -216,7 +216,7 @@ First iteration of breakBeat
 #+end_src
 
 #+begin_src sclang :results none
-  ~setAllSynths.value(\freq, 200);
+  ~setAllSynths.value(\freq, 282.52807);
 #+end_src
 
 #+begin_src sclang :results none
@@ -255,13 +255,13 @@ Main snare synth. The pulse parameter is controlled by the ~pulse_bus~
 #+end_src
 
 #+begin_src sclang :results none
-~synths[0].set(\pulse, 600);
+~synths[0].set(\freq2, 282.52807);
 #+end_src
 
 #+begin_src sclang :results none
 //  ~synths[0].set(\pulse, 10);
-  ~synths[0].set(\trifrq, 20);
-  ~synths[1].set(\rel, 0.0001);
+//  ~synths[0].set(\trifrq, 20);
+  ~synths[0].set(\rel, 0.001);
   ~synths.size.postln;
 #+end_src
 
@@ -556,7 +556,7 @@ Start the two Ndefs (and stop)
 
 #+begin_src sclang :results none
   Ndef(\reverbPanning).set(\revPanSpread, 67);
-  Ndef(\reverbPanning).set(\revPanAmp, 0.5);
+  Ndef(\reverbPanning).set(\revPanAmp, 0.0);
 #+end_src
 
 #+begin_src sclang :results none
@@ -794,7 +794,7 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 #+end_src
 
 #+begin_src sclang :results none
-  ~modulateSpeed.value(4, 20, 10.346484375, \change, [1,2]);
+  ~modulateSpeed.value(4, 5, 1, \change, [1,2]);
   //  ~setSpatPositions.value([[1, 0.05, 50], [9, 0.5, 50]], 40);
 #+end_src
 
@@ -877,6 +877,20 @@ Interpolate all busses. Call this from [[pulse_interpolate_array][pulse_interpol
 
 #+begin_src sclang :results none
   ~frequencyBus[1].set(200);
+#+end_src
+
+#+name: frequency_bus_modulation
+#+begin_src sclang :results none
+  var updater = Routine({
+    var delta;
+    loop {
+          5.do { arg i;
+            0.5.wait;
+            i.postln; // Post the value passed in when resumed.
+          }
+    }
+  });
+  TempoClock.default.sched(0, updater);
 #+end_src
 
 Interpolate one pulse bus.
@@ -1067,8 +1081,8 @@ Gradually increase parameter in all synths using [[set_all_synths][set_all_synth
 #+end_src
 
 #+begin_src sclang :results none
-  ~setSynthsInterpol.value((163..326), 0.4, \freq);
-  ~setSynthsInterpol.value((108..164), 0.4, \freq2);
+  ~setSynthsInterpol.value((147..294.3), 0.4, \freq);
+  ~setSynthsInterpol.value((98..294.3), 0.4, \freq2);
 #+end_src
 
 #+begin_src sclang :results none
@@ -1096,7 +1110,7 @@ Gradually increase parameter in all synths using [[set_all_synths][set_all_synth
 #+begin_src sclang :results none
   //  ~setAllSynths.value(\freq2, 245.25018);
   //  ~setAllSynths.value(\freq, 490.500036);
-  ~setAllSynths.value(\rel, 0.0008);
+  ~setAllSynths.value(\rel, 0.003);
   ~setAllSynths.value(\nattack, 0.1);
   ~setAllSynths.value(\nrel, 0.1);
 #+end_src
@@ -1719,13 +1733,13 @@ Fade out.
 
 Bring forward in one angle
 #+begin_src sclang :results none
-  ~setSpatPositions.value([ [2, 1, 10] ], 10);
+  ~setSpatPositions.value([ [4, 1.0, 9] ], 8);
   //~controlBus[1].scope;
 #+end_src
 
 Bring up, forward.
 #+begin_src sclang :results none
-  ~setSpatPositions.value([ [1, 0, 10 ] ], 8);
+  ~setSpatPositions.value([ [3, 0.3, 10 ] ], 8);
 #+end_src
 
 #+begin_src sclang :results none :noweb yes
@@ -1776,7 +1790,7 @@ Bring forward
     [ 2, 1, 1 ],
     [ 15, 1, 1 ],
     [ 14, 1, 1 ] ],
-    10);
+    5);
 #+end_src
 
 Mix forward
@@ -1838,6 +1852,11 @@ Change spatialization. Spat is controlled by an arbitrary length array that poin
   ~setSpatialization.value(\sine, 20);
 #+end_src
 
+#+name: set_sine
+#+begin_src sclang :results none
+  ~setSpatialization.value(\randa, 5);
+#+end_src
+
 #+begin_src sclang :results none
   ~setSpatPositions.value([[0, 1, 0.1], [1, 1, 0.1]], 20);
   ~setSpatPositions.value([[14, 0.1, 50], [14, 0.1, 50]], 20);
@@ -1865,6 +1884,8 @@ Never set the spread to less then 0.1.
           \nther, { ~setSpatPositions.value([[3, 0.1, 0.0], [0, 0.6, 0.0]]); },
           \sine, { ~setSpatPositions.value([[0.0, 0.1, 0.0], [2.0, 0.2, 0.0], [4.0, 0.3, 0.0], [6.0, 0.4, 0.0], [7.0, 0.3, 0.0], [9.0, 0.3, 0.0], [10.0, 0.2, 0.0], [12.0, 0.1, 0.0], [13.0, 0.1, 0.0], [13.0 , 0.1, 0.0], [ 13.0, 0.1, 0.0], [ 13.0, 0.1, 0.0], [ 3.0, 0.1, 0.0], [13.0 , 0.1, 0.0], [12.0, 0.1, 0.0], [10.0, 0.1, 0.0], [9.0 , 0.1, 0.0], [7.0, 0.1, 0.0], [6.0, 0.1, 0.0], [4.0, 0.1, 0.0], [2.0, 0.1, 0.0]]); },
           \frontTop, { ~setSpatPositions.value([[2, 1, 0.0], [5, 1, 0.0], [9, 0.3, 0.0], [12, 0.3, 0.0],[9, 0.3, 0.0],[12, 0.3, 0.0],[9, 0.3, 0.0],[12, 0.3, 0.0],[2, 0.3, 0.0],[5, 0.3, 0.0], [9, 0.3, 0.0], [12, 0.3, 0.0], [2, 0.3, 0.0], [9, 0.3, 0.0]]); };
+          \randa, { ~setSpatPositions.value([[ 10, 0.37790203094482, 92 ], [ 9, 0.47935628890991, 74 ], [ 6, 0.11242318153381, 86 ], [ 9, 0.35007119178772, 84 ], [ 11, 0.97699058055878, 97 ], [ 0, 0.43978643417358, 82 ], [ 4, 0.046381950378418, 49 ], [ 3, 0.93596339225769, 45 ], [ 11, 0.69877302646637, 97 ], [ 1, 0.57486021518707, 0 ], [ 11, 0.10488903522491, 24 ], [ 6, 0.6761668920517, 81 ], [ 12, 0.15752398967743, 95 ] ]); };
+          \randb, { ~setSpatPositions.value([ [ 8, 0.65711605548859, 44 ], [ 12, 0.49157476425171, 61 ], [ 2, 0.30045628547668, 53 ], [ 6, 0.63139295578003, 10 ], [ 5, 0.57754254341125, 53 ], [ 1, 0.50569725036621, 60 ], [ 7, 0.5032913684845, 52 ], [ 9, 0.17669081687927, 72 ], [ 11, 0.83947396278381, 23 ], [ 11, 0.87903380393982, 47 ], [ 3, 0.90455305576324, 26 ], [ 12, 0.53946733474731, 2 ], [ 0, 0.99620449542999, 96 ] ]); };
     )};
 #+end_src
 

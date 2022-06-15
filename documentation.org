@@ -400,3 +400,27 @@ Using single panning mode in vbap ending in
 #+end_src
 *** modulation
 ending with a slow down of snare to 10.346484375
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220614_2208.wav
+:END:
+\single 
+*** pitch degree 3
+282.52807
+\rel 0.001
+*** spat
+#+begin_src sclang :results none
+~setSpatPositions.value([ [3, 1.0, 5] ], 20);
+#+end_src
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220614_2216.wav
+:END:
+\single
+*** pitch degree 4
+294.3
+*** spat
+#+begin_src sclang :results none
+~setSpatPositions.value([ [4, 1.0, 5] ], 20);
+#+end_src
+
