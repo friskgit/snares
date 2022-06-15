@@ -289,9 +289,6 @@ Example for how to use the array of tempos to control the playback of a bass dru
 :PROPERTIES:
 :CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220614_1249.wav
 :END:
-
-
-
 [[file:spat_examples.org::play][spat_examples: play]]
 *** speed
 - 27/25: 0.037037 / 0.04
@@ -484,7 +481,6 @@ ending with a slow down of snare to 10.346484375
   ~updatePanningAmbi.value(2, -1.5, 1, 10);
 #+end_src
 
-
 ** recording
 :PROPERTIES:
 :CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-220615_1439.wav
@@ -560,3 +556,89 @@ ending with a slow down of snare to 10.346484375
   //~updatePanningAmbiSingle.value(6, -2, 0, 0.1, 5);
   ~updatePanningAmbi.value(-1.14, -1.0, 1.1, 10);
 #+end_src
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-snares-220615_1636.wav
+:END:
+*** Description
+Four snares at root freq
+Trasnforming to 7/8, than to 81/80 [[file:snares_harmony.org::pulse_interpolate_array][pulse_interpolate_array]]
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-snares-220615_1643.wav
+:END:
+*** description
+Starting at root frequency gradually relenting
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-snares-220615_1647.wav
+:END:
+*** description
+Starting at 1/2 going faster to some ration
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-snares-220615_1654.wav
+:END:
+*** descriptsion
+dual mode going from 331.0875 to 5/4
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-snares-220615_1643.wav
+:END:
+Similar to [[#/home/henrikfr/Music/pieces/snares/snares_session_2/01-snares-220615_1656.wav][file:~/Music/pieces/snares/documentation.org::#/home/henrikfr/Music/pieces/snares/snares_session_2/01-snares-220615_1656.wav]]
+
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-snares-220615_1656.wav
+:END:
+*** descriptsion
+The opposite of [[#/home/henrikfr/Music/pieces/snares/snares_session_2/01-snares-220615_1654.wav][file:~/Music/pieces/snares/documentation.org::#/home/henrikfr/Music/pieces/snares/snares_session_2/01-snares-220615_1654.wav]]
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-snares-220615_1705.wav
+:END:
+Various alternations of speeds using ambi panning
+** recording
+:PROPERTIES:
+:CUSTOM_ID: /home/henrikfr/Music/pieces/snares/snares_session_2/01-snares-220615_1733.wav
+:END:
+*** description
+Using the basic setup in [[file:spat_examples.org::*ambi with control][ambi with control]] and with the following synth settings:
+
+#+name: play
+#+begin_src sclang :results none :noweb yes
+  ~signalBus = 52;
+  ~simplePlayer = Pbind(*[
+    instrument: \snare,
+    freq: Prand([261.6, 264.87, 267.87844], inf),
+    noiselvl: Pfunc({0.005.rand}) + 0.1,
+    out: ~signalBus,
+    gain: 1,
+    vol: 1,
+    dur: 0.6666 //    261.6 / 392.4
+  ]);
+  ~simplePlayer.play;
+  ~newSimplePlayer = Pbind(*[
+    instrument: \snare,
+    freq: Prand([282.52807, 294.3, 326.99987], inf),
+    noiselvl: Pfunc({0.005.rand}) + 0.2,
+    out: ~signalBus + 1,
+    gain: 1,
+    vol: 1,
+    dur: 0.728980402782 //      282.52 / 387.555
+
+  ]);
+  ~newSimplePlayer.play;
+  ~simplePlayer3 = Pbind(*[
+    instrument: \snare,
+    freq: Prand([331.0875, 387.5554, 392.4, 465.06667] / 2, inf),
+    noiselvl: Pfunc({0.005.rand}) + 0.17,
+    out: 52,
+    gain: 1.0,
+    vol: 1.0,
+    dur: 0.8100247714 //    264.87 / 326.99
+  ]);
+  ~simplePlayer3.play;
+#+end_src
+
+A polymetric texture feeding in and out using ambisonics panning and a reverb. Gradually fading out.

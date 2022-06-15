@@ -102,7 +102,7 @@ Make a simple snare for testing
     var env = Env([0, 1, 0], [0.0001, \length.ir(0.5)]);
     var imp = Impulse.ar(\impf.ir(1), 0.0, 0.5, 0);
     var frq1=\freq.kr(300), frq2=frq1-100;
-    snd = OGenericSnarefs.ar(imp, 0.00001, 0.001, \noiselvl.kr(0.0), \nrel.ir(0.1), frq1, frq2, \rel.ir(0.1), \trifrq.kr(200)) * EnvGen.kr(env, doneAction: Done.freeSelf);
+    snd = OGenericSnarefs.ar(imp, 0.00001, 0.001, \noiselvl.kr(0.1), \nrel.ir(0.05), frq1, frq2, \rel.ir(0.1), \trifrq.kr(500)) * EnvGen.kr(env, doneAction: Done.freeSelf);
     Out.ar(\out.kr(0), snd*\gain.ir(1));
     Out.ar(\revSend.kr(62), snd);
   }).add;
@@ -130,31 +130,34 @@ dur on
   ~simplePlayer = Pbind(*[
     instrument: \snare,
     freq: Prand([261.6, 264.87, 267.87844], inf),
-    noiselvl: Pfunc({0.005.rand}),
+    noiselvl: Pfunc({0.005.rand}) + 0.1,
     out: ~signalBus,
-    gain: 0.6,
-    vol: 0.9,
-    dur: 0.917431192661
+    gain: 1,
+    vol: 1,
+    dur: 0.6666 //    261.6 / 392.4
   ]);
   ~simplePlayer.play;
   ~newSimplePlayer = Pbind(*[
     instrument: \snare,
-    freq: 80,
+    freq: Prand([282.52807, 294.3, 326.99987], inf),
+    noiselvl: Pfunc({0.005.rand}) + 0.2,
     out: ~signalBus + 1,
-    gain: 0.6,
-    vol: 0.9,
-    dur: 0.917431192661
+    gain: 1,
+    vol: 1,
+    dur: 0.728980402782 //      282.52 / 387.555
+
   ]);
   ~newSimplePlayer.play;
   ~simplePlayer3 = Pbind(*[
     instrument: \snare,
-    freq: 50,
-    out: 54,
-    gain: 0.0,
-    vol: 0.0,
-    dur: 0.3
+    freq: Prand([331.0875, 387.5554, 392.4, 465.06667] / 2, inf),
+    noiselvl: Pfunc({0.005.rand}) + 0.17,
+    out: 52,
+    gain: 1.0,
+    vol: 1.0,
+    dur: 0.8100247714 //    264.87 / 326.99
   ]);
-  //  ~simplePlayer3.play;
+  ~simplePlayer3.play;
 #+end_src
 
 Regular hits
@@ -167,7 +170,7 @@ Regular hits
     out: ~signalBus,
     gain: 0.1,
     vol: 0.1,
-    dur: 0.03
+    dur: 1
   ]);
   ~simplePlayer.play;
   ~newSimplePlayer = Pbind(*[

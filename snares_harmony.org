@@ -87,17 +87,17 @@ Global variables and semaphhores
   /* Which space? */
   ~space = 0;
   /* Fundamental frequency */
-  ~fundamental = 490.50036;
-  //  ~fundamental = 261.1;
+  // ~fundamental = 1;
+  ~fundamental = 331.0875;
   /* Mode of synthesis */
-  ~mode = \harmony;
+  ~mode = \dual;
   /* Amplitude mode */
-  ~ampMode = \reverse;
-  ~baseAmplitude = 0.3;
+  ~ampMode = \full;
+  ~baseAmplitude = 0.8;
   /* The general level of loggging */
   ~logging = 2;
   /* The synthesis mode \sin, \break, \snare */
-  ~synthMode = \sin;
+  ~synthMode = \snare;
 
 
   /* Spatialisation positions */
@@ -405,7 +405,8 @@ Called by [[*generate harmonics][generate harmonics]].
 
                     ~separator.value.postln;    
                     "".postln;
-                    "synthmode is ".post; synthMode.postln;		  
+                    "synthmode is ".post; synthMode.postln;
+                    "===================== harmonics ".post; harmonics[i].postln;
                     switch(synthMode,
                           \sin, {			
                             synth = Synth("test", [freq: harmonics[i], amp: amp[i], out: audioBus]);
@@ -461,7 +462,7 @@ End of harmonics.
 
 #+begin_src sclang :results none
   ~synths.size.postln;
-  ~synths[0].get(\freq2, { arg value; ("freq is now:" + value + "Hz").postln; });
+  ~synths[0].get(\freq2, { arg value; ("freq2 is now:" + value + "Hz").postln; });
 #+end_src
 
 Unused function to map frequency to noise level
@@ -786,16 +787,16 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
 #+begin_src sclang :results none :noweb yes
   <<interpolate_busses>>
   <<pulse_modulation>>
-  ~modulateSpeed.value(2, 50, 1, \ratio, [81,80]);
-  ~setSpatPositions.value([[9, 1, 10], [3, 1, 10]], 50);
+  ~modulateSpeed.value(2, 20, 1, \ratio, [81,80]);
+  ~setSpatPositions.value([[0, 1, 80], [0, 1, 80]], 20);
 #+end_src
 
 #+begin_src sclang :results none
   var frontDry = { |time = 20|
-    ~modulateSpeed.value(0.5, time, 1, \ratio, [27,25]);
-    ~setSpatPositions.value([[2, 1, 0], [4, 1, 0]], time);
+    ~modulateSpeed.value(0.5, time, 1, \ratio, [5,4]);
+    ~setSpatPositions.value([[0, 1, 0], [1, 1, 0]], time);
   };
-  frontDry.value(30);
+  frontDry.value(15);
 #+end_src
 
 #+begin_src sclang :results none
@@ -808,14 +809,16 @@ Build an array of arguments for the interpolation of the pulse frequence of the 
   ~setSpatPositions.value([[4, 1, 0.1], [5, 1, 0.1]], 10);
 #+end_src
 
-#+begin_src sclang :results none
-  ~modulateSpeed.value(0.5, 40, 0.5, \ratio, [7,8]);
-  ~setSpatPositions.value([[1, 0.05, 50], [9, 0.5, 50]], 40);
+#+begin_src sclang :results none :noweb yes
+  <<interpolate_busses>>
+  <<pulse_modulation>>
+  ~modulateSpeed.value(0.5, 10, 0.5, \ratio, [7,8]);
+  ~setSpatPositions.value([[0, 1, 1], [0, 1, 1], [0, 1, 1], [0, 1, 1]], 10);
 #+end_src
 
 #+begin_src sclang :results none
-  ~modulateSpeed.value(4, 5, 1, \change, [1,2]);
-  //  ~setSpatPositions.value([[1, 0.05, 50], [9, 0.5, 50]], 40);
+  ~modulateSpeed.value(4, 15, 1, \ratio, [3,4]);
+  //~setSpatPositions.value([[9, 1, 1], [10, 1, 1]], 15);
 #+end_src
 
 Create an array of arrays, each with a start, end and dur parameter.
@@ -969,7 +972,7 @@ Create an array and interpolate the pulse frequence of the instruments. The arra
           };	
     ) // switch
   };
-  ~pulsePresets.value(5);
+  ~pulsePresets.value(2);
 #+end_src
 
 #+begin_src sclang :results none
@@ -1084,7 +1087,7 @@ Gradually increase parameter in one synth.
 	 interpolate.play;
   };
   speeder.value(14, (200..100), 0.05, \freq);
-#+end_src
+
 
 Gradually increase parameter in all synths using [[set_all_synths][set_all_synths]].
 #+begin_src sclang :results none
@@ -1123,23 +1126,39 @@ Gradually increase parameter in all synths using [[set_all_synths][set_all_synth
 #+end_src
 
 #+begin_src sclang :results none
-  ~synths[0].get(\amp, { arg value; ("freq is now:" + value + "Hz").postln; });
-  ~synths[0].get(\freq, { arg value; ("freq2 is now:" + value + "Hz").postln; });
+  var test = 0;
+  ~synths[0].get(\amp, { arg value; test = value; });
+  test.postln;
 #+end_src
+
+#+begin_src sclang :results none
+  ~synths[0].get(\amp, { arg value; ("freq is now:" + value + "Hz").postln; });
+  ~synths[2].get(\freq2, { arg value; ("freq2 is now:" + value + "Hz").postln; });
+#+end_src
+
 #+name: synth_frequency
 #+begin_src sclang :results none
   //  ~setAllSynths.value(\freq2, 245.25018);
   //  ~setAllSynths.value(\freq, 490.500036);
-  ~setAllSynths.value(\rel, 0.003);
-  ~setAllSynths.value(\nattack, 0.1);
+  ~setAllSynths.value(\rel, 0.1);
+  ~setAllSynths.value(\nattack, 0.0001);
   ~setAllSynths.value(\nrel, 0.1);
 #+end_src
 
-#+name: synth_release_harmony
-#+begin_src sclang :results none
-  ~setAllSynths.value(\gain, 1.0);
+#+name: setting_snare_1
+#+begin_src sclang :results none :noweb yes
+  <<set_all_synths>>
+  ~setAllSynths.value(\rel, 0.1);
+  ~setAllSynths.value(\gain, 0.8);
+  ~setAllSynths.value(\freq, 100);
+  ~setAllSynths.value(\freq2, 100);
 #+end_src
 
+#+begin_src sclang :results none
+  ~synths[1].set(\gain, 1);
+#+end_src
+
+#+name: set_all_snths
 #+begin_src sclang :results none
   ~setAllSynths = { arg param = \noiseScale, value = 0;
     ~synths.do({ arg obj, i;
@@ -1171,10 +1190,10 @@ Set one synths parameter x.
 
 #+name: set_synth_freq
 #+begin_src sclang :results none
-  ~setSynth.value(0, \freq, 261.6);
-  ~setSynth.value(0, \freq2, 264.87);
-  ~setSynth.value(1, \freq, 261.6);
-  ~setSynth.value(1, \freq2, 264.87);
+  ~setSynth.value(0, \rel, 0.1);
+  ~setSynth.value(1, \rel, 0.1);
+  ~setSynth.value(2, \rel, 0.1);
+  ~setSynth.value(3, \rel, 0.1);
 #+end_src
 
 ** ambisonics
@@ -1217,13 +1236,13 @@ Call this to set each ~~audioBus~ to a fraction of the space.
   size.do({ arg i;
     caz = az * i;
     cel = (el * i) - 0.2;
-    ~updatePanningAmbiSingle.value(i, caz, cel, 0, 20) 
+    ~updatePanningAmbiSingle.value(i, caz, cel, 0, 10) 
 //    ~controlBus[i].setn([caz, cel, 0]);
   });
 #+end_src
 
 #+begin_src sclang :results none
-~updatePanningAmbiSingle.value(0, 0, -1.5, 1, 8);
+~updatePanningAmbiSingle.value(0, 2, 0, 1, 5);
 #+end_src
 
 #+begin_src sclang :results none
@@ -1756,7 +1775,7 @@ Fade in 15 channels
 
 Fade out.
 #+begin_src sclang :results none
-  ~setSpatPositions.value([ [ 0, 1, 90 ], [ 1, 1, 90 ] ], 4);
+  ~setSpatPositions.value([ [ 0, 0.01, 90 ], [ 1, 0.01, 90 ] ], 4);
 #+end_src
 
 Bring forward in one angle
@@ -1828,7 +1847,7 @@ Mix forward
     [ 4, 0.8, 1 ],
     [ 10, 0.7, 1 ],
     [ 12, 0.5, 1 ] ],
-    3);
+    10);
 #+end_src
 
 Mix forward
