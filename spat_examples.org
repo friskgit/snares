@@ -134,7 +134,8 @@ dur on
     out: ~signalBus,
     gain: 1,
     vol: 1,
-    dur: 0.6666 //    261.6 / 392.4
+    dur:  0.532653061224
+    //    261.6 / 392.4
   ]);
   ~simplePlayer.play;
   ~newSimplePlayer = Pbind(*[
@@ -144,7 +145,8 @@ dur on
     out: ~signalBus + 1,
     gain: 1,
     vol: 1,
-    dur: 0.728980402782 //      282.52 / 387.555
+    dur: 0.538775510204
+    //      282.52 / 387.555
 
   ]);
   ~newSimplePlayer.play;
@@ -155,7 +157,8 @@ dur on
     out: 52,
     gain: 1.0,
     vol: 1.0,
-    dur: 0.8100247714 //    264.87 / 326.99
+    dur: 0.575510204082
+ //    264.87 / 326.99
   ]);
   ~simplePlayer3.play;
 #+end_src
@@ -741,8 +744,7 @@ Arguments:
   //  distanceFunc.value(100, 1, 10);
 #+end_src
 
-Helper function for GUI. Helper function for GUI. Function to generate a line between -~range~ and ~range~ in ~time~ seconds to control a slider.
-If ~dir~ is 1 the function counts from 0 and up, if it is 0 it counts from ~range~ to -~range~.
+Helper function for GUI. Helper function for GUI. Function to generate a line between -~range~ and ~range~ in ~time~ seconds to control a slider. If ~dir~ is 1 the function counts from 0 and up, if it is 0 it counts from ~range~ to -~range~.
 
 Arguments:
 - ~size~ Size of the counter

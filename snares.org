@@ -453,8 +453,8 @@ Routine recorded on July 24
 ** test tone
 #+name: ssingle
 #+begin_src sclang :results none
-  {Out.ar(0, SinOsc.ar(440, 0, 0.1))}.play;
-  s.meter;
+  {Out.ar(28, SinOsc.ar(440, 0, 0.1))}.play;
+//  s.meter;
 #+end_src
 
 GUI
