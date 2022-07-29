@@ -12,3 +12,5 @@ faust/snare/cpp
 *.bu
 /test.org
 /#test.org#
+/unused_audio/
+/faust/snare/src/#disperse_filtered_sound.dsp#
